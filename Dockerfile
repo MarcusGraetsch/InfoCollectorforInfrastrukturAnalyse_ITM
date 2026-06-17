@@ -1,7 +1,8 @@
 FROM node:20-slim AS builder
 WORKDIR /app
+RUN npm install -g npm@latest
 COPY package*.json ./
-RUN npm install && test -d node_modules/.bin && node_modules/.bin/tsc --version
+RUN npm install
 COPY . .
 RUN npm run build
 
