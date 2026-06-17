@@ -159,25 +159,49 @@ if [ "$DEPLOY_MODE" = "1" ]; then
     ok "Docker gefunden: $(docker --version 2>/dev/null | cut -d' ' -f3 | tr -d ',')"
   fi
 
+  # Determine whether we can talk to the Docker daemon without sudo.
+  # After a fresh install the current shell is not yet in the 'docker'
+  # group, so we transparently fall back to sudo.
+  DOCKER_SUDO=""
+  if ! docker info &>/dev/null; then
+    if sudo -n true 2>/dev/null || sudo true; then
+      if sudo docker info &>/dev/null; then
+        DOCKER_SUDO="sudo"
+        warn "Docker-Daemon nur mit sudo erreichbar (Gruppenmitgliedschaft erst nach Neuanmeldung aktiv) – nutze sudo."
+      fi
+    fi
+  fi
+  if [ -z "$DOCKER_SUDO" ] && ! docker info &>/dev/null; then
+    fail "Docker-Daemon nicht erreichbar. Läuft der Dienst? Versuchen Sie: sudo systemctl start docker"
+  fi
+
   # Check if docker-compose is available
-  if command -v docker-compose &>/dev/null; then
-    COMPOSE_CMD="docker-compose"
-  elif docker compose version &>/dev/null 2>&1; then
-    COMPOSE_CMD="docker compose"
+  if docker compose version &>/dev/null 2>&1 || $DOCKER_SUDO docker compose version &>/dev/null 2>&1; then
+    COMPOSE_CMD="$DOCKER_SUDO docker compose"
+  elif command -v docker-compose &>/dev/null; then
+    COMPOSE_CMD="$DOCKER_SUDO docker-compose"
   else
-    warn "docker-compose nicht gefunden, installiere..."
-    sudo apt-get install -y -qq docker-compose 2>/dev/null || pip3 install docker-compose 2>/dev/null || true
-    COMPOSE_CMD="docker-compose"
+    warn "docker compose nicht gefunden, installiere docker-compose-plugin..."
+    sudo apt-get install -y -qq docker-compose-plugin 2>/dev/null \
+      || sudo apt-get install -y -qq docker-compose 2>/dev/null || true
+    COMPOSE_CMD="$DOCKER_SUDO docker compose"
   fi
 
   echo ""
   progress "Baue Docker-Image (kann einige Minuten dauern)" 3
-  APP_PORT="$APP_PORT" $COMPOSE_CMD build 2>&1 | while IFS= read -r line; do
-    echo -e "  ${DIM}${line}${RESET}"
-  done
+  if ! APP_PORT="$APP_PORT" $COMPOSE_CMD build; then
+    fail "Docker-Build fehlgeschlagen. Bitte Ausgabe oben prüfen."
+  fi
 
   progress "Starte Container" 1
-  APP_PORT="$APP_PORT" $COMPOSE_CMD up -d
+  if ! APP_PORT="$APP_PORT" $COMPOSE_CMD up -d; then
+    fail "Container konnte nicht gestartet werden. Bitte Ausgabe oben prüfen."
+  fi
+
+  # Verify the container is actually running
+  if ! $DOCKER_SUDO docker ps --filter "name=it-strukturanalyse" --filter "status=running" --format '{{.Names}}' | grep -q .; then
+    fail "Container läuft nicht. Logs: $DOCKER_SUDO docker compose logs"
+  fi
 
   ok "Container gestartet: it-strukturanalyse"
 
@@ -220,12 +244,12 @@ else
   cat > start.sh << EOF
 #!/bin/bash
 echo "Starting IT Strukturanalyse..."
-npx serve -s dist -l ${APP_PORT} --listen ${BIND_HOST}
+npx serve -s dist -l tcp://${BIND_HOST}:${APP_PORT}
 EOF
   chmod +x start.sh
 
   progress "Starte Webserver auf Port $APP_PORT" 1
-  nohup npx serve -s dist -l "${APP_PORT}" --listen "${BIND_HOST}" > app.log 2>&1 &
+  nohup npx serve -s dist -l "tcp://${BIND_HOST}:${APP_PORT}" > app.log 2>&1 &
   APP_PID=$!
   echo $APP_PID > app.pid
   sleep 2
