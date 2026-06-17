@@ -201,29 +201,58 @@ if [ "$DEPLOY_MODE" = "1" ]; then
   fi
   ok "Node.js: $(node --version)  npm: $(npm --version)"
 
-  progress "Installiere Abhängigkeiten" 4
-  NODE_ENV=development npm install 2>&1 | tail -3
-
-  progress "Baue Produktions-Bundle" 4
-  NODE_ENV=development npm run build 2>&1 | tail -3
-  ok "Build erfolgreich → dist/"
+  echo ""
+  echo -e "  ${DIM}Installiere npm-Pakete (inkl. TypeScript, Vite …)${RESET}"
+  NODE_ENV=development npm install 2>&1 | grep -v "^$" | while IFS= read -r line; do
+    echo -e "  ${DIM}${line}${RESET}"
+  done
+  # npm hat einen bekannten Bug (Exit handler never called!) der manchmal exit 0
+  # zurückgibt obwohl Pakete fehlen – daher explizit prüfen:
+  if [ ! -f node_modules/.bin/tsc ]; then
+    warn "TypeScript nach npm install nicht gefunden – installiere explizit …"
+    NODE_ENV=development npm install typescript vite @vitejs/plugin-react --save-dev 2>&1 | grep -v "^$" | while IFS= read -r line; do
+      echo -e "  ${DIM}${line}${RESET}"
+    done
+  fi
+  if [ ! -f node_modules/.bin/tsc ]; then
+    fail "TypeScript konnte nicht installiert werden. Bitte 'npm install' manuell prüfen."
+  fi
+  ok "Pakete installiert ($(ls node_modules | wc -l | tr -d ' ') Module)"
 
   echo ""
-  progress "Baue Docker-Image" 2
-  if ! APP_PORT="$APP_PORT" $COMPOSE_CMD build --no-cache; then
+  echo -e "  ${DIM}Übersetze TypeScript und baue Produktions-Bundle …${RESET}"
+  if ! NODE_ENV=development npm run build 2>&1 | while IFS= read -r line; do
+    echo -e "  ${DIM}${line}${RESET}"
+  done; then
+    fail "Build fehlgeschlagen. Bitte Ausgabe oben prüfen."
+  fi
+  if [ ! -d dist ]; then
+    fail "dist/-Verzeichnis nicht gefunden – Build scheint fehlgeschlagen."
+  fi
+  ok "Build erfolgreich → dist/ ($(du -sh dist 2>/dev/null | cut -f1))"
+
+  echo ""
+  echo -e "  ${DIM}Baue Docker-Image (nginx:alpine + dist/) …${RESET}"
+  if ! APP_PORT="$APP_PORT" $COMPOSE_CMD build --no-cache 2>&1 | while IFS= read -r line; do
+    echo -e "  ${DIM}${line}${RESET}"
+  done; then
     fail "Docker-Build fehlgeschlagen. Bitte Ausgabe oben prüfen."
   fi
+  ok "Docker-Image gebaut"
 
-  progress "Starte Container" 1
-  if ! APP_PORT="$APP_PORT" $COMPOSE_CMD up -d; then
+  echo ""
+  echo -e "  ${DIM}Starte Container …${RESET}"
+  if ! APP_PORT="$APP_PORT" $COMPOSE_CMD up -d 2>&1 | while IFS= read -r line; do
+    echo -e "  ${DIM}${line}${RESET}"
+  done; then
     fail "Container konnte nicht gestartet werden. Bitte Ausgabe oben prüfen."
   fi
 
   # Verify the container is actually running
+  sleep 2
   if ! $DOCKER_SUDO docker ps --filter "name=it-strukturanalyse" --filter "status=running" --format '{{.Names}}' | grep -q .; then
     fail "Container läuft nicht. Logs: $DOCKER_SUDO docker compose logs"
   fi
-
   ok "Container gestartet: it-strukturanalyse"
 
 # ---- Node.js Direct Deployment ----
@@ -248,9 +277,22 @@ else
   ok "Node.js gefunden: $NODE_VER"
   ok "npm: $(npm --version)"
 
-  progress "Installiere Abhängigkeiten" 3
-  npm ci --silent 2>&1 | tail -5
+  echo ""
+  echo -e "  ${DIM}Installiere npm-Pakete (inkl. TypeScript, Vite …)${RESET}"
+  NODE_ENV=development npm install 2>&1 | grep -v "^$" | while IFS= read -r line; do
+    echo -e "  ${DIM}${line}${RESET}"
+  done
+  if [ ! -f node_modules/.bin/tsc ]; then
+    warn "TypeScript nach npm install nicht gefunden – installiere explizit …"
+    NODE_ENV=development npm install typescript vite @vitejs/plugin-react --save-dev 2>&1 | grep -v "^$" | while IFS= read -r line; do
+      echo -e "  ${DIM}${line}${RESET}"
+    done
+  fi
+  [ -f node_modules/.bin/tsc ] || fail "TypeScript konnte nicht installiert werden."
+  ok "Pakete installiert ($(ls node_modules | wc -l | tr -d ' ') Module)"
 
+  echo ""
+  echo -e "  ${DIM}Übersetze TypeScript und baue Produktions-Bundle …${RESET}"
   progress "Baue Produktions-Bundle" 4
   npm run build 2>&1 | tail -5
   ok "Build erfolgreich: dist/"
