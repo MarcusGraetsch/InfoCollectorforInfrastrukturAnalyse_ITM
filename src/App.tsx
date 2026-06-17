@@ -84,7 +84,7 @@ function App() {
   const categoryDef = CATEGORY_MAP[activeCategory];
 
   return (
-    <div className="h-screen flex flex-col bg-gray-100">
+    <div className="h-screen flex flex-col bg-hi-gray">
       <AppHeader
         state={state}
         mode={mode}
@@ -113,9 +113,9 @@ function App() {
 
         {mode === 'detail' && (
           <div className="flex h-full overflow-hidden">
-            <aside className="w-64 bg-white shadow-md flex-shrink-0 overflow-y-auto">
+            <aside className="w-64 bg-hi-navy flex-shrink-0 overflow-y-auto">
               <nav className="p-3">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 py-2">
+                <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest px-3 py-2">
                   Kategorien
                 </p>
                 {CATEGORIES.map((cat) => {
@@ -125,16 +125,16 @@ function App() {
                     <button
                       key={cat.key}
                       onClick={() => handleCategoryChange(cat.key)}
-                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mb-0.5 ${
+                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all mb-0.5 ${
                         isActive
-                          ? 'bg-blue-600 text-white'
-                          : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'
+                          ? 'bg-hi-accent text-white shadow-lg'
+                          : 'text-white/70 hover:bg-white/10 hover:text-white'
                       }`}
                     >
                       <span>{cat.label}</span>
                       <span
-                        className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
-                          isActive ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'
+                        className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+                          isActive ? 'bg-white/20 text-white' : 'bg-white/10 text-white/60'
                         }`}
                       >
                         {count}
@@ -145,7 +145,7 @@ function App() {
               </nav>
             </aside>
 
-            <main className="flex-1 p-6 overflow-y-auto">
+            <main className="flex-1 p-6 overflow-y-auto bg-hi-gray">
               {view === 'list' ? (
                 <CategoryList
                   categoryDef={categoryDef}

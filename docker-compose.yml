@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  strukturanalyse:
+    build: .
+    image: hisolutions/it-strukturanalyse:latest
+    container_name: it-strukturanalyse
+    ports:
+      - "${APP_PORT:-8080}:80"
+    restart: unless-stopped
+    labels:
+      - "com.hisolutions.app=IT-Strukturanalyse"
+      - "com.hisolutions.version=1.0"

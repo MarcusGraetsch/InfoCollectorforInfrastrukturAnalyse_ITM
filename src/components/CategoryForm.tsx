@@ -52,13 +52,13 @@ export const CategoryForm: React.FC<Props> = ({ categoryDef, state, editId, onSa
 
   const renderField = (field: FieldDef) => (
     <div key={field.key}>
-      <label className="block text-sm font-medium text-gray-700 mb-1 group relative">
+      <label className="block text-sm font-semibold text-hi-navy mb-1.5 group relative">
         {field.label}
         {field.required && <span className="text-red-500 ml-1">*</span>}
         {field.tooltip && (
-          <span className="ml-2 inline-block w-4 h-4 rounded-full bg-blue-100 text-blue-600 text-xs text-center leading-4 cursor-help relative group-hover:z-10">
+          <span className="ml-2 inline-flex items-center justify-center w-4 h-4 rounded-full bg-hi-light/20 text-hi-accent text-xs cursor-help relative group-hover:z-10 font-normal border border-hi-light/30">
             ?
-            <span className="hidden group-hover:block absolute left-6 top-0 w-64 bg-gray-800 text-white text-xs rounded p-2 shadow-lg z-50 font-normal">
+            <span className="hidden group-hover:block absolute left-6 top-0 w-72 bg-hi-navy text-white text-xs rounded-lg p-3 shadow-xl z-50 font-normal leading-relaxed">
               {field.tooltip}
             </span>
           </span>
@@ -70,7 +70,7 @@ export const CategoryForm: React.FC<Props> = ({ categoryDef, state, editId, onSa
           value={(form[field.key] as string) || ''}
           onChange={(e) => handleChange(field.key, e.target.value)}
           required={field.required}
-          className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-hi-accent focus:border-hi-accent bg-white transition-colors"
         />
       )}
       {field.type === 'textarea' && (
@@ -78,20 +78,18 @@ export const CategoryForm: React.FC<Props> = ({ categoryDef, state, editId, onSa
           value={(form[field.key] as string) || ''}
           onChange={(e) => handleChange(field.key, e.target.value)}
           rows={3}
-          className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-hi-accent focus:border-hi-accent bg-white resize-y transition-colors"
         />
       )}
       {field.type === 'select' && (
         <select
           value={(form[field.key] as string) || ''}
           onChange={(e) => handleChange(field.key, e.target.value)}
-          className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-hi-accent focus:border-hi-accent bg-white transition-colors"
         >
-          <option value="">-- bitte wählen --</option>
+          <option value="">— bitte wählen —</option>
           {field.options?.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
+            <option key={opt} value={opt}>{opt}</option>
           ))}
         </select>
       )}
@@ -110,33 +108,47 @@ export const CategoryForm: React.FC<Props> = ({ categoryDef, state, editId, onSa
   const cloudFields = categoryDef.fields.filter((f) => f.group === 'cloud');
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h2 className="text-xl font-semibold text-gray-800 mb-6">
-        {editId ? 'Eintrag bearbeiten' : 'Neuer Eintrag'} – {categoryDef.label}
-      </h2>
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
+        <div className="w-8 h-8 rounded-lg bg-hi-accent flex items-center justify-center">
+          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+        </div>
+        <div>
+          <h2 className="text-lg font-bold text-hi-navy">
+            {editId ? 'Eintrag bearbeiten' : 'Neuer Eintrag'}
+          </h2>
+          <p className="text-xs text-hi-slate">{categoryDef.label}</p>
+        </div>
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-4">{basisFields.map(renderField)}</div>
 
         {cloudFields.length > 0 && (
-          <fieldset className="border border-sky-200 bg-sky-50/50 rounded-lg p-4 space-y-4">
-            <legend className="px-2 text-sm font-semibold text-sky-800 flex items-center gap-1">
-              ☁️ Cloud-Readiness (für Workshop-Vorbereitung)
+          <fieldset className="border border-sky-200 bg-gradient-to-b from-sky-50/80 to-white rounded-xl p-5 space-y-4 mt-6">
+            <legend className="px-2 text-xs font-bold text-sky-800 flex items-center gap-1.5 uppercase tracking-wider">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+              </svg>
+              Cloud-Readiness — Workshop-Vorbereitung
             </legend>
             {cloudFields.map(renderField)}
           </fieldset>
         )}
 
-        <div className="flex gap-3 pt-4 border-t border-gray-200">
+        <div className="flex gap-3 pt-4 border-t border-gray-100">
           <button
             type="submit"
-            className="px-6 py-2 bg-blue-600 text-white rounded font-medium hover:bg-blue-700 transition-colors"
+            className="px-6 py-2 bg-hi-accent text-white rounded-lg font-semibold text-sm hover:bg-hi-blue transition-colors shadow-sm"
           >
             Speichern
           </button>
           <button
             type="button"
             onClick={onCancel}
-            className="px-6 py-2 border border-gray-300 text-gray-700 rounded font-medium hover:bg-gray-50 transition-colors"
+            className="px-6 py-2 border border-gray-200 text-hi-slate rounded-lg font-semibold text-sm hover:bg-hi-gray transition-colors"
           >
             Abbrechen
           </button>
