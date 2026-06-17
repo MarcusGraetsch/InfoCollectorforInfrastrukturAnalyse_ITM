@@ -242,25 +242,30 @@ if [ "$DEPLOY_MODE" = "1" ]; then
   fi
   ok "Node.js: $(node --version)  npm: $(npm --version)"
 
+  # npm braucht ein echtes TTY – kein Hintergrundprozess/Redirect, sonst crasht es.
   echo ""
-  run_with_spinner "npm install — lade Pakete herunter …" \
-    env NODE_ENV=development npm install
+  echo -e "  ${CYAN}${BOLD}▷${RESET} ${WHITE}npm install${RESET} ${DIM}(kann 2–4 Minuten dauern – npm zeigt eigenen Fortschritt)${RESET}"
+  echo -e "  ${DIM}────────────────────────────────────────────────────────────${RESET}"
+  NODE_ENV=development npm install --no-audit --no-fund || true
+  echo -e "  ${DIM}────────────────────────────────────────────────────────────${RESET}"
 
-  # npm hat einen bekannten Bug ('Exit handler never called!') der manchmal
-  # exit 0 zurückgibt aber Pakete nicht installiert – daher explizit prüfen:
+  # npm hat einen bekannten Bug ('Exit handler never called!') — prüfen ob tsc da ist:
   if [ ! -f node_modules/.bin/tsc ]; then
-    warn "TypeScript nicht gefunden (npm-Bug) — installiere direkt als Fallback …"
-    run_with_spinner "npm install typescript + vite (Fallback) …" \
-      env NODE_ENV=development npm install typescript vite @vitejs/plugin-react --save-dev
+    warn "TypeScript fehlt noch — installiere direkt als Fallback …"
+    echo -e "  ${DIM}────────────────────────────────────────────────────────────${RESET}"
+    NODE_ENV=development npm install --no-audit --no-fund typescript vite @vitejs/plugin-react --save-dev || true
+    echo -e "  ${DIM}────────────────────────────────────────────────────────────${RESET}"
   fi
   if [ ! -f node_modules/.bin/tsc ]; then
-    fail "TypeScript konnte nicht installiert werden. Bitte 'npm install' manuell prüfen."
+    fail "TypeScript konnte nicht installiert werden."
   fi
   ok "$(ls node_modules | wc -l | tr -d ' ') Pakete installiert"
 
   echo ""
-  run_with_spinner "TypeScript kompilieren + Vite-Bundle bauen …" \
-    env NODE_ENV=development npm run build
+  echo -e "  ${CYAN}${BOLD}▷${RESET} ${WHITE}npm run build${RESET} ${DIM}(TypeScript + Vite …)${RESET}"
+  echo -e "  ${DIM}────────────────────────────────────────────────────────────${RESET}"
+  NODE_ENV=development npm run build
+  echo -e "  ${DIM}────────────────────────────────────────────────────────────${RESET}"
   if [ ! -d dist ]; then
     fail "dist/-Verzeichnis nicht gefunden — Build fehlgeschlagen."
   fi
@@ -268,12 +273,12 @@ if [ "$DEPLOY_MODE" = "1" ]; then
 
   echo ""
   run_with_spinner "Docker-Image bauen (nginx:alpine + dist/) …" \
-    env APP_PORT="$APP_PORT" $COMPOSE_CMD build --no-cache
+    $COMPOSE_CMD build --no-cache
   ok "Docker-Image gebaut"
 
   echo ""
   run_with_spinner "Container starten …" \
-    env APP_PORT="$APP_PORT" $COMPOSE_CMD up -d
+    $COMPOSE_CMD up -d
 
   # Verify the container is actually running
   sleep 2
@@ -305,28 +310,27 @@ else
   ok "npm: $(npm --version)"
 
   echo ""
-  run_with_spinner "npm install — lade Pakete herunter …" \
-    env NODE_ENV=development npm install
+  echo -e "  ${CYAN}${BOLD}▷${RESET} ${WHITE}npm install${RESET} ${DIM}(kann 2–4 Minuten dauern)${RESET}"
+  echo -e "  ${DIM}────────────────────────────────────────────────────────────${RESET}"
+  NODE_ENV=development npm install --no-audit --no-fund || true
+  echo -e "  ${DIM}────────────────────────────────────────────────────────────${RESET}"
 
   if [ ! -f node_modules/.bin/tsc ]; then
-    warn "TypeScript nicht gefunden (npm-Bug) — installiere direkt als Fallback …"
-    run_with_spinner "npm install typescript + vite (Fallback) …" \
-      env NODE_ENV=development npm install typescript vite @vitejs/plugin-react --save-dev
+    warn "TypeScript fehlt — installiere direkt als Fallback …"
+    NODE_ENV=development npm install --no-audit --no-fund typescript vite @vitejs/plugin-react --save-dev || true
   fi
   [ -f node_modules/.bin/tsc ] || fail "TypeScript konnte nicht installiert werden."
   ok "$(ls node_modules | wc -l | tr -d ' ') Pakete installiert"
 
   echo ""
-  run_with_spinner "TypeScript kompilieren + Vite-Bundle bauen …" \
-    env NODE_ENV=development npm run build
+  echo -e "  ${CYAN}${BOLD}▷${RESET} ${WHITE}npm run build${RESET} ${DIM}(TypeScript + Vite …)${RESET}"
+  echo -e "  ${DIM}────────────────────────────────────────────────────────────${RESET}"
+  NODE_ENV=development npm run build
+  echo -e "  ${DIM}────────────────────────────────────────────────────────────${RESET}"
   if [ ! -d dist ]; then
     fail "dist/-Verzeichnis nicht gefunden — Build fehlgeschlagen."
   fi
   ok "Build fertig → dist/ ($(du -sh dist 2>/dev/null | cut -f1))"
-
-  progress "Baue Produktions-Bundle" 4
-  npm run build 2>&1 | tail -5
-  ok "Build erfolgreich: dist/"
 
   # Install serve if needed
   if ! command -v serve &>/dev/null && ! npx --yes serve --version &>/dev/null 2>&1; then
