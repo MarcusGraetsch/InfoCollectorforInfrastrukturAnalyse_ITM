@@ -1,19 +1,21 @@
 import React, { useState, useCallback } from 'react';
 import type { AppState, CategoryKey } from './types';
 import { loadState, saveState } from './store';
-import { CATEGORY_MAP } from './categories';
-import { Layout } from './components/Layout';
+import { CATEGORIES, CATEGORY_MAP } from './categories';
+import { AppHeader } from './components/AppHeader';
+import type { AppMode } from './components/AppHeader';
 import { CategoryList } from './components/CategoryList';
 import { CategoryForm } from './components/CategoryForm';
-import { exportToExcel } from './utils/export';
+import { Wizard } from './components/Wizard';
+import { CloudDashboard } from './components/CloudDashboard';
+import { exportToExcel, exportWorkshopPackage } from './utils/export';
 import { importFromExcel } from './utils/import';
-
-type View = 'list' | 'form';
 
 function App() {
   const [state, setState] = useState<AppState>(loadState);
+  const [mode, setMode] = useState<AppMode>('wizard');
   const [activeCategory, setActiveCategory] = useState<CategoryKey>('geschaeftsprozesse');
-  const [view, setView] = useState<View>('list');
+  const [view, setView] = useState<'list' | 'form'>('list');
   const [editId, setEditId] = useState<string | null>(null);
 
   const updateState = useCallback((updater: (prev: AppState) => AppState) => {
@@ -24,55 +26,47 @@ function App() {
     });
   }, []);
 
+  // --- Detail-mode handlers ---
   const handleCategoryChange = (key: CategoryKey) => {
     setActiveCategory(key);
     setView('list');
     setEditId(null);
   };
-
   const handleNew = () => {
     setEditId(null);
     setView('form');
   };
-
   const handleEdit = (id: string) => {
     setEditId(id);
     setView('form');
   };
-
   const handleDelete = (id: string) => {
     updateState((prev) => ({
       ...prev,
       [activeCategory]: (prev[activeCategory] as { id: string }[]).filter((i) => i.id !== id),
     }));
   };
-
   const handleSave = (item: Record<string, unknown>) => {
     updateState((prev) => {
       const arr = prev[activeCategory] as unknown as Record<string, unknown>[];
       if (editId) {
         return { ...prev, [activeCategory]: arr.map((i) => (i['id'] === editId ? item : i)) };
-      } else {
-        return { ...prev, [activeCategory]: [...arr, item] };
       }
+      return { ...prev, [activeCategory]: [...arr, item] };
     });
     setView('list');
     setEditId(null);
   };
-
   const handleCancel = () => {
     setView('list');
     setEditId(null);
   };
 
-  const handleCustomerNameChange = (name: string) => {
+  // --- Shared handlers ---
+  const handleCustomerNameChange = (name: string) =>
     updateState((prev) => ({ ...prev, customerName: name }));
-  };
-
-  const handleExport = () => {
-    exportToExcel(state);
-  };
-
+  const handleExport = () => exportToExcel(state);
+  const handleExportWorkshop = () => exportWorkshopPackage(state);
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -90,32 +84,90 @@ function App() {
   const categoryDef = CATEGORY_MAP[activeCategory];
 
   return (
-    <Layout
-      state={state}
-      activeCategory={activeCategory}
-      onCategoryChange={handleCategoryChange}
-      onCustomerNameChange={handleCustomerNameChange}
-      onExport={handleExport}
-      onImport={handleImport}
-    >
-      {view === 'list' ? (
-        <CategoryList
-          categoryDef={categoryDef}
-          state={state}
-          onNew={handleNew}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-        />
-      ) : (
-        <CategoryForm
-          categoryDef={categoryDef}
-          state={state}
-          editId={editId}
-          onSave={handleSave}
-          onCancel={handleCancel}
-        />
-      )}
-    </Layout>
+    <div className="h-screen flex flex-col bg-gray-100">
+      <AppHeader
+        state={state}
+        mode={mode}
+        onModeChange={setMode}
+        onCustomerNameChange={handleCustomerNameChange}
+        onImport={handleImport}
+        onExport={handleExport}
+        onExportWorkshop={handleExportWorkshop}
+      />
+
+      <div className="flex-1 overflow-hidden">
+        {mode === 'wizard' && (
+          <Wizard
+            state={state}
+            updateState={updateState}
+            onImport={handleImport}
+            onGoToDashboard={() => setMode('dashboard')}
+          />
+        )}
+
+        {mode === 'dashboard' && (
+          <div className="h-full overflow-y-auto">
+            <CloudDashboard state={state} onGoToWizard={() => setMode('wizard')} />
+          </div>
+        )}
+
+        {mode === 'detail' && (
+          <div className="flex h-full overflow-hidden">
+            <aside className="w-64 bg-white shadow-md flex-shrink-0 overflow-y-auto">
+              <nav className="p-3">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 py-2">
+                  Kategorien
+                </p>
+                {CATEGORIES.map((cat) => {
+                  const count = (state[cat.key] as unknown[]).length;
+                  const isActive = cat.key === activeCategory;
+                  return (
+                    <button
+                      key={cat.key}
+                      onClick={() => handleCategoryChange(cat.key)}
+                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mb-0.5 ${
+                        isActive
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'
+                      }`}
+                    >
+                      <span>{cat.label}</span>
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+                          isActive ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'
+                        }`}
+                      >
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </nav>
+            </aside>
+
+            <main className="flex-1 p-6 overflow-y-auto">
+              {view === 'list' ? (
+                <CategoryList
+                  categoryDef={categoryDef}
+                  state={state}
+                  onNew={handleNew}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
+              ) : (
+                <CategoryForm
+                  categoryDef={categoryDef}
+                  state={state}
+                  editId={editId}
+                  onSave={handleSave}
+                  onCancel={handleCancel}
+                />
+              )}
+            </main>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

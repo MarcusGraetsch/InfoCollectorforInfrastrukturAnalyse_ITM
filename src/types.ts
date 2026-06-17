@@ -10,6 +10,22 @@ export interface BaseItem {
   tags: string;
 }
 
+/**
+ * Zusätzliche cloud-relevante Attribute zur Vorbereitung des
+ * Cloud-Readiness-Workshops. Werden bei Anwendungen und IT-Systemen erfasst.
+ */
+export interface CloudFields {
+  schutzbedarf?: 'Normal' | 'Hoch' | 'Sehr hoch' | '';
+  datensouveraenitaet?: string;
+  bereitstellung?: string;
+  lizenzCloudfaehig?: string;
+  migrationskomplexitaet?: string;
+  lebenszyklus?: string;
+  internetfaehig?: string;
+  cloudEignung?: string;
+  cloudNotiz?: string;
+}
+
 export interface Geschaeftsprozess extends BaseItem {
   status: Status;
   prozessArt: ProzessArt | '';
@@ -22,12 +38,13 @@ export interface Geschaeftsprozess extends BaseItem {
 export interface Datum extends BaseItem {
   status: Status;
   personenbezug: JaNein | '';
+  datensouveraenitaet?: string;
   verantwortlicher: string;
   beteiligte: string;
   anwendungen: string[];
 }
 
-export interface Anwendung extends BaseItem {
+export interface Anwendung extends BaseItem, CloudFields {
   status: Status;
   verantwortlicher: string;
   benutzer: string;
@@ -45,7 +62,7 @@ export interface Datentraeger extends BaseItem {
   anwendungen: string[];
 }
 
-export interface Server extends BaseItem {
+export interface Server extends BaseItem, CloudFields {
   status: Status;
   anzahl: string;
   plattform: string;
@@ -82,7 +99,7 @@ export interface Netzverbindung extends BaseItem {
   gebaeude: string[];
 }
 
-export interface Client extends BaseItem {
+export interface Client extends BaseItem, CloudFields {
   status: Status;
   anzahl: string;
   plattform: string;
@@ -94,7 +111,7 @@ export interface Client extends BaseItem {
   gebaeude: string[];
 }
 
-export interface ICSSystem extends BaseItem {
+export interface ICSSystem extends BaseItem, CloudFields {
   status: Status;
   anzahl: string;
   plattform: string;
@@ -106,7 +123,7 @@ export interface ICSSystem extends BaseItem {
   gebaeude: string[];
 }
 
-export interface IoTSystem extends BaseItem {
+export interface IoTSystem extends BaseItem, CloudFields {
   status: Status;
   anzahl: string;
   plattform: string;
@@ -131,9 +148,30 @@ export interface Gebaeude extends BaseItem {
   benutzer: string;
 }
 
+/** Vom Kunden bereits gelieferte Unterlagen (Phase A der Erhebung). */
+export interface Quelldokument {
+  id: string;
+  name: string;
+  art: string;
+  erhaltenAm: string;
+  ausgewertet: boolean;
+  notiz: string;
+}
+
+/** Rahmendaten für die spätere Cloud-Strategie / den Readiness-Workshop. */
+export interface CloudStrategyMeta {
+  ziel: string;
+  treiber: string[];
+  zielumgebung: string[];
+  zeithorizont: string;
+  notizen: string;
+}
+
 export interface AppState {
   customerName: string;
   lastUpdated: string;
+  cloudStrategy: CloudStrategyMeta;
+  quelldokumente: Quelldokument[];
   geschaeftsprozesse: Geschaeftsprozess[];
   daten: Datum[];
   anwendungen: Anwendung[];
@@ -148,4 +186,7 @@ export interface AppState {
   gebaeude: Gebaeude[];
 }
 
-export type CategoryKey = keyof Omit<AppState, 'customerName' | 'lastUpdated'>;
+export type CategoryKey = keyof Omit<
+  AppState,
+  'customerName' | 'lastUpdated' | 'cloudStrategy' | 'quelldokumente'
+>;

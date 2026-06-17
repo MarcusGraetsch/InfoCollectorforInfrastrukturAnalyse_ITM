@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { CategoryDef } from '../categories';
+import type { CategoryDef, FieldDef } from '../categories';
 import type { AppState, CategoryKey } from '../types';
 import { generateId, generateKuerzel } from '../store';
 import { MultiSelect } from './MultiSelect';
@@ -50,67 +50,82 @@ export const CategoryForm: React.FC<Props> = ({ categoryDef, state, editId, onSa
     onSave(form);
   };
 
+  const renderField = (field: FieldDef) => (
+    <div key={field.key}>
+      <label className="block text-sm font-medium text-gray-700 mb-1 group relative">
+        {field.label}
+        {field.required && <span className="text-red-500 ml-1">*</span>}
+        {field.tooltip && (
+          <span className="ml-2 inline-block w-4 h-4 rounded-full bg-blue-100 text-blue-600 text-xs text-center leading-4 cursor-help relative group-hover:z-10">
+            ?
+            <span className="hidden group-hover:block absolute left-6 top-0 w-64 bg-gray-800 text-white text-xs rounded p-2 shadow-lg z-50 font-normal">
+              {field.tooltip}
+            </span>
+          </span>
+        )}
+      </label>
+      {field.type === 'text' && (
+        <input
+          type="text"
+          value={(form[field.key] as string) || ''}
+          onChange={(e) => handleChange(field.key, e.target.value)}
+          required={field.required}
+          className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      )}
+      {field.type === 'textarea' && (
+        <textarea
+          value={(form[field.key] as string) || ''}
+          onChange={(e) => handleChange(field.key, e.target.value)}
+          rows={3}
+          className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+        />
+      )}
+      {field.type === 'select' && (
+        <select
+          value={(form[field.key] as string) || ''}
+          onChange={(e) => handleChange(field.key, e.target.value)}
+          className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        >
+          <option value="">-- bitte wählen --</option>
+          {field.options?.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
+      )}
+      {field.type === 'multiref' && field.refCategory && (
+        <MultiSelect
+          value={(form[field.key] as string[]) || []}
+          onChange={(val) => handleChange(field.key, val)}
+          items={getRefItems(state, field.refCategory)}
+          label={field.label}
+        />
+      )}
+    </div>
+  );
+
+  const basisFields = categoryDef.fields.filter((f) => f.group !== 'cloud');
+  const cloudFields = categoryDef.fields.filter((f) => f.group === 'cloud');
+
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <h2 className="text-xl font-semibold text-gray-800 mb-6">
         {editId ? 'Eintrag bearbeiten' : 'Neuer Eintrag'} – {categoryDef.label}
       </h2>
       <form onSubmit={handleSubmit} className="space-y-4">
-        {categoryDef.fields.map((field) => (
-          <div key={field.key}>
-            <label className="block text-sm font-medium text-gray-700 mb-1 group relative">
-              {field.label}
-              {field.required && <span className="text-red-500 ml-1">*</span>}
-              {field.tooltip && (
-                <span className="ml-2 inline-block w-4 h-4 rounded-full bg-blue-100 text-blue-600 text-xs text-center leading-4 cursor-help relative group-hover:z-10">
-                  ?
-                  <span className="hidden group-hover:block absolute left-6 top-0 w-64 bg-gray-800 text-white text-xs rounded p-2 shadow-lg z-50 font-normal">
-                    {field.tooltip}
-                  </span>
-                </span>
-              )}
-            </label>
-            {field.type === 'text' && (
-              <input
-                type="text"
-                value={(form[field.key] as string) || ''}
-                onChange={(e) => handleChange(field.key, e.target.value)}
-                required={field.required}
-                className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            )}
-            {field.type === 'textarea' && (
-              <textarea
-                value={(form[field.key] as string) || ''}
-                onChange={(e) => handleChange(field.key, e.target.value)}
-                rows={3}
-                className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
-              />
-            )}
-            {field.type === 'select' && (
-              <select
-                value={(form[field.key] as string) || ''}
-                onChange={(e) => handleChange(field.key, e.target.value)}
-                className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-              >
-                <option value="">-- bitte wählen --</option>
-                {field.options?.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
-            )}
-            {field.type === 'multiref' && field.refCategory && (
-              <MultiSelect
-                value={(form[field.key] as string[]) || []}
-                onChange={(val) => handleChange(field.key, val)}
-                items={getRefItems(state, field.refCategory)}
-                label={field.label}
-              />
-            )}
-          </div>
-        ))}
+        <div className="space-y-4">{basisFields.map(renderField)}</div>
+
+        {cloudFields.length > 0 && (
+          <fieldset className="border border-sky-200 bg-sky-50/50 rounded-lg p-4 space-y-4">
+            <legend className="px-2 text-sm font-semibold text-sky-800 flex items-center gap-1">
+              ☁️ Cloud-Readiness (für Workshop-Vorbereitung)
+            </legend>
+            {cloudFields.map(renderField)}
+          </fieldset>
+        )}
+
         <div className="flex gap-3 pt-4 border-t border-gray-200">
           <button
             type="submit"

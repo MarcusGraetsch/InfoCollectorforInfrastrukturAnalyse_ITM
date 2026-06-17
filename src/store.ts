@@ -5,6 +5,14 @@ const STORAGE_KEY = 'it-strukturanalyse-data';
 export const defaultState: AppState = {
   customerName: '',
   lastUpdated: new Date().toISOString(),
+  cloudStrategy: {
+    ziel: '',
+    treiber: [],
+    zielumgebung: [],
+    zeithorizont: '',
+    notizen: '',
+  },
+  quelldokumente: [],
   geschaeftsprozesse: [],
   daten: [],
   anwendungen: [],

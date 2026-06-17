@@ -10,6 +10,17 @@ export interface FieldDef {
   refCategory?: CategoryKey;
   tooltip?: string;
   required?: boolean;
+  /** 'basis' = BSI-Strukturanalyse, 'cloud' = Cloud-Readiness-Zusatz */
+  group?: 'basis' | 'cloud';
+}
+
+/** Erklärende Hilfe für den durchführenden Mitarbeiter (BSI-orientiert). */
+export interface CategoryHelp {
+  intro: string;
+  bsiWhy: string;
+  cloudWhy: string;
+  interviewQuestions: string[];
+  ansprechpartner: string;
 }
 
 export interface CategoryDef {
@@ -17,6 +28,7 @@ export interface CategoryDef {
   label: string;
   prefix: string;
   fields: FieldDef[];
+  help?: CategoryHelp;
 }
 
 const STATUS_FIELD: FieldDef = {
@@ -34,6 +46,112 @@ const TAGS_FIELD: FieldDef = {
   type: 'text',
   tooltip: 'Kommagetrennte Schlagwörter zur Kategorisierung',
 };
+
+/**
+ * Cloud-Readiness-Zusatzfelder. Werden an Anwendungen, Server, Clients,
+ * ICS- und IoT-Systeme angehängt und bilden die Grundlage für das Scoring
+ * im Cloud-Readiness-Dashboard und den Workshop.
+ */
+export const CLOUD_FIELDS: FieldDef[] = [
+  {
+    key: 'schutzbedarf',
+    label: 'Schutzbedarf',
+    type: 'select',
+    options: ['Normal', 'Hoch', 'Sehr hoch'],
+    group: 'cloud',
+    tooltip:
+      'BSI-Schutzbedarf (Vertraulichkeit/Integrität/Verfügbarkeit, höchster Wert). Bestimmt mit, ob eine Public Cloud zulässig ist.',
+  },
+  {
+    key: 'datensouveraenitaet',
+    label: 'Datensouveränität',
+    type: 'select',
+    options: [
+      'Keine spezielle Anforderung',
+      'EU / DSGVO',
+      'Deutschland',
+      'Streng souverän (C5 / Gaia-X)',
+    ],
+    group: 'cloud',
+    tooltip:
+      'Rechtliche/regulatorische Anforderung an den Speicherort der Daten. Treiber für souveräne Cloud-Lösungen (C5-Testat, Gaia-X, DE-Rechenzentrum).',
+  },
+  {
+    key: 'bereitstellung',
+    label: 'Aktuelle Bereitstellung',
+    type: 'select',
+    options: [
+      'On-Premises (physisch)',
+      'On-Premises (virtualisiert)',
+      'Private Cloud',
+      'Hybrid',
+      'SaaS / Public Cloud',
+    ],
+    group: 'cloud',
+    tooltip:
+      'Wie wird das Objekt heute betrieben? Virtualisierte und bereits in der Cloud betriebene Objekte sind leichter migrierbar.',
+  },
+  {
+    key: 'lizenzCloudfaehig',
+    label: 'Lizenz cloudfähig',
+    type: 'select',
+    options: ['Ja', 'Nein', 'Unklar'],
+    group: 'cloud',
+    tooltip:
+      'Erlaubt das Lizenzmodell den Betrieb in der Cloud (z.B. BYOL, SaaS-Verfügbarkeit)? Nicht cloudfähige Lizenzen erzwingen oft einen Repurchase.',
+  },
+  {
+    key: 'migrationskomplexitaet',
+    label: 'Migrationskomplexität',
+    type: 'select',
+    options: ['Niedrig', 'Mittel', 'Hoch'],
+    group: 'cloud',
+    tooltip:
+      'Geschätzter Aufwand/Risiko einer Migration (Abhängigkeiten, Customizing, Schnittstellen, Datenmenge).',
+  },
+  {
+    key: 'lebenszyklus',
+    label: 'Lebenszyklus',
+    type: 'select',
+    options: ['Aktuell', 'Wartung läuft aus', 'End-of-Life'],
+    group: 'cloud',
+    tooltip:
+      'Technischer Lebenszyklus. End-of-Life-Systeme sind Kandidaten für Ablösung (Retire) oder Neubeschaffung (Repurchase).',
+  },
+  {
+    key: 'internetfaehig',
+    label: 'Internet-/Cloud-fähig',
+    type: 'select',
+    options: ['Ja', 'Nein'],
+    group: 'cloud',
+    tooltip:
+      'Kann das Objekt über Internet/Cloud-Anbindung betrieben werden, oder benötigt es lokale Latenz/Hardware (typisch für OT/ICS)?',
+  },
+  {
+    key: 'cloudEignung',
+    label: 'Migrationsstrategie (6R)',
+    type: 'select',
+    options: [
+      'Rehost (Lift & Shift)',
+      'Replatform',
+      'Repurchase (SaaS)',
+      'Refactor',
+      'Retire (Abschalten)',
+      'Retain (Behalten)',
+      'Noch offen',
+    ],
+    group: 'cloud',
+    tooltip:
+      'Geplante Migrationsstrategie nach dem 6R-Modell. Das Dashboard schlägt automatisch eine Strategie vor – hier kann die finale Entscheidung dokumentiert werden.',
+  },
+  {
+    key: 'cloudNotiz',
+    label: 'Cloud-Notiz',
+    type: 'textarea',
+    group: 'cloud',
+    tooltip: 'Freitext: Besonderheiten, Risiken, Annahmen für den Workshop.',
+  },
+];
 
 export const CATEGORIES: CategoryDef[] = [
   {
@@ -63,6 +181,7 @@ export const CATEGORIES: CategoryDef[] = [
       { key: 'erlaeuterung', label: 'Erläuterung', type: 'textarea', tooltip: 'Beschreibung der Daten und ihres Verwendungszwecks' },
       STATUS_FIELD,
       { key: 'personenbezug', label: 'Personenbezug', type: 'select', options: ['Ja', 'Nein'], tooltip: 'Enthält das Datenobjekt personenbezogene Daten (DSGVO relevant)?' },
+      { key: 'datensouveraenitaet', label: 'Datensouveränität', type: 'select', options: ['Keine spezielle Anforderung', 'EU / DSGVO', 'Deutschland', 'Streng souverän (C5 / Gaia-X)'], group: 'cloud', tooltip: 'Regulatorische Anforderung an den Speicherort. Wichtigster Treiber für eine souveräne Cloud.' },
       { key: 'verantwortlicher', label: 'Verantwortlicher/Fachabteilung', type: 'text', tooltip: 'Zuständige Person oder Abteilung' },
       { key: 'beteiligte', label: 'Beteiligte', type: 'text', tooltip: 'Weitere beteiligte Personen oder Rollen' },
       TAGS_FIELD,
@@ -254,6 +373,197 @@ export const CATEGORIES: CategoryDef[] = [
     ],
   },
 ];
+
+// Cloud-Readiness-Felder an die cloud-relevanten Kategorien anhängen.
+const CLOUD_RELEVANT: CategoryKey[] = [
+  'anwendungen',
+  'server',
+  'clients',
+  'icsSysteme',
+  'iotSysteme',
+];
+for (const cat of CATEGORIES) {
+  if (CLOUD_RELEVANT.includes(cat.key)) {
+    cat.fields.push(...CLOUD_FIELDS.map((f) => ({ ...f })));
+  }
+}
+
+// BSI-orientierte Hilfetexte für den geführten Erhebungs-Assistenten.
+const HELP: Partial<Record<CategoryKey, CategoryHelp>> = {
+  geschaeftsprozesse: {
+    intro:
+      'Geschäftsprozesse sind die fachlichen Abläufe, mit denen das Unternehmen seine Wertschöpfung erbringt. Sie bilden den Ausgangspunkt der Strukturanalyse.',
+    bsiWhy:
+      'Nach BSI IT-Grundschutz (Standard 200-2) wird der Schutzbedarf von den Geschäftsprozessen auf Anwendungen und IT-Systeme „vererbt". Ohne die Prozesse kann der Schutzbedarf nicht sauber begründet werden.',
+    cloudWhy:
+      'Kernprozesse mit hoher Verfügbarkeitsanforderung bestimmen, welche Systeme geschäftskritisch sind. Das priorisiert die Migrationsreihenfolge und zeigt, wo Cloud-Ausfallsicherheit (SLA) wichtig ist.',
+    interviewQuestions: [
+      'Was sind Ihre wichtigsten Geschäftsprozesse, ohne die der Betrieb stillsteht?',
+      'Welche Prozesse sind Kernprozesse, welche unterstützen nur?',
+      'Wie lange darf ein Prozess maximal ausfallen?',
+      'Welche Abteilungen/Personen sind verantwortlich?',
+    ],
+    ansprechpartner: 'Geschäftsführung, Fachbereichsleitungen, Prozessverantwortliche',
+  },
+  daten: {
+    intro:
+      'Hier werden die Informationen/Daten erfasst, die in den Prozessen verarbeitet, gespeichert oder übertragen werden – gruppiert nach Art (z.B. Kundendaten, Finanzdaten).',
+    bsiWhy:
+      'Daten sind die zentralen Schutzobjekte. Ihr Schutzbedarf (Vertraulichkeit, Integrität, Verfügbarkeit) sowie ein etwaiger Personenbezug (DSGVO) sind Grundlage jeder Risikobetrachtung.',
+    cloudWhy:
+      'Datenklassifizierung und Souveränitätsanforderung entscheiden, ob Daten in eine Public Cloud dürfen oder eine souveräne Cloud (C5/Gaia-X, DE-Standort) nötig ist. Das ist der wichtigste Cloud-Show-Stopper.',
+    interviewQuestions: [
+      'Welche Arten von Daten verarbeiten Sie (Kunden-, Personal-, Finanz-, Konstruktionsdaten …)?',
+      'Sind personenbezogene oder besonders schützenswerte Daten dabei?',
+      'Gibt es gesetzliche Vorgaben zum Speicherort (z.B. nur Deutschland/EU)?',
+      'Welche Daten wären bei Verlust/Offenlegung geschäftskritisch?',
+    ],
+    ansprechpartner: 'Datenschutzbeauftragter, Fachbereiche, ggf. Compliance',
+  },
+  anwendungen: {
+    intro:
+      'Anwendungen sind die Software/Fachverfahren, mit denen die Prozesse arbeiten. Wichtig ist die Zuordnung Anwendung → Prozess und Anwendung → IT-System.',
+    bsiWhy:
+      'Anwendungen sind eine eigene Schicht im IT-Grundschutz. Über sie wird der Schutzbedarf der Prozesse an die IT-Systeme weitergegeben.',
+    cloudWhy:
+      'Auf Anwendungsebene wird die 6R-Migrationsstrategie entschieden (Rehost, Replatform, Repurchase/SaaS, Refactor, Retire, Retain). Lizenzmodell, Lebenszyklus und Abhängigkeiten bestimmen Aufwand und Eignung.',
+    interviewQuestions: [
+      'Welche Anwendungen/Fachverfahren setzen Sie ein und wofür?',
+      'Gibt es bereits eine SaaS-/Cloud-Variante des Herstellers?',
+      'Wie ist die Anwendung lizenziert – ist Cloud-Betrieb erlaubt?',
+      'Welche Schnittstellen/Abhängigkeiten zu anderen Systemen bestehen?',
+      'Wie aktuell ist die Anwendung (Version, Support-Ende)?',
+    ],
+    ansprechpartner: 'Anwendungsverantwortliche, IT-Leitung, Fachbereiche',
+  },
+  datentraeger: {
+    intro:
+      'Datenträger, die nicht bereits durch Server/Clients abgedeckt sind – z.B. externe Festplatten, USB-Medien, Bandlaufwerke, separate NAS-Medien.',
+    bsiWhy:
+      'Datenträger können sensible Daten außerhalb der zentralen Systeme enthalten und sind relevant für Vertraulichkeit, sichere Löschung und Notfallvorsorge.',
+    cloudWhy:
+      'Lokale Datenträger und Backup-Medien zeigen, welche Datenmengen zu migrieren sind und wo Cloud-Backup/Archiv-Strategien ansetzen können.',
+    interviewQuestions: [
+      'Gibt es externe Datenträger oder Wechselmedien mit relevanten Daten?',
+      'Wie erfolgt heute das Backup und wo werden Medien aufbewahrt?',
+    ],
+    ansprechpartner: 'IT-Administration, Backup-Verantwortliche',
+  },
+  server: {
+    intro:
+      'Server stellen anderen Systemen Dienste bereit (z.B. Datei-, Datenbank-, Applikationsserver). Erfassen Sie auch virtuelle Server und Cluster (mit Anzahl/Gruppierung).',
+    bsiWhy:
+      'Server sind zentrale IT-Systeme im Grundschutz. Plattform und Verknüpfungen sind nötig, um Bausteine zuzuordnen und den Schutzbedarf abzuleiten.',
+    cloudWhy:
+      'Server sind die häufigsten Migrationsobjekte. Virtualisierungsgrad, Schutzbedarf und Lebenszyklus bestimmen, ob Rehost (Lift & Shift), Replatform oder Retain sinnvoll ist.',
+    interviewQuestions: [
+      'Welche Server betreiben Sie und welche Aufgabe haben sie?',
+      'Physisch oder virtualisiert? Welche Plattform/OS-Version?',
+      'Welche laufen auf veralteten Betriebssystemen (Support-Ende)?',
+      'Welche Server sind für den Betrieb am kritischsten?',
+    ],
+    ansprechpartner: 'System-/Server-Administration, IT-Leitung',
+  },
+  netzkomponenten: {
+    intro:
+      'Aktive und passive Netzkomponenten wie Router, Switches, Firewalls und WLAN-Access-Points, die für das Netzwerk relevant sind.',
+    bsiWhy:
+      'Netzkomponenten sind für die Netzsicherheit (Segmentierung, Perimeter) zentral und gehören zu den IT-Systemen des Informationsverbunds.',
+    cloudWhy:
+      'Die Netz-Topologie zeigt, welche Anbindung (Bandbreite, Firewall, VPN) für einen Cloud-Übergang nötig ist und wo Latenz/Abhängigkeiten Migrationen begrenzen.',
+    interviewQuestions: [
+      'Welche zentralen Netzkomponenten (Firewall, Core-Switch, Router) gibt es?',
+      'Wie ist das Netz segmentiert (z.B. OT/IT-Trennung)?',
+      'Welche Internet-Anbindung/Bandbreite steht zur Verfügung?',
+    ],
+    ansprechpartner: 'Netzwerk-Administration, IT-Sicherheit',
+  },
+  netzverbindungen: {
+    intro:
+      'Physische und logische Kommunikationsverbindungen innerhalb und zwischen Standorten – inkl. externer Verbindungen (Internet, WAN, VPN).',
+    bsiWhy:
+      'Kommunikationsverbindungen, insbesondere mit Außenanbindung, sind im Grundschutz kritische Betrachtungsobjekte (Schnittstellen nach außen).',
+    cloudWhy:
+      'Externe Verbindungen und Bandbreiten bestimmen die Cloud-Anbindungsstrategie (z.B. dediziertes Cloud-Interconnect, VPN, SD-WAN) und Latenz-Restriktionen.',
+    interviewQuestions: [
+      'Welche Standortverbindungen und externen Verbindungen gibt es?',
+      'Welche Verbindungen verlassen das Unternehmensnetz?',
+      'Welche Protokolle/Bandbreiten und Sicherheitsmechanismen werden genutzt?',
+    ],
+    ansprechpartner: 'Netzwerk-Administration, Provider-Management',
+  },
+  clients: {
+    intro:
+      'Arbeitsplatzrechner, Notebooks, Thin-Clients und mobile Endgeräte der Anwender.',
+    bsiWhy:
+      'Clients sind verbreitete IT-Systeme und häufiges Angriffsziel. Plattform und Anzahl/Gruppierung sind für die Bausteinzuordnung wichtig.',
+    cloudWhy:
+      'Clients sind Kandidaten für DaaS/VDI (z.B. virtuelle Desktops) und Modern-Workplace-Konzepte. Plattform und Anbindung zeigen das Potenzial.',
+    interviewQuestions: [
+      'Welche Client-Typen und Betriebssysteme sind im Einsatz (Anzahl)?',
+      'Gibt es mobile/Remote-Arbeitsplätze?',
+      'Wäre ein virtueller Desktop (DaaS/VDI) denkbar?',
+    ],
+    ansprechpartner: 'Client-Management / IT-Support',
+  },
+  icsSysteme: {
+    intro:
+      'Industrial Control Systems – Steuer- und Kontrollsysteme von Produktions-/Industrieanlagen (SPS, SCADA, Leitsysteme).',
+    bsiWhy:
+      'ICS/OT haben besondere Schutzanforderungen (Verfügbarkeit, lange Lebenszyklen). Das BSI behandelt sie gesondert (ICS-Security/IND-Bausteine).',
+    cloudWhy:
+      'OT-/ICS-Systeme sind meist NICHT cloud-migrierbar (Echtzeit, lokale Hardware, Herstellerfreigaben) und werden i.d.R. „Retain" – wichtig, um sie bewusst aus dem Migrationsscope zu nehmen.',
+    interviewQuestions: [
+      'Welche Steuerungs-/Produktionssysteme gibt es?',
+      'Bestehen Echtzeit-/Latenzanforderungen oder Herstellerbindungen?',
+      'Ist eine Trennung von der Office-IT vorhanden?',
+    ],
+    ansprechpartner: 'Produktion/OT-Verantwortliche, Anlagenhersteller',
+  },
+  iotSysteme: {
+    intro:
+      'Vernetzte Geräte wie Gebäudetechnik, Klima-/Lüftungssteuerung, Brand-/Einbruchmeldeanlagen, smarte Sensorik.',
+    bsiWhy:
+      'IoT-Geräte erweitern die Angriffsfläche und werden oft übersehen. Ihre Erfassung ist für ein vollständiges Lagebild nötig.',
+    cloudWhy:
+      'Viele IoT-Lösungen nutzen bereits Hersteller-Cloud-Plattformen. Relevant ist, welche Daten dort abfließen und welche Souveränitätsanforderungen gelten.',
+    interviewQuestions: [
+      'Welche vernetzten Geräte/Anlagen (Gebäude, Sicherheit, Sensorik) gibt es?',
+      'Nutzen diese bereits eine Hersteller-Cloud?',
+      'Welche Daten werden übertragen und wohin?',
+    ],
+    ansprechpartner: 'Facility-Management, Haustechnik, IT',
+  },
+  raeume: {
+    intro:
+      'Für den Informationsverbund relevante Räume (Serverraum, Technikraum, Büros mit besonderer Bedeutung).',
+    bsiWhy:
+      'Räume sind die infrastrukturelle Schicht. Zutrittsschutz und Umgebungsbedingungen (Klima, Brand) sind grundschutzrelevant.',
+    cloudWhy:
+      'Serverräume mit hohem Erhaltungsaufwand (Klima, USV, Wartung) sind ein wirtschaftliches Argument für die Cloud-Migration („Rechenzentrum verkleinern/auflösen").',
+    interviewQuestions: [
+      'Wo stehen IT-Systeme (Serverraum, Technikräume)?',
+      'Wie sind Zutritt, Klima, USV und Brandschutz geregelt?',
+    ],
+    ansprechpartner: 'Facility-Management, IT-Leitung',
+  },
+  gebaeude: {
+    intro:
+      'Gebäude/Standorte, die für den Informationsverbund relevant sind.',
+    bsiWhy:
+      'Gebäude bilden den äußeren infrastrukturellen Rahmen (Standortsicherheit, bauliche Maßnahmen) und sind für Standort-Risiken relevant.',
+    cloudWhy:
+      'Die Standortstruktur (Anzahl, Verteilung) zeigt das Potenzial für Standort-Konsolidierung und die Anbindungsplanung für Cloud-Dienste.',
+    interviewQuestions: [
+      'Welche Standorte/Gebäude gibt es?',
+      'Welche beherbergen IT-Infrastruktur?',
+    ],
+    ansprechpartner: 'Facility-Management, Geschäftsführung',
+  },
+};
+for (const cat of CATEGORIES) {
+  cat.help = HELP[cat.key];
+}
 
 export const CATEGORY_MAP: Record<CategoryKey, CategoryDef> = Object.fromEntries(
   CATEGORIES.map((c) => [c.key, c])
