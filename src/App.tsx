@@ -9,8 +9,9 @@ import { CategoryForm } from './components/CategoryForm';
 import { Wizard } from './components/Wizard';
 import { CloudDashboard } from './components/CloudDashboard';
 import { exportToExcel, exportWorkshopPackage } from './utils/export';
-import { importFromExcel, importFromExcelWithMapping } from './utils/import';
+import { importFromExcelWithMapping } from './utils/import';
 import { ImportWizard } from './components/ImportWizard';
+import { EmailTemplate } from './components/EmailTemplate';
 
 function App() {
   const [state, setState] = useState<AppState>(loadState);
@@ -19,6 +20,7 @@ function App() {
   const [view, setView] = useState<'list' | 'form'>('list');
   const [editId, setEditId] = useState<string | null>(null);
   const [importFile, setImportFile] = useState<File | null>(null);
+  const [showEmailTemplate, setShowEmailTemplate] = useState(false);
 
   const updateState = useCallback((updater: (prev: AppState) => AppState) => {
     setState((prev) => {
@@ -28,20 +30,13 @@ function App() {
     });
   }, []);
 
-  // --- Detail-mode handlers ---
   const handleCategoryChange = (key: CategoryKey) => {
     setActiveCategory(key);
     setView('list');
     setEditId(null);
   };
-  const handleNew = () => {
-    setEditId(null);
-    setView('form');
-  };
-  const handleEdit = (id: string) => {
-    setEditId(id);
-    setView('form');
-  };
+  const handleNew = () => { setEditId(null); setView('form'); };
+  const handleEdit = (id: string) => { setEditId(id); setView('form'); };
   const handleDelete = (id: string) => {
     updateState((prev) => ({
       ...prev,
@@ -59,12 +54,8 @@ function App() {
     setView('list');
     setEditId(null);
   };
-  const handleCancel = () => {
-    setView('list');
-    setEditId(null);
-  };
+  const handleCancel = () => { setView('list'); setEditId(null); };
 
-  // --- Shared handlers ---
   const handleCustomerNameChange = (name: string) =>
     updateState((prev) => ({ ...prev, customerName: name }));
   const handleExport = () => exportToExcel(state);
@@ -75,7 +66,6 @@ function App() {
     setImportFile(file);
     e.target.value = '';
   };
-
   const handleImportConfirm = async (mapping: Record<string, CategoryKey | null>) => {
     if (!importFile) return;
     try {
@@ -86,6 +76,7 @@ function App() {
       alert('Import erfolgreich!');
     } catch (err) {
       alert('Import fehlgeschlagen: ' + String(err));
+      setImportFile(null);
     }
   };
 
@@ -110,6 +101,7 @@ function App() {
             updateState={updateState}
             onImport={handleImport}
             onGoToDashboard={() => setMode('dashboard')}
+            onShowEmailTemplate={() => setShowEmailTemplate(true)}
           />
         )}
 
@@ -140,11 +132,9 @@ function App() {
                       }`}
                     >
                       <span>{cat.label}</span>
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded-full font-bold ${
-                          isActive ? 'bg-white/20 text-white' : 'bg-white/10 text-white/60'
-                        }`}
-                      >
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+                        isActive ? 'bg-white/20 text-white' : 'bg-white/10 text-white/60'
+                      }`}>
                         {count}
                       </span>
                     </button>
@@ -152,7 +142,6 @@ function App() {
                 })}
               </nav>
             </aside>
-
             <main className="flex-1 p-6 overflow-y-auto bg-hi-gray">
               {view === 'list' ? (
                 <CategoryList
@@ -181,6 +170,12 @@ function App() {
           file={importFile}
           onConfirm={handleImportConfirm}
           onCancel={() => setImportFile(null)}
+        />
+      )}
+      {showEmailTemplate && (
+        <EmailTemplate
+          customerName={state.customerName}
+          onClose={() => setShowEmailTemplate(false)}
         />
       )}
     </div>

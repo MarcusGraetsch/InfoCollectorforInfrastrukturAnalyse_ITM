@@ -5,6 +5,7 @@ import { generateId } from '../store';
 import { CategoryList } from './CategoryList';
 import { CategoryForm } from './CategoryForm';
 import { HelpPanel } from './HelpPanel';
+import { EmailTemplate } from './EmailTemplate';
 
 interface Props {
   state: AppState;
@@ -54,6 +55,7 @@ export const Wizard: React.FC<Props> = ({ state, updateState, onImport, onGoToDa
   const [editId, setEditId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const importRef = React.useRef<HTMLInputElement>(null);
+  const [showEmail, setShowEmail] = useState(false);
 
   const step = STEPS[stepIdx];
   const progress = Math.round(((stepIdx + 1) / STEPS.length) * 100);
@@ -167,6 +169,19 @@ export const Wizard: React.FC<Props> = ({ state, updateState, onImport, onGoToDa
                     <b>Auswertung:</b> Automatisches Cloud-Readiness-Scoring als Workshop-Grundlage.
                   </li>
                 </ol>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center justify-between gap-4">
+                <div>
+                  <p className="font-semibold text-amber-800 text-sm">Unterlagen beim Kunden anfordern?</p>
+                  <p className="text-xs text-amber-700 mt-0.5">Professionelle E-Mail-Vorlage mit allen benötigten Dokumenten.</p>
+                </div>
+                <button
+                  onClick={() => setShowEmail(true)}
+                  className="px-4 py-2 bg-amber-600 text-white rounded text-sm font-medium hover:bg-amber-700 whitespace-nowrap"
+                >
+                  E-Mail-Vorlage öffnen
+                </button>
               </div>
 
               <div className="bg-white rounded-lg shadow p-5 space-y-4">
@@ -441,6 +456,10 @@ export const Wizard: React.FC<Props> = ({ state, updateState, onImport, onGoToDa
           )}
         </div>
       </div>
+
+      {showEmail && (
+        <EmailTemplate customerName={state.customerName} onClose={() => setShowEmail(false)} />
+      )}
 
       {/* Navigation */}
       <div className="bg-white border-t border-gray-200 px-6 py-3 flex items-center justify-between">
