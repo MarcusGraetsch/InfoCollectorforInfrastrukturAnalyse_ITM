@@ -1,125 +1,132 @@
-import { useState } from 'react';
-import type { CategoryDef, FieldDef } from '../categories';
-import type { AppData } from '../types';
-import MultiSelect from './MultiSelect';
+import React, { useState, useEffect } from 'react';
+import type { CategoryDef } from '../categories';
+import type { AppState, CategoryKey } from '../types';
+import { generateId, generateKuerzel } from '../store';
+import { MultiSelect } from './MultiSelect';
 
 interface Props {
   categoryDef: CategoryDef;
-  entry: Record<string, unknown>;
-  data: AppData;
-  onSave: (entry: Record<string, unknown>) => void;
+  state: AppState;
+  editId: string | null;
+  onSave: (item: Record<string, unknown>) => void;
   onCancel: () => void;
 }
 
-function getRefOptions(refCategory: string, data: AppData): { value: string; label: string }[] {
-  if (refCategory === 'all_it') {
-    const all = [
-      ...data.server.map(e => ({ value: e.kuerzel, label: e.name })),
-      ...data.clients.map(e => ({ value: e.kuerzel, label: e.name })),
-      ...data.icsSysteme.map(e => ({ value: e.kuerzel, label: e.name })),
-      ...data.iotSysteme.map(e => ({ value: e.kuerzel, label: e.name })),
-    ];
-    return all.filter(o => o.value);
-  }
-  const map: Record<string, { kuerzel: string; name: string }[]> = {
-    geschaeftsprozesse: data.geschaeftsprozesse,
-    daten: data.daten,
-    anwendungen: data.anwendungen,
-    datentraeger: data.datentraeger,
-    server: data.server,
-    netzkomponenten: data.netzkomponenten,
-    netzverbindungen: data.netzverbindungen,
-    clients: data.clients,
-    icsSysteme: data.icsSysteme,
-    iotSysteme: data.iotSysteme,
-    raeume: data.raeume,
-    gebaeude: data.gebaeude,
-  };
-  return (map[refCategory] || [])
-    .filter(e => e.kuerzel)
-    .map(e => ({ value: e.kuerzel, label: e.name }));
+function getRefItems(state: AppState, refCategory: CategoryKey): { kuerzel: string; name: string }[] {
+  const arr = state[refCategory] as { kuerzel: string; name: string }[];
+  return arr || [];
 }
 
-export default function CategoryForm({ categoryDef, entry, data, onSave, onCancel }: Props) {
-  const [form, setForm] = useState<Record<string, unknown>>({ ...entry });
+function buildDefaultItem(def: CategoryDef, state: AppState): Record<string, unknown> {
+  const obj: Record<string, unknown> = { id: generateId() };
+  for (const f of def.fields) {
+    if (f.type === 'multiref') obj[f.key] = [];
+    else obj[f.key] = '';
+  }
+  obj['kuerzel'] = generateKuerzel(def.prefix, state[def.key] as { kuerzel: string }[]);
+  return obj;
+}
 
-  const setField = (key: string, value: unknown) => {
-    setForm(prev => ({ ...prev, [key]: value }));
+export const CategoryForm: React.FC<Props> = ({ categoryDef, state, editId, onSave, onCancel }) => {
+  const [form, setForm] = useState<Record<string, unknown>>({});
+
+  useEffect(() => {
+    if (editId) {
+      const existing = (state[categoryDef.key] as { id: string }[]).find((i) => i.id === editId);
+      if (existing) {
+        setForm({ ...(existing as Record<string, unknown>) });
+        return;
+      }
+    }
+    setForm(buildDefaultItem(categoryDef, state));
+  }, [editId, categoryDef.key]);
+
+  const handleChange = (key: string, val: unknown) => {
+    setForm((prev) => ({ ...prev, [key]: val }));
   };
 
-  const renderField = (field: FieldDef) => {
-    const val = form[field.key];
-
-    return (
-      <div key={field.key} className="space-y-1">
-        <label className="block text-sm font-medium text-gray-700 group relative">
-          {field.label}
-          {field.tooltip && (
-            <span className="ml-1 text-gray-400 cursor-help" title={field.tooltip}>ⓘ</span>
-          )}
-        </label>
-        {field.type === 'text' && (
-          <input
-            type="text"
-            value={String(val ?? '')}
-            onChange={e => setField(field.key, e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        )}
-        {field.type === 'textarea' && (
-          <textarea
-            value={String(val ?? '')}
-            onChange={e => setField(field.key, e.target.value)}
-            rows={3}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        )}
-        {field.type === 'select' && (
-          <select
-            value={String(val ?? '')}
-            onChange={e => setField(field.key, e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-          >
-            <option value="">-- Bitte wählen --</option>
-            {(field.options || []).map(opt => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
-        )}
-        {field.type === 'multiselect' && field.refCategory && (
-          <MultiSelect
-            options={getRefOptions(field.refCategory, data)}
-            value={Array.isArray(val) ? val as string[] : []}
-            onChange={v => setField(field.key, v)}
-            placeholder={`${field.label} auswählen...`}
-          />
-        )}
-      </div>
-    );
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(form);
   };
 
   return (
     <div className="bg-white rounded-lg shadow p-6">
-      <h2 className="text-lg font-semibold text-gray-800 mb-6">
-        {entry.id ? 'Eintrag bearbeiten' : 'Neuer Eintrag'} — {categoryDef.label}
+      <h2 className="text-xl font-semibold text-gray-800 mb-6">
+        {editId ? 'Eintrag bearbeiten' : 'Neuer Eintrag'} – {categoryDef.label}
       </h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {categoryDef.fields.map(renderField)}
-      </div>
-      <div className="flex gap-3 mt-6 pt-4 border-t">
-        <button
-          onClick={() => onSave(form)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          Speichern
-        </button>
-        <button
-          onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50"
-        >
-          Abbrechen
-        </button>
-      </div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {categoryDef.fields.map((field) => (
+          <div key={field.key}>
+            <label className="block text-sm font-medium text-gray-700 mb-1 group relative">
+              {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+              {field.tooltip && (
+                <span className="ml-2 inline-block w-4 h-4 rounded-full bg-blue-100 text-blue-600 text-xs text-center leading-4 cursor-help relative group-hover:z-10">
+                  ?
+                  <span className="hidden group-hover:block absolute left-6 top-0 w-64 bg-gray-800 text-white text-xs rounded p-2 shadow-lg z-50 font-normal">
+                    {field.tooltip}
+                  </span>
+                </span>
+              )}
+            </label>
+            {field.type === 'text' && (
+              <input
+                type="text"
+                value={(form[field.key] as string) || ''}
+                onChange={(e) => handleChange(field.key, e.target.value)}
+                required={field.required}
+                className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            )}
+            {field.type === 'textarea' && (
+              <textarea
+                value={(form[field.key] as string) || ''}
+                onChange={(e) => handleChange(field.key, e.target.value)}
+                rows={3}
+                className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+              />
+            )}
+            {field.type === 'select' && (
+              <select
+                value={(form[field.key] as string) || ''}
+                onChange={(e) => handleChange(field.key, e.target.value)}
+                className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="">-- bitte wählen --</option>
+                {field.options?.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            )}
+            {field.type === 'multiref' && field.refCategory && (
+              <MultiSelect
+                value={(form[field.key] as string[]) || []}
+                onChange={(val) => handleChange(field.key, val)}
+                items={getRefItems(state, field.refCategory)}
+                label={field.label}
+              />
+            )}
+          </div>
+        ))}
+        <div className="flex gap-3 pt-4 border-t border-gray-200">
+          <button
+            type="submit"
+            className="px-6 py-2 bg-blue-600 text-white rounded font-medium hover:bg-blue-700 transition-colors"
+          >
+            Speichern
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-6 py-2 border border-gray-300 text-gray-700 rounded font-medium hover:bg-gray-50 transition-colors"
+          >
+            Abbrechen
+          </button>
+        </div>
+      </form>
     </div>
   );
-}
+};

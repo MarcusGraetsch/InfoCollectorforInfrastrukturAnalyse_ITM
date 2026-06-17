@@ -1,28 +1,34 @@
-export interface BaseEntry {
+export type Status = 'Aktiv' | 'Inaktiv' | 'In Planung' | 'Außer Betrieb';
+export type JaNein = 'Ja' | 'Nein';
+export type ProzessArt = 'Kernprozess' | 'Unterstützungsprozess';
+
+export interface BaseItem {
   id: string;
   kuerzel: string;
   name: string;
   erlaeuterung: string;
-  status: string;
   tags: string;
 }
 
-export interface Geschaeftsprozess extends BaseEntry {
-  prozessArt: string;
+export interface Geschaeftsprozess extends BaseItem {
+  status: Status;
+  prozessArt: ProzessArt | '';
   verantwortlicher: string;
   beteiligte: string;
   daten: string[];
   anwendungen: string[];
 }
 
-export interface Datum extends BaseEntry {
-  personenbezug: string;
+export interface Datum extends BaseItem {
+  status: Status;
+  personenbezug: JaNein | '';
   verantwortlicher: string;
   beteiligte: string;
   anwendungen: string[];
 }
 
-export interface Anwendung extends BaseEntry {
+export interface Anwendung extends BaseItem {
+  status: Status;
   verantwortlicher: string;
   benutzer: string;
   anwendungen: string[];
@@ -30,7 +36,8 @@ export interface Anwendung extends BaseEntry {
   netzverbindungen: string[];
 }
 
-export interface Datentraeger extends BaseEntry {
+export interface Datentraeger extends BaseItem {
+  status: Status;
   anzahl: string;
   verantwortlicher: string;
   benutzer: string;
@@ -38,7 +45,8 @@ export interface Datentraeger extends BaseEntry {
   anwendungen: string[];
 }
 
-export interface Server extends BaseEntry {
+export interface Server extends BaseItem {
+  status: Status;
   anzahl: string;
   plattform: string;
   verantwortlicher: string;
@@ -50,7 +58,8 @@ export interface Server extends BaseEntry {
   gebaeude: string[];
 }
 
-export interface Netzkomponente extends BaseEntry {
+export interface Netzkomponente extends BaseItem {
+  status: Status;
   anzahl: string;
   plattform: string;
   verantwortlicher: string;
@@ -60,9 +69,10 @@ export interface Netzkomponente extends BaseEntry {
   gebaeude: string[];
 }
 
-export interface Netzverbindung extends BaseEntry {
+export interface Netzverbindung extends BaseItem {
+  status: Status;
   protokolle: string;
-  externNetz: string;
+  externNetz: JaNein | '';
   anwendungen: string[];
   clients: string[];
   server: string[];
@@ -72,7 +82,8 @@ export interface Netzverbindung extends BaseEntry {
   gebaeude: string[];
 }
 
-export interface Client extends BaseEntry {
+export interface Client extends BaseItem {
+  status: Status;
   anzahl: string;
   plattform: string;
   verantwortlicher: string;
@@ -83,7 +94,8 @@ export interface Client extends BaseEntry {
   gebaeude: string[];
 }
 
-export interface ICSSystem extends BaseEntry {
+export interface ICSSystem extends BaseItem {
+  status: Status;
   anzahl: string;
   plattform: string;
   verantwortlicher: string;
@@ -94,7 +106,8 @@ export interface ICSSystem extends BaseEntry {
   gebaeude: string[];
 }
 
-export interface IoTSystem extends BaseEntry {
+export interface IoTSystem extends BaseItem {
+  status: Status;
   anzahl: string;
   plattform: string;
   verantwortlicher: string;
@@ -105,32 +118,22 @@ export interface IoTSystem extends BaseEntry {
   gebaeude: string[];
 }
 
-export interface Raum {
-  id: string;
-  kuerzel: string;
-  name: string;
-  erlaeuterung: string;
+export interface Raum extends BaseItem {
   anzahl: string;
   verantwortlicher: string;
   benutzer: string;
-  tags: string;
   gebaeude: string[];
 }
 
-export interface Gebaeude {
-  id: string;
-  kuerzel: string;
-  name: string;
-  erlaeuterung: string;
+export interface Gebaeude extends BaseItem {
   anzahl: string;
   verantwortlicher: string;
   benutzer: string;
-  tags: string;
 }
 
-export interface AppData {
-  kundenname: string;
-  letzteAktualisierung: string;
+export interface AppState {
+  customerName: string;
+  lastUpdated: string;
   geschaeftsprozesse: Geschaeftsprozess[];
   daten: Datum[];
   anwendungen: Anwendung[];
@@ -145,4 +148,4 @@ export interface AppData {
   gebaeude: Gebaeude[];
 }
 
-export type CategoryKey = keyof Omit<AppData, 'kundenname' | 'letzteAktualisierung'>;
+export type CategoryKey = keyof Omit<AppState, 'customerName' | 'lastUpdated'>;
