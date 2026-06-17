@@ -201,32 +201,35 @@ if [ "$DEPLOY_MODE" = "1" ]; then
   fi
 
   # Determine whether we can talk to the Docker daemon without sudo.
-  # After a fresh install the current shell is not yet in the 'docker'
-  # group, so we transparently fall back to sudo.
+  # Use 'sudo -E' to preserve PATH so docker compose plugin is found.
   DOCKER_SUDO=""
   if ! docker info &>/dev/null; then
-    if sudo -n true 2>/dev/null || sudo true; then
-      if sudo docker info &>/dev/null; then
-        DOCKER_SUDO="sudo"
-        warn "Docker-Daemon nur mit sudo erreichbar (Gruppenmitgliedschaft erst nach Neuanmeldung aktiv) – nutze sudo."
+    if sudo -En true 2>/dev/null || sudo -E true; then
+      if sudo -E docker info &>/dev/null; then
+        DOCKER_SUDO="sudo -E"
+        warn "Docker-Daemon nur mit sudo erreichbar – nutze 'sudo -E' (behält PATH)."
       fi
     fi
   fi
   if [ -z "$DOCKER_SUDO" ] && ! docker info &>/dev/null; then
-    fail "Docker-Daemon nicht erreichbar. Läuft der Dienst? Versuchen Sie: sudo systemctl start docker"
+    fail "Docker-Daemon nicht erreichbar. Versuchen Sie: sudo systemctl start docker"
   fi
 
-  # Check if docker-compose is available
-  if docker compose version &>/dev/null 2>&1 || $DOCKER_SUDO docker compose version &>/dev/null 2>&1; then
-    COMPOSE_CMD="$DOCKER_SUDO docker compose"
+  # Check if docker compose (plugin) or docker-compose (standalone) is available
+  DOCKER_BIN="${DOCKER_SUDO} docker"
+  if $DOCKER_BIN compose version &>/dev/null 2>&1; then
+    COMPOSE_CMD="$DOCKER_BIN compose"
+    ok "Docker Compose: $($DOCKER_BIN compose version --short 2>/dev/null || echo 'v2')"
   elif command -v docker-compose &>/dev/null; then
-    COMPOSE_CMD="$DOCKER_SUDO docker-compose"
+    COMPOSE_CMD="${DOCKER_SUDO} docker-compose"
+    ok "Docker Compose: standalone ($(docker-compose --version 2>/dev/null | awk '{print $3}' | tr -d ','))"
   else
     warn "docker compose nicht gefunden, installiere docker-compose-plugin..."
-    sudo apt-get install -y -qq docker-compose-plugin 2>/dev/null \
-      || sudo apt-get install -y -qq docker-compose 2>/dev/null || true
-    COMPOSE_CMD="$DOCKER_SUDO docker compose"
+    sudo -E apt-get install -y -qq docker-compose-plugin 2>/dev/null \
+      || sudo -E apt-get install -y -qq docker-compose 2>/dev/null || true
+    COMPOSE_CMD="$DOCKER_BIN compose"
   fi
+  ok "Compose-Befehl: $COMPOSE_CMD"
 
   # Build the app on the host first (avoids npm network issues inside Docker)
   step "App auf dem Host bauen (npm läuft außerhalb Docker)"
@@ -277,18 +280,20 @@ if [ "$DEPLOY_MODE" = "1" ]; then
   ok "Build fertig → dist/ ($(du -sh dist 2>/dev/null | cut -f1))"
 
   echo ""
-  run_with_spinner "Docker-Image bauen (nginx:alpine + dist/) …" \
-    $COMPOSE_CMD build --no-cache
+  echo -e "  ${CYAN}${BOLD}▷${RESET} ${WHITE}Docker-Image bauen${RESET} ${DIM}(nginx:alpine + dist/ — dauert ~30s)${RESET}"
+  echo -e "  ${DIM}────────────────────────────────────────────────────────────${RESET}"
+  APP_PORT="$APP_PORT" $COMPOSE_CMD build --no-cache
+  echo -e "  ${DIM}────────────────────────────────────────────────────────────${RESET}"
   ok "Docker-Image gebaut"
 
   echo ""
-  run_with_spinner "Container starten …" \
-    $COMPOSE_CMD up -d
+  echo -e "  ${CYAN}${BOLD}▷${RESET} ${WHITE}Container starten …${RESET}"
+  APP_PORT="$APP_PORT" $COMPOSE_CMD up -d
 
   # Verify the container is actually running
   sleep 2
-  if ! $DOCKER_SUDO docker ps --filter "name=it-strukturanalyse" --filter "status=running" --format '{{.Names}}' | grep -q .; then
-    fail "Container läuft nicht. Logs: $DOCKER_SUDO docker compose logs"
+  if ! $DOCKER_BIN ps --filter "name=it-strukturanalyse" --filter "status=running" --format '{{.Names}}' | grep -q .; then
+    fail "Container läuft nicht. Logs: $COMPOSE_CMD logs"
   fi
   ok "Container gestartet: it-strukturanalyse"
 
