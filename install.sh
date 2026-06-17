@@ -202,10 +202,10 @@ if [ "$DEPLOY_MODE" = "1" ]; then
   ok "Node.js: $(node --version)  npm: $(npm --version)"
 
   progress "Installiere Abhängigkeiten" 4
-  npm install --silent 2>&1 | tail -3
+  NODE_ENV=development npm install 2>&1 | tail -3
 
   progress "Baue Produktions-Bundle" 4
-  npm run build 2>&1 | tail -3
+  NODE_ENV=development npm run build 2>&1 | tail -3
   ok "Build erfolgreich → dist/"
 
   echo ""
