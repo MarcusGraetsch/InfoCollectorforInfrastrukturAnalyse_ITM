@@ -64,7 +64,23 @@ export const CategoryForm: React.FC<Props> = ({ categoryDef, state, editId, onSa
           </span>
         )}
       </label>
-      {field.type === 'text' && (
+      {field.type === 'text' && field.suggestions && field.suggestions.length > 0 && (
+        <>
+          <input
+            type="text"
+            list={`dl-${field.key}`}
+            value={(form[field.key] as string) || ''}
+            onChange={(e) => handleChange(field.key, e.target.value)}
+            required={field.required}
+            placeholder="Eingeben oder aus Liste wählen …"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-hi-accent focus:border-hi-accent bg-white transition-colors"
+          />
+          <datalist id={`dl-${field.key}`}>
+            {field.suggestions.map((s) => <option key={s} value={s} />)}
+          </datalist>
+        </>
+      )}
+      {field.type === 'text' && !field.suggestions && (
         <input
           type="text"
           value={(form[field.key] as string) || ''}
@@ -74,12 +90,28 @@ export const CategoryForm: React.FC<Props> = ({ categoryDef, state, editId, onSa
         />
       )}
       {field.type === 'textarea' && (
-        <textarea
-          value={(form[field.key] as string) || ''}
-          onChange={(e) => handleChange(field.key, e.target.value)}
-          rows={3}
-          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-hi-accent focus:border-hi-accent bg-white resize-y transition-colors"
-        />
+        <div className="space-y-2">
+          {field.suggestions && field.suggestions.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {field.suggestions.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => handleChange(field.key, s)}
+                  className="px-2.5 py-1 text-xs rounded-full border border-hi-accent/30 text-hi-accent bg-hi-accent/5 hover:bg-hi-accent/10 hover:border-hi-accent/60 transition-colors"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+          <textarea
+            value={(form[field.key] as string) || ''}
+            onChange={(e) => handleChange(field.key, e.target.value)}
+            rows={3}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-hi-accent focus:border-hi-accent bg-white resize-y transition-colors"
+          />
+        </div>
       )}
       {field.type === 'select' && (
         <select
