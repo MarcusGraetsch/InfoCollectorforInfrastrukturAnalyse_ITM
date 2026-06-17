@@ -189,7 +189,7 @@ if [ "$DEPLOY_MODE" = "1" ]; then
 
   echo ""
   progress "Baue Docker-Image (kann einige Minuten dauern)" 3
-  if ! APP_PORT="$APP_PORT" $COMPOSE_CMD build; then
+  if ! APP_PORT="$APP_PORT" $COMPOSE_CMD build --no-cache; then
     fail "Docker-Build fehlgeschlagen. Bitte Ausgabe oben prüfen."
   fi
 
