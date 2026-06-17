@@ -5,12 +5,14 @@ import { generateId } from '../store';
 import { CategoryList } from './CategoryList';
 import { CategoryForm } from './CategoryForm';
 import { HelpPanel } from './HelpPanel';
+import { EmailTemplate } from './EmailTemplate';
 
 interface Props {
   state: AppState;
   updateState: (updater: (prev: AppState) => AppState) => void;
   onImport: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onGoToDashboard: () => void;
+  onShowEmailTemplate: () => void;
 }
 
 type Step =
@@ -48,11 +50,12 @@ const ZIELUMGEBUNG_OPTIONS = [
 
 const ZEITHORIZONT_OPTIONS = ['< 6 Monate', '6–12 Monate', '1–2 Jahre', '> 2 Jahre', 'Noch unklar'];
 
-export const Wizard: React.FC<Props> = ({ state, updateState, onImport, onGoToDashboard }) => {
+export const Wizard: React.FC<Props> = ({ state, updateState, onImport, onGoToDashboard, onShowEmailTemplate }) => {
   const [stepIdx, setStepIdx] = useState(0);
   const [editId, setEditId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const importRef = React.useRef<HTMLInputElement>(null);
+  const [showEmail, setShowEmail] = useState(false);
 
   const step = STEPS[stepIdx];
   const progress = Math.round(((stepIdx + 1) / STEPS.length) * 100);
@@ -168,6 +171,19 @@ export const Wizard: React.FC<Props> = ({ state, updateState, onImport, onGoToDa
                 </ol>
               </div>
 
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center justify-between gap-4">
+                <div>
+                  <p className="font-semibold text-amber-800 text-sm">Unterlagen beim Kunden anfordern?</p>
+                  <p className="text-xs text-amber-700 mt-0.5">Professionelle E-Mail-Vorlage mit allen benötigten Dokumenten.</p>
+                </div>
+                <button
+                  onClick={() => setShowEmail(true)}
+                  className="px-4 py-2 bg-amber-600 text-white rounded text-sm font-medium hover:bg-amber-700 whitespace-nowrap"
+                >
+                  E-Mail-Vorlage öffnen
+                </button>
+              </div>
+
               <div className="bg-white rounded-lg shadow p-5 space-y-4">
                 <h3 className="font-semibold text-gray-800 flex items-center gap-2">
                   ☁️ Rahmen der späteren Cloud-Strategie
@@ -248,6 +264,16 @@ export const Wizard: React.FC<Props> = ({ state, updateState, onImport, onGoToDa
                   </select>
                 </div>
               </div>
+
+              <button
+                onClick={onShowEmailTemplate}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-hi-accent/30 text-hi-accent text-sm font-medium hover:bg-hi-accent/5 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                E-Mail-Vorlage: Unterlagen beim Kunden anfordern
+              </button>
             </div>
           )}
 
@@ -430,6 +456,10 @@ export const Wizard: React.FC<Props> = ({ state, updateState, onImport, onGoToDa
           )}
         </div>
       </div>
+
+      {showEmail && (
+        <EmailTemplate customerName={state.customerName} onClose={() => setShowEmail(false)} />
+      )}
 
       {/* Navigation */}
       <div className="bg-white border-t border-gray-200 px-6 py-3 flex items-center justify-between">

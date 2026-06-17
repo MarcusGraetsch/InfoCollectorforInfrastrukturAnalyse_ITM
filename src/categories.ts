@@ -21,6 +21,7 @@ export interface CategoryHelp {
   cloudWhy: string;
   interviewQuestions: string[];
   ansprechpartner: string;
+  wenFragen: { rolle: string; tipps: string[] }[];
 }
 
 export interface CategoryDef {
@@ -404,6 +405,11 @@ const HELP: Partial<Record<CategoryKey, CategoryHelp>> = {
       'Welche Abteilungen/Personen sind verantwortlich?',
     ],
     ansprechpartner: 'Geschäftsführung, Fachbereichsleitungen, Prozessverantwortliche',
+    wenFragen: [
+      { rolle: 'Geschäftsführung', tipps: ['Fragt nach Kernprozessen und strategischen Prioritäten', 'Kennt die übergeordneten Unternehmensziele und Wertschöpfungskette'] },
+      { rolle: 'Fachbereichsleitungen', tipps: ['Können Prozessabläufe und Abhängigkeiten im Detail beschreiben', 'Kennen Ausfallzeiten, SLAs und Kritikalität aus Sicht des Fachbereichs'] },
+      { rolle: 'Prozessverantwortliche', tipps: ['Detailkenntnis über konkrete Abläufe und Ausnahmen', 'Wissen, welche IT-Systeme und Daten pro Prozess genutzt werden'] },
+    ],
   },
   daten: {
     intro:
@@ -419,6 +425,11 @@ const HELP: Partial<Record<CategoryKey, CategoryHelp>> = {
       'Welche Daten wären bei Verlust/Offenlegung geschäftskritisch?',
     ],
     ansprechpartner: 'Datenschutzbeauftragter, Fachbereiche, ggf. Compliance',
+    wenFragen: [
+      { rolle: 'Datenschutzbeauftragter (DSB)', tipps: ['Kennt alle personenbezogenen Daten und DSGVO-Relevanz', 'Weiß über Verarbeitungsverzeichnis und Löschfristen Bescheid'] },
+      { rolle: 'Compliance / Recht', tipps: ['Kennt regulatorische Anforderungen (z.B. nur DE/EU-Speicherung)', 'Weiß über Branchenvorschriften (KRITIS, GoBD etc.) Bescheid'] },
+      { rolle: 'Fachbereichsleitungen', tipps: ['Wissen, welche Daten in ihrem Bereich erzeugt werden', 'Können Schutzbedarf aus Geschäftssicht einschätzen'] },
+    ],
   },
   anwendungen: {
     intro:
@@ -435,6 +446,11 @@ const HELP: Partial<Record<CategoryKey, CategoryHelp>> = {
       'Wie aktuell ist die Anwendung (Version, Support-Ende)?',
     ],
     ansprechpartner: 'Anwendungsverantwortliche, IT-Leitung, Fachbereiche',
+    wenFragen: [
+      { rolle: 'IT-Leitung / CIO', tipps: ['Überblick über die gesamte Anwendungslandschaft', 'Kennt Lizenzverträge und Upgrade-Roadmap'] },
+      { rolle: 'Anwendungsverantwortliche', tipps: ['Detailwissen zu Schnittstellen und Abhängigkeiten', 'Wissen über Customizing und besondere Betriebsanforderungen'] },
+      { rolle: 'Fachbereiche (Key User)', tipps: ['Können Funktionsumfang und Kritikalität aus Nutzersicht beschreiben', 'Wissen oft von Schatten-IT oder parallelen Excel-Lösungen'] },
+    ],
   },
   datentraeger: {
     intro:
@@ -448,6 +464,10 @@ const HELP: Partial<Record<CategoryKey, CategoryHelp>> = {
       'Wie erfolgt heute das Backup und wo werden Medien aufbewahrt?',
     ],
     ansprechpartner: 'IT-Administration, Backup-Verantwortliche',
+    wenFragen: [
+      { rolle: 'IT-Administration', tipps: ['Kennt alle Backup-Medien, NAS und Wechseldatenträger', 'Weiß über Aufbewahrungsorte und Löschprozesse Bescheid'] },
+      { rolle: 'Backup-Verantwortliche', tipps: ['Detailwissen zu Backup-Zyklen und Wiederherstellungszeiten', 'Kennen Offsite-Lagerung und Transportwege für Medien'] },
+    ],
   },
   server: {
     intro:
@@ -463,6 +483,11 @@ const HELP: Partial<Record<CategoryKey, CategoryHelp>> = {
       'Welche Server sind für den Betrieb am kritischsten?',
     ],
     ansprechpartner: 'System-/Server-Administration, IT-Leitung',
+    wenFragen: [
+      { rolle: 'System-/Server-Administration', tipps: ['Vollständige Übersicht aller Server und VMs', 'Kennen Betriebssysteme, Patchstand und Support-Ende-Daten'] },
+      { rolle: 'IT-Leitung', tipps: ['Kennt strategische Entscheidungen zu Virtualisierung und RZ-Betrieb', 'Überblick über Lizenzkosten und Wartungsverträge'] },
+      { rolle: 'Anwendungsverantwortliche', tipps: ['Wissen, welche Server für ihre Anwendungen benötigt werden', 'Können Verfügbarkeitsanforderungen und Wartungsfenster nennen'] },
+    ],
   },
   netzkomponenten: {
     intro:
@@ -477,6 +502,10 @@ const HELP: Partial<Record<CategoryKey, CategoryHelp>> = {
       'Welche Internet-Anbindung/Bandbreite steht zur Verfügung?',
     ],
     ansprechpartner: 'Netzwerk-Administration, IT-Sicherheit',
+    wenFragen: [
+      { rolle: 'Netzwerk-Administration', tipps: ['Vollständige Übersicht aller aktiven Netzkomponenten', 'Kennen Topologie, VLANs und Netz-Segmentierung'] },
+      { rolle: 'IT-Sicherheit / CISO', tipps: ['Kennt Firewall-Regeln und Perimeterschutz-Konzepte', 'Weiß über Netz-Monitoring und Anomalie-Erkennung Bescheid'] },
+    ],
   },
   netzverbindungen: {
     intro:
@@ -491,6 +520,10 @@ const HELP: Partial<Record<CategoryKey, CategoryHelp>> = {
       'Welche Protokolle/Bandbreiten und Sicherheitsmechanismen werden genutzt?',
     ],
     ansprechpartner: 'Netzwerk-Administration, Provider-Management',
+    wenFragen: [
+      { rolle: 'Netzwerk-Administration', tipps: ['Kennt alle internen und externen Verbindungen (WAN, VPN, Internet)', 'Weiß über Provider-Verträge und SLAs Bescheid'] },
+      { rolle: 'Provider-Management', tipps: ['Kann Bandbreiten, Laufzeiten und Uptime-Garantien benennen', 'Kennt Optionen für Cloud-Interconnect oder SD-WAN'] },
+    ],
   },
   clients: {
     intro:
@@ -505,6 +538,11 @@ const HELP: Partial<Record<CategoryKey, CategoryHelp>> = {
       'Wäre ein virtueller Desktop (DaaS/VDI) denkbar?',
     ],
     ansprechpartner: 'Client-Management / IT-Support',
+    wenFragen: [
+      { rolle: 'Client-Management / IT-Support (Helpdesk)', tipps: ['Vollständige Übersicht aller Endgeräte-Typen und Stückzahlen', 'Kennen Betriebssystem-Versionen, Patchstand und Refresh-Zyklen'] },
+      { rolle: 'HR / Personalleitung', tipps: ['Weiß über Remote-Work-Anforderungen und Home-Office-Quote Bescheid', 'Kennt geplante Personalveränderungen und Standortentwicklung'] },
+      { rolle: 'Fachbereichsleitungen', tipps: ['Können Anforderungen an mobile Geräte und Remote-Zugriff nennen'] },
+    ],
   },
   icsSysteme: {
     intro:
@@ -519,6 +557,10 @@ const HELP: Partial<Record<CategoryKey, CategoryHelp>> = {
       'Ist eine Trennung von der Office-IT vorhanden?',
     ],
     ansprechpartner: 'Produktion/OT-Verantwortliche, Anlagenhersteller',
+    wenFragen: [
+      { rolle: 'Produktion / OT-Verantwortliche', tipps: ['Vollständige Übersicht über Steuerungssysteme und Produktionsanlagen', 'Kennen Echtzeitanforderungen, Herstellervorgaben und Wartungsintervalle'] },
+      { rolle: 'Anlagenhersteller / Integratoren', tipps: ['Wissen über Updatefähigkeit und Cloud-Support der Systeme', 'Kennen sicherheitsrelevante Zertifizierungen (IEC 62443 etc.)'] },
+    ],
   },
   iotSysteme: {
     intro:
@@ -533,6 +575,10 @@ const HELP: Partial<Record<CategoryKey, CategoryHelp>> = {
       'Welche Daten werden übertragen und wohin?',
     ],
     ansprechpartner: 'Facility-Management, Haustechnik, IT',
+    wenFragen: [
+      { rolle: 'Facility-Management / Haustechnik', tipps: ['Kennt vernetzte Gebäudesysteme (Klima, Zugang, Brandmeldeanlage)', 'Weiß, welche Systeme Daten in Hersteller-Clouds senden'] },
+      { rolle: 'IT / Netzwerk-Administration', tipps: ['Kennt Netzsegmente, in denen IoT-Geräte eingebunden sind', 'Weiß über Firmware-Update-Prozesse und Absicherungsmaßnahmen Bescheid'] },
+    ],
   },
   raeume: {
     intro:
@@ -546,6 +592,10 @@ const HELP: Partial<Record<CategoryKey, CategoryHelp>> = {
       'Wie sind Zutritt, Klima, USV und Brandschutz geregelt?',
     ],
     ansprechpartner: 'Facility-Management, IT-Leitung',
+    wenFragen: [
+      { rolle: 'Facility-Management', tipps: ['Kennt alle relevanten Räume und deren Sicherheitsausstattung', 'Weiß über Klimatisierung, USV und Brandschutzeinrichtungen Bescheid'] },
+      { rolle: 'IT-Leitung', tipps: ['Kennt RZ-/Serverraum-Kapazitäten und Auslastung', 'Kann Betriebskosten für den Serverraum / das eigene RZ benennen'] },
+    ],
   },
   gebaeude: {
     intro:
@@ -559,6 +609,10 @@ const HELP: Partial<Record<CategoryKey, CategoryHelp>> = {
       'Welche beherbergen IT-Infrastruktur?',
     ],
     ansprechpartner: 'Facility-Management, Geschäftsführung',
+    wenFragen: [
+      { rolle: 'Facility-Management', tipps: ['Vollständige Übersicht aller Standorte und Gebäude mit IT-Relevanz', 'Kennt bauliche Sicherheitsmaßnahmen und Zutrittskonzepte'] },
+      { rolle: 'Geschäftsführung', tipps: ['Kennt strategische Standortplanung und etwaige Konsolidierungspläne', 'Weiß über Mietverträge, Eigentumsrechte und Expansion Bescheid'] },
+    ],
   },
 };
 for (const cat of CATEGORIES) {
