@@ -76,6 +76,47 @@ progress() {
   echo -e " ${GREEN}✔${RESET}"
 }
 
+# Führt einen Befehl aus und zeigt dabei einen Spinner + Live-Statuszeile.
+# Verwendung: run_with_spinner "Beschreibung" cmd arg1 arg2 ...
+# Gibt Exit-Code des Befehls zurück.
+run_with_spinner() {
+  local label="$1"; shift
+  local log; log=$(mktemp)
+  local spinner="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+  local i=0
+
+  # Befehl im Hintergrund starten, stdout+stderr in Logfile
+  "$@" >"$log" 2>&1 &
+  local pid=$!
+
+  echo -ne "  ${CYAN}${spinner:0:1}${RESET} ${label}"
+  while kill -0 "$pid" 2>/dev/null; do
+    local ch="${spinner:$((i % ${#spinner})):1}"
+    # Letzte Zeile aus Log als Statushinweis anzeigen
+    local hint; hint=$(tail -1 "$log" 2>/dev/null | sed 's/^[[:space:]]*//' | cut -c1-55)
+    # Zeile überschreiben
+    printf "\r  ${CYAN}%s${RESET} ${label}${DIM}%-57s${RESET}" "$ch" "${hint:+ — $hint}"
+    sleep 0.12
+    i=$((i+1))
+  done
+
+  wait "$pid"
+  local exit_code=$?
+
+  if [ $exit_code -eq 0 ]; then
+    printf "\r  ${GREEN}✔${RESET} ${label}%-60s\n" ""
+  else
+    printf "\r  ${RED}✖${RESET} ${label}%-60s\n" ""
+    echo -e "  ${DIM}--- Letzte Ausgabe: ---${RESET}"
+    tail -20 "$log" | while IFS= read -r line; do
+      echo -e "  ${DIM}${line}${RESET}"
+    done
+  fi
+
+  rm -f "$log"
+  return $exit_code
+}
+
 # ---- OS Detection ----
 OS="$(uname -s)"
 ARCH="$(uname -m)"
@@ -201,52 +242,43 @@ if [ "$DEPLOY_MODE" = "1" ]; then
   fi
   ok "Node.js: $(node --version)  npm: $(npm --version)"
 
+  # npm braucht ein echtes TTY – kein Hintergrundprozess/Redirect, sonst crasht es.
   echo ""
-  echo -e "  ${DIM}Installiere npm-Pakete (inkl. TypeScript, Vite …)${RESET}"
-  NODE_ENV=development npm install 2>&1 | grep -v "^$" | while IFS= read -r line; do
-    echo -e "  ${DIM}${line}${RESET}"
-  done
-  # npm hat einen bekannten Bug (Exit handler never called!) der manchmal exit 0
-  # zurückgibt obwohl Pakete fehlen – daher explizit prüfen:
+  echo -e "  ${CYAN}${BOLD}▷${RESET} ${WHITE}npm install${RESET} ${DIM}(kann 2–4 Minuten dauern – npm zeigt eigenen Fortschritt)${RESET}"
+  echo -e "  ${DIM}────────────────────────────────────────────────────────────${RESET}"
+  NODE_ENV=development npm install --no-audit --no-fund || true
+  echo -e "  ${DIM}────────────────────────────────────────────────────────────${RESET}"
+
+  # npm hat einen bekannten Bug ('Exit handler never called!') — prüfen ob tsc da ist:
   if [ ! -f node_modules/.bin/tsc ]; then
-    warn "TypeScript nach npm install nicht gefunden – installiere explizit …"
-    NODE_ENV=development npm install typescript vite @vitejs/plugin-react --save-dev 2>&1 | grep -v "^$" | while IFS= read -r line; do
-      echo -e "  ${DIM}${line}${RESET}"
-    done
+    warn "TypeScript fehlt noch — installiere direkt als Fallback …"
+    echo -e "  ${DIM}────────────────────────────────────────────────────────────${RESET}"
+    NODE_ENV=development npm install --no-audit --no-fund typescript vite @vitejs/plugin-react --save-dev || true
+    echo -e "  ${DIM}────────────────────────────────────────────────────────────${RESET}"
   fi
   if [ ! -f node_modules/.bin/tsc ]; then
-    fail "TypeScript konnte nicht installiert werden. Bitte 'npm install' manuell prüfen."
+    fail "TypeScript konnte nicht installiert werden."
   fi
-  ok "Pakete installiert ($(ls node_modules | wc -l | tr -d ' ') Module)"
+  ok "$(ls node_modules | wc -l | tr -d ' ') Pakete installiert"
 
   echo ""
-  echo -e "  ${DIM}Übersetze TypeScript und baue Produktions-Bundle …${RESET}"
-  if ! NODE_ENV=development npm run build 2>&1 | while IFS= read -r line; do
-    echo -e "  ${DIM}${line}${RESET}"
-  done; then
-    fail "Build fehlgeschlagen. Bitte Ausgabe oben prüfen."
-  fi
+  echo -e "  ${CYAN}${BOLD}▷${RESET} ${WHITE}npm run build${RESET} ${DIM}(TypeScript + Vite …)${RESET}"
+  echo -e "  ${DIM}────────────────────────────────────────────────────────────${RESET}"
+  NODE_ENV=development npm run build
+  echo -e "  ${DIM}────────────────────────────────────────────────────────────${RESET}"
   if [ ! -d dist ]; then
-    fail "dist/-Verzeichnis nicht gefunden – Build scheint fehlgeschlagen."
+    fail "dist/-Verzeichnis nicht gefunden — Build fehlgeschlagen."
   fi
-  ok "Build erfolgreich → dist/ ($(du -sh dist 2>/dev/null | cut -f1))"
+  ok "Build fertig → dist/ ($(du -sh dist 2>/dev/null | cut -f1))"
 
   echo ""
-  echo -e "  ${DIM}Baue Docker-Image (nginx:alpine + dist/) …${RESET}"
-  if ! APP_PORT="$APP_PORT" $COMPOSE_CMD build --no-cache 2>&1 | while IFS= read -r line; do
-    echo -e "  ${DIM}${line}${RESET}"
-  done; then
-    fail "Docker-Build fehlgeschlagen. Bitte Ausgabe oben prüfen."
-  fi
+  run_with_spinner "Docker-Image bauen (nginx:alpine + dist/) …" \
+    $COMPOSE_CMD build --no-cache
   ok "Docker-Image gebaut"
 
   echo ""
-  echo -e "  ${DIM}Starte Container …${RESET}"
-  if ! APP_PORT="$APP_PORT" $COMPOSE_CMD up -d 2>&1 | while IFS= read -r line; do
-    echo -e "  ${DIM}${line}${RESET}"
-  done; then
-    fail "Container konnte nicht gestartet werden. Bitte Ausgabe oben prüfen."
-  fi
+  run_with_spinner "Container starten …" \
+    $COMPOSE_CMD up -d
 
   # Verify the container is actually running
   sleep 2
@@ -278,24 +310,27 @@ else
   ok "npm: $(npm --version)"
 
   echo ""
-  echo -e "  ${DIM}Installiere npm-Pakete (inkl. TypeScript, Vite …)${RESET}"
-  NODE_ENV=development npm install 2>&1 | grep -v "^$" | while IFS= read -r line; do
-    echo -e "  ${DIM}${line}${RESET}"
-  done
+  echo -e "  ${CYAN}${BOLD}▷${RESET} ${WHITE}npm install${RESET} ${DIM}(kann 2–4 Minuten dauern)${RESET}"
+  echo -e "  ${DIM}────────────────────────────────────────────────────────────${RESET}"
+  NODE_ENV=development npm install --no-audit --no-fund || true
+  echo -e "  ${DIM}────────────────────────────────────────────────────────────${RESET}"
+
   if [ ! -f node_modules/.bin/tsc ]; then
-    warn "TypeScript nach npm install nicht gefunden – installiere explizit …"
-    NODE_ENV=development npm install typescript vite @vitejs/plugin-react --save-dev 2>&1 | grep -v "^$" | while IFS= read -r line; do
-      echo -e "  ${DIM}${line}${RESET}"
-    done
+    warn "TypeScript fehlt — installiere direkt als Fallback …"
+    NODE_ENV=development npm install --no-audit --no-fund typescript vite @vitejs/plugin-react --save-dev || true
   fi
   [ -f node_modules/.bin/tsc ] || fail "TypeScript konnte nicht installiert werden."
-  ok "Pakete installiert ($(ls node_modules | wc -l | tr -d ' ') Module)"
+  ok "$(ls node_modules | wc -l | tr -d ' ') Pakete installiert"
 
   echo ""
-  echo -e "  ${DIM}Übersetze TypeScript und baue Produktions-Bundle …${RESET}"
-  progress "Baue Produktions-Bundle" 4
-  npm run build 2>&1 | tail -5
-  ok "Build erfolgreich: dist/"
+  echo -e "  ${CYAN}${BOLD}▷${RESET} ${WHITE}npm run build${RESET} ${DIM}(TypeScript + Vite …)${RESET}"
+  echo -e "  ${DIM}────────────────────────────────────────────────────────────${RESET}"
+  NODE_ENV=development npm run build
+  echo -e "  ${DIM}────────────────────────────────────────────────────────────${RESET}"
+  if [ ! -d dist ]; then
+    fail "dist/-Verzeichnis nicht gefunden — Build fehlgeschlagen."
+  fi
+  ok "Build fertig → dist/ ($(du -sh dist 2>/dev/null | cut -f1))"
 
   # Install serve if needed
   if ! command -v serve &>/dev/null && ! npx --yes serve --version &>/dev/null 2>&1; then
