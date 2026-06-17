@@ -76,6 +76,32 @@ export const HelpPanel: React.FC<Props> = ({ help }) => {
             </ul>
           </div>
 
+          {help.wenFragen && help.wenFragen.length > 0 && (
+            <div>
+              <p className="font-bold text-hi-navy text-xs uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                <svg className="w-3.5 h-3.5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Wen kann ich fragen?
+              </p>
+              <div className="space-y-2">
+                {help.wenFragen.map((wf, i) => (
+                  <div key={i} className="bg-amber-50 rounded-lg p-3 border border-amber-100">
+                    <p className="font-semibold text-amber-800 text-xs mb-1.5">{wf.rolle}</p>
+                    <ul className="space-y-1">
+                      {wf.tipps.map((tipp, j) => (
+                        <li key={j} className="flex items-start gap-1.5 text-amber-700 text-xs">
+                          <span className="mt-1 w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                          {tipp}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <p className="text-xs text-hi-slate bg-hi-gray rounded-lg px-3 py-2">
             <span className="font-bold text-hi-navy">Ansprechpartner:</span> {help.ansprechpartner}
           </p>

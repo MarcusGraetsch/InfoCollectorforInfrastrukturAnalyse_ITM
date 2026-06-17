@@ -9,7 +9,8 @@ import { CategoryForm } from './components/CategoryForm';
 import { Wizard } from './components/Wizard';
 import { CloudDashboard } from './components/CloudDashboard';
 import { exportToExcel, exportWorkshopPackage } from './utils/export';
-import { importFromExcel } from './utils/import';
+import { importFromExcel, importFromExcelWithMapping } from './utils/import';
+import { ImportWizard } from './components/ImportWizard';
 
 function App() {
   const [state, setState] = useState<AppState>(loadState);
@@ -17,6 +18,7 @@ function App() {
   const [activeCategory, setActiveCategory] = useState<CategoryKey>('geschaeftsprozesse');
   const [view, setView] = useState<'list' | 'form'>('list');
   const [editId, setEditId] = useState<string | null>(null);
+  const [importFile, setImportFile] = useState<File | null>(null);
 
   const updateState = useCallback((updater: (prev: AppState) => AppState) => {
     setState((prev) => {
@@ -70,15 +72,21 @@ function App() {
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setImportFile(file);
+    e.target.value = '';
+  };
+
+  const handleImportConfirm = async (mapping: Record<string, CategoryKey | null>) => {
+    if (!importFile) return;
     try {
-      const newState = await importFromExcel(file, state);
+      const newState = await importFromExcelWithMapping(importFile, mapping, state);
       setState(newState);
       saveState(newState);
+      setImportFile(null);
       alert('Import erfolgreich!');
     } catch (err) {
       alert('Import fehlgeschlagen: ' + String(err));
     }
-    e.target.value = '';
   };
 
   const categoryDef = CATEGORY_MAP[activeCategory];
@@ -167,6 +175,14 @@ function App() {
           </div>
         )}
       </div>
+
+      {importFile && (
+        <ImportWizard
+          file={importFile}
+          onConfirm={handleImportConfirm}
+          onCancel={() => setImportFile(null)}
+        />
+      )}
     </div>
   );
 }
