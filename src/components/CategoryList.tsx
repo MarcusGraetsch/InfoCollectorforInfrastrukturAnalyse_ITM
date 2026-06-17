@@ -1,155 +1,95 @@
-import { useState } from 'react';
+import React from 'react';
 import type { CategoryDef } from '../categories';
-import type { AppData } from '../types';
-import { generateId, generateKuerzel } from '../store';
-import CategoryForm from './CategoryForm';
+import type { AppState } from '../types';
 
 interface Props {
   categoryDef: CategoryDef;
-  data: AppData;
-  onDataChange: (data: AppData) => void;
+  state: AppState;
+  onNew: () => void;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
 }
 
-function emptyEntry(categoryDef: CategoryDef, entries: Record<string, unknown>[]): Record<string, unknown> {
-  const base: Record<string, unknown> = { id: '', kuerzel: '' };
-  for (const field of categoryDef.fields) {
-    if (field.type === 'multiselect') base[field.key] = [];
-    else base[field.key] = '';
-  }
-  base.kuerzel = generateKuerzel(categoryDef.prefix, entries as { kuerzel: string }[]);
-  return base;
-}
+export const CategoryList: React.FC<Props> = ({ categoryDef, state, onNew, onEdit, onDelete }) => {
+  const items = state[categoryDef.key] as { id: string; kuerzel: string; name: string; status?: string }[];
 
-export default function CategoryList({ categoryDef, data, onDataChange }: Props) {
-  const [editEntry, setEditEntry] = useState<Record<string, unknown> | null>(null);
-  const [search, setSearch] = useState('');
-
-  const key = categoryDef.key as keyof AppData;
-  const entries = (data[key] as unknown as Record<string, unknown>[]) || [];
-
-  const filtered = entries.filter(e => {
-    const q = search.toLowerCase();
-    return !q || String(e.kuerzel).toLowerCase().includes(q) || String(e.name).toLowerCase().includes(q) || String(e.tags || '').toLowerCase().includes(q);
-  });
-
-  const handleNew = () => {
-    setEditEntry(emptyEntry(categoryDef, entries));
-  };
-
-  const handleEdit = (entry: Record<string, unknown>) => {
-    setEditEntry({ ...entry });
-  };
-
-  const handleDelete = (id: string) => {
-    if (!confirm('Eintrag wirklich löschen?')) return;
-    const updated = entries.filter(e => e.id !== id);
-    onDataChange({ ...data, [key]: updated });
-  };
-
-  const handleSave = (entry: Record<string, unknown>) => {
-    let updated: Record<string, unknown>[];
-    if (entry.id) {
-      updated = entries.map(e => e.id === entry.id ? entry : e);
-    } else {
-      updated = [...entries, { ...entry, id: generateId() }];
+  const statusColor = (status?: string) => {
+    switch (status) {
+      case 'Aktiv': return 'bg-emerald-100 text-emerald-800 border border-emerald-200';
+      case 'Inaktiv': return 'bg-gray-100 text-gray-600 border border-gray-200';
+      case 'In Planung': return 'bg-amber-100 text-amber-800 border border-amber-200';
+      case 'Außer Betrieb': return 'bg-red-100 text-red-800 border border-red-200';
+      default: return 'bg-gray-100 text-gray-500 border border-gray-200';
     }
-    onDataChange({ ...data, [key]: updated });
-    setEditEntry(null);
-  };
-
-  if (editEntry) {
-    return (
-      <CategoryForm
-        categoryDef={categoryDef}
-        entry={editEntry}
-        data={data}
-        onSave={handleSave}
-        onCancel={() => setEditEntry(null)}
-      />
-    );
-  }
-
-  const statusColor: Record<string, string> = {
-    'Aktiv': 'bg-green-100 text-green-800',
-    'Inaktiv': 'bg-gray-100 text-gray-600',
-    'In Planung': 'bg-yellow-100 text-yellow-800',
-    'Außer Betrieb': 'bg-red-100 text-red-700',
   };
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">{categoryDef.icon}</span>
-          <h2 className="text-xl font-semibold text-gray-800">{categoryDef.label}</h2>
-          <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full">{entries.length}</span>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-xl font-bold text-hi-navy">{categoryDef.label}</h2>
+          <p className="text-sm text-hi-slate mt-0.5">{items.length} Einträge</p>
         </div>
         <button
-          onClick={handleNew}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
+          onClick={onNew}
+          className="flex items-center gap-2 px-4 py-2 bg-hi-accent text-white rounded-lg font-semibold text-sm hover:bg-hi-blue transition-colors shadow-sm"
         >
-          + Neuer Eintrag
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          Neuer Eintrag
         </button>
       </div>
-
-      <div className="mb-4">
-        <input
-          type="text"
-          placeholder="Suchen nach Kürzel, Name oder Tags..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-
-      {filtered.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <div className="text-4xl mb-3">{categoryDef.icon}</div>
-          <p className="text-sm">Noch keine Einträge. Klicke auf "Neuer Eintrag" um zu beginnen.</p>
+      {items.length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm text-center py-16">
+          <div className="w-12 h-12 rounded-full bg-hi-gray mx-auto mb-4 flex items-center justify-center">
+            <svg className="w-6 h-6 text-hi-slate" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <p className="text-hi-navy font-semibold">Noch keine Einträge vorhanden.</p>
+          <p className="text-sm text-hi-slate mt-1">Klicken Sie auf "Neuer Eintrag" um zu beginnen.</p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-hi-gray border-b border-gray-200">
               <tr>
-                <th className="text-left px-4 py-3 font-medium text-gray-600 w-32">Kürzel</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Name</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600 w-32">Status</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600 w-24">Aktionen</th>
+                <th className="text-left px-4 py-3 font-semibold text-hi-slate text-xs uppercase tracking-wider w-32">Kürzel</th>
+                <th className="text-left px-4 py-3 font-semibold text-hi-slate text-xs uppercase tracking-wider">Name</th>
+                <th className="text-left px-4 py-3 font-semibold text-hi-slate text-xs uppercase tracking-wider w-36">Status</th>
+                <th className="text-right px-4 py-3 font-semibold text-hi-slate text-xs uppercase tracking-wider w-36">Aktionen</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filtered.map(entry => (
-                <tr key={String(entry.id)} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 font-mono text-xs text-blue-700 font-medium">{String(entry.kuerzel)}</td>
-                  <td className="px-4 py-3 text-gray-800">
-                    <div>{String(entry.name)}</div>
-                    {entry.erlaeuterung ? (
-                      <div className="text-xs text-gray-400 truncate max-w-md">{String(entry.erlaeuterung)}</div>
-                    ) : null}
-                  </td>
+            <tbody className="divide-y divide-gray-50">
+              {items.map((item) => (
+                <tr key={item.id} className="hover:bg-hi-gray/60 transition-colors">
                   <td className="px-4 py-3">
-                    {entry.status ? (
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColor[String(entry.status)] || 'bg-gray-100 text-gray-600'}`}>
-                        {String(entry.status) as string}
+                    <span className="font-mono text-hi-accent font-bold text-xs">{item.kuerzel}</span>
+                  </td>
+                  <td className="px-4 py-3 text-hi-navy font-medium">{item.name}</td>
+                  <td className="px-4 py-3">
+                    {item.status ? (
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusColor(item.status)}`}>
+                        {item.status}
                       </span>
                     ) : null}
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleEdit(entry)}
-                        className="text-blue-600 hover:text-blue-800 text-xs font-medium"
-                      >
-                        Bearbeiten
-                      </button>
-                      <button
-                        onClick={() => handleDelete(String(entry.id))}
-                        className="text-red-500 hover:text-red-700 text-xs font-medium"
-                      >
-                        Löschen
-                      </button>
-                    </div>
+                  <td className="px-4 py-3 text-right flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => onEdit(item.id)}
+                      className="text-xs px-3 py-1 rounded-lg bg-hi-gray text-hi-accent font-semibold hover:bg-hi-accent hover:text-white transition-colors"
+                    >
+                      Bearbeiten
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm(`"${item.name}" wirklich löschen?`)) onDelete(item.id);
+                      }}
+                      className="text-xs px-3 py-1 rounded-lg bg-red-50 text-red-600 font-semibold hover:bg-red-600 hover:text-white transition-colors border border-red-100"
+                    >
+                      Löschen
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -159,4 +99,4 @@ export default function CategoryList({ categoryDef, data, onDataChange }: Props)
       )}
     </div>
   );
-}
+};

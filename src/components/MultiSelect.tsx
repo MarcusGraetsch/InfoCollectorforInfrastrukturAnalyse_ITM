@@ -1,75 +1,73 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 
-interface Option {
-  value: string;
+interface Item {
+  kuerzel: string;
+  name: string;
+}
+
+interface MultiSelectProps {
+  value: string[];
+  onChange: (val: string[]) => void;
+  items: Item[];
   label: string;
 }
 
-interface Props {
-  options: Option[];
-  value: string[];
-  onChange: (val: string[]) => void;
-  placeholder?: string;
-}
-
-export default function MultiSelect({ options, value, onChange, placeholder = 'Auswählen...' }: Props) {
+export const MultiSelect: React.FC<MultiSelectProps> = ({ value, onChange, items, label }) => {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  const toggle = (v: string) => {
-    onChange(value.includes(v) ? value.filter(x => x !== v) : [...value, v]);
+  const toggle = (kuerzel: string) => {
+    if (value.includes(kuerzel)) {
+      onChange(value.filter((v) => v !== kuerzel));
+    } else {
+      onChange([...value, kuerzel]);
+    }
   };
 
-  const selectedLabels = value.map(v => {
-    const opt = options.find(o => o.value === v);
-    return opt ? opt.label : v;
-  });
-
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative">
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full border border-gray-300 rounded-md px-3 py-2 text-left text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[38px]"
+        className="w-full border border-gray-300 rounded px-3 py-2 text-left bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[38px]"
       >
-        {selectedLabels.length > 0 ? (
+        {value.length === 0 ? (
+          <span className="text-gray-400">-- {label} auswählen --</span>
+        ) : (
           <div className="flex flex-wrap gap-1">
-            {selectedLabels.map(l => (
-              <span key={l} className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded">{l}</span>
+            {value.map((v) => (
+              <span key={v} className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">
+                {v}
+              </span>
             ))}
           </div>
-        ) : (
-          <span className="text-gray-400">{placeholder}</span>
         )}
       </button>
       {open && (
-        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-          {options.length === 0 ? (
-            <div className="px-3 py-2 text-sm text-gray-400">Keine Einträge vorhanden</div>
+        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded shadow-lg max-h-48 overflow-y-auto">
+          {items.length === 0 ? (
+            <div className="px-3 py-2 text-gray-400 text-sm">Keine Einträge vorhanden</div>
           ) : (
-            options.map(opt => (
-              <label key={opt.value} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm">
+            items.map((item) => (
+              <label
+                key={item.kuerzel}
+                className="flex items-center gap-2 px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm"
+              >
                 <input
                   type="checkbox"
-                  checked={value.includes(opt.value)}
-                  onChange={() => toggle(opt.value)}
-                  className="rounded"
+                  checked={value.includes(item.kuerzel)}
+                  onChange={() => toggle(item.kuerzel)}
+                  className="accent-blue-600"
                 />
-                <span className="font-mono text-xs text-gray-500 min-w-[60px]">{opt.value}</span>
-                <span>{opt.label}</span>
+                <span className="font-mono text-blue-700 text-xs">{item.kuerzel}</span>
+                <span className="text-gray-700">{item.name}</span>
               </label>
             ))
           )}
         </div>
       )}
+      {open && (
+        <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+      )}
     </div>
   );
-}
+};

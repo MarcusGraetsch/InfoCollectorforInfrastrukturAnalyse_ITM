@@ -1,82 +1,142 @@
 import * as XLSX from 'xlsx';
-import type { AppData } from '../types';
+import type { AppState } from '../types';
+import { CATEGORIES } from '../categories';
+import { assessAll, summarize } from '../cloudReadiness';
 
-function arr(val: string[] | undefined): string {
-  return (val || []).join(', ');
+function addOverviewSheet(wb: XLSX.WorkBook, state: AppState, titel: string): void {
+  const overviewData = [
+    [titel, ''],
+    ['Kunde:', state.customerName],
+    ['Erstellt:', new Date().toLocaleString('de-DE')],
+    ['', ''],
+    ['Kategorie', 'Anzahl Einträge'],
+    ...CATEGORIES.map((cat) => [cat.label, (state[cat.key] as unknown[]).length]),
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(overviewData), 'Übersicht');
 }
 
-export function exportToExcel(data: AppData): void {
+function addCategorySheets(wb: XLSX.WorkBook, state: AppState): void {
+  for (const cat of CATEGORIES) {
+    const items = state[cat.key] as unknown as Record<string, unknown>[];
+    const headers = cat.fields.map((f) => f.label);
+    const rows = items.map((item) =>
+      cat.fields.map((f) => {
+        const val = item[f.key];
+        if (Array.isArray(val)) return val.join(', ');
+        return val ?? '';
+      })
+    );
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    XLSX.utils.book_append_sheet(wb, ws, cat.label.substring(0, 31));
+  }
+}
+
+export function exportToExcel(state: AppState): void {
   const wb = XLSX.utils.book_new();
+  addOverviewSheet(wb, state, 'IT Strukturanalyse');
+  addCategorySheets(wb, state);
+  XLSX.writeFile(
+    wb,
+    `IT-Strukturanalyse_${state.customerName || 'Export'}_${new Date().toISOString().split('T')[0]}.xlsx`
+  );
+}
 
-  // Startseite
-  const startData = [
-    [null, 'Strukturanalyse'],
-    ['Kundenname', data.kundenname],
-    ['Dokumenterläuterung', 'Die Strukturanalyse dokumentiert die im Informationsverbund enthaltenen Geschäftsprozesse, Anwendungen, IT-Systeme, Netzverbindungen, Räume und Gebäude.'],
-    ['Datum der letzten Aktualisierung', data.letzteAktualisierung],
+/**
+ * Workshop-Paket: Strukturanalyse + Cloud-Strategie-Rahmen + gelieferte
+ * Unterlagen + automatische Cloud-Readiness-Bewertung. Dient als Grundlage
+ * für den Cloud-Readiness-Workshop.
+ */
+export function exportWorkshopPackage(state: AppState): void {
+  const wb = XLSX.utils.book_new();
+  addOverviewSheet(wb, state, 'Cloud-Readiness Workshop-Paket');
+
+  // Cloud-Strategie-Rahmen
+  const cs = state.cloudStrategy;
+  const strategyData = [
+    ['Cloud-Strategie – Rahmen', ''],
+    ['Geschäftliches Ziel', cs.ziel],
+    ['Treiber', cs.treiber.join(', ')],
+    ['Bevorzugte Zielumgebung', cs.zielumgebung.join(', ')],
+    ['Zeithorizont', cs.zeithorizont],
+    ['Notizen', cs.notizen],
   ];
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(startData), 'Startseite');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(strategyData), 'Cloud-Strategie');
 
-  // Geschäftsprozesse
-  const gpHeader = [null, 'Kürzel', 'Name', 'Erläuterung', 'Status', 'Prozess-Art', 'Verantwortlicher / Fachabteilung', 'Beteiligte', 'Tags', 'Daten', 'Anwendungen'];
-  const gpRows = data.geschaeftsprozesse.map(e => [null, e.kuerzel, e.name, e.erlaeuterung, e.status, e.prozessArt, e.verantwortlicher, e.beteiligte, e.tags, arr(e.daten), arr(e.anwendungen)]);
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([gpHeader, ...gpRows]), 'Geschäftsprozesse');
+  // Cloud-Readiness-Bewertung
+  const assessed = assessAll(state);
+  const summary = summarize(assessed);
+  const readinessHeader = [
+    'Kürzel',
+    'Name',
+    'Typ',
+    'Schutzbedarf',
+    'Datensouveränität',
+    'Aktuelle Bereitstellung',
+    'Lebenszyklus',
+    'Readiness-Score',
+    'Readiness-Level',
+    'Empfehlung (6R)',
+    'Souveräne Cloud nötig',
+    'Begründung',
+  ];
+  const readinessRows = assessed.map((i) => [
+    i.kuerzel,
+    i.name,
+    i.categoryLabel,
+    i.schutzbedarf ?? '',
+    i.datensouveraenitaet ?? '',
+    i.bereitstellung ?? '',
+    i.lebenszyklus ?? '',
+    i.result.score,
+    i.result.level,
+    i.result.empfehlung,
+    i.result.souveraen ? 'Ja' : 'Nein',
+    i.result.begruendung.join(' '),
+  ]);
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.aoa_to_sheet([readinessHeader, ...readinessRows]),
+    'Cloud-Readiness'
+  );
 
-  // Daten
-  const dHeader = [null, 'Kürzel', 'Name', 'Erläuterung', 'Status', 'Personenbezug', 'Verantwortlicher / Fachabteilung', 'Beteiligte', 'Tags', 'Anwendungen'];
-  const dRows = data.daten.map(e => [null, e.kuerzel, e.name, e.erlaeuterung, e.status, e.personenbezug, e.verantwortlicher, e.beteiligte, e.tags, arr(e.anwendungen)]);
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([dHeader, ...dRows]), 'Daten');
+  // Readiness-Zusammenfassung
+  const summaryData = [
+    ['Cloud-Readiness – Zusammenfassung', ''],
+    ['Objekte gesamt', summary.total],
+    ['Bewertet', summary.bewertet],
+    ['Noch nicht bewertet', summary.unbewertet],
+    ['Durchschnittlicher Score', summary.avgScore],
+    ['Cloud-ready (Hoch)', summary.hoch],
+    ['Bedingt (Mittel)', summary.mittel],
+    ['Niedrig', summary.niedrig],
+    ['Souveräne Cloud erforderlich', summary.souveraen],
+    ['', ''],
+    ['Empfohlene Strategie (6R)', 'Anzahl'],
+    ...Object.entries(summary.dispositionCounts),
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryData), 'Readiness-Summary');
 
-  // Anwendungen
-  const aHeader = [null, 'Kürzel', 'Name', 'Erläuterung', 'Status', 'Verantwortlich / Administrator', 'Benutzer', 'Tags', 'Anwendungen', 'IT-Systeme', 'Netzverbindungen'];
-  const aRows = data.anwendungen.map(e => [null, e.kuerzel, e.name, e.erlaeuterung, e.status, e.verantwortlicher, e.benutzer, e.tags, arr(e.anwendungen), arr(e.itSysteme), arr(e.netzverbindungen)]);
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([aHeader, ...aRows]), 'Anwendungen');
+  // Gelieferte Unterlagen
+  const docHeader = ['Bezeichnung', 'Art', 'Erhalten am', 'Ausgewertet', 'Notiz'];
+  const docRows = state.quelldokumente.map((d) => [
+    d.name,
+    d.art,
+    d.erhaltenAm,
+    d.ausgewertet ? 'Ja' : 'Nein',
+    d.notiz,
+  ]);
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.aoa_to_sheet([docHeader, ...docRows]),
+    'Unterlagen'
+  );
 
-  // Datenträger
-  const dtHeader = [null, 'Kürzel', 'Name', 'Erläuterung', 'Status', 'Anzahl', 'Verantwortlich / Administrator', 'Benutzer', 'Tags', 'Daten', 'Anwendungen'];
-  const dtRows = data.datentraeger.map(e => [null, e.kuerzel, e.name, e.erlaeuterung, e.status, e.anzahl, e.verantwortlicher, e.benutzer, e.tags, arr(e.daten), arr(e.anwendungen)]);
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([dtHeader, ...dtRows]), 'Datenträger');
+  addCategorySheets(wb, state);
 
-  // Server
-  const sHeader = [null, 'Kürzel', 'Name', 'Erläuterung', 'Status', 'Anzahl', 'Plattform', 'Verantwortlich / Administrator', 'Benutzer', 'Tags', 'Anwendungen', 'IT-Systeme', 'Netzverbindungen', 'Räume', 'Gebäude'];
-  const sRows = data.server.map(e => [null, e.kuerzel, e.name, e.erlaeuterung, e.status, e.anzahl, e.plattform, e.verantwortlicher, e.benutzer, e.tags, arr(e.anwendungen), arr(e.itSysteme), arr(e.netzverbindungen), arr(e.raeume), arr(e.gebaeude)]);
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([sHeader, ...sRows]), 'Server');
-
-  // Netzkomponenten
-  const nkHeader = [null, 'Kürzel', 'Name', 'Erläuterung', 'Status', 'Anzahl', 'Plattform', 'Verantwortlich / Administrator', 'Tags', 'IT-Systeme', 'Netzverbindungen', 'Räume', 'Gebäude'];
-  const nkRows = data.netzkomponenten.map(e => [null, e.kuerzel, e.name, e.erlaeuterung, e.status, e.anzahl, e.plattform, e.verantwortlicher, e.tags, arr(e.itSysteme), arr(e.netzverbindungen), arr(e.raeume), arr(e.gebaeude)]);
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([nkHeader, ...nkRows]), 'Netzkomponenten');
-
-  // Netzverbindungen
-  const nHeader = [null, 'Kürzel', 'Name', 'Erläuterung', 'Status', 'Protokolle', 'Extern. Netz', 'Tags', 'Anwendungen', 'Clients', 'Server', 'Netzverbindungen', 'Netzkomponenten', 'Räume', 'Gebäude'];
-  const nRows = data.netzverbindungen.map(e => [null, e.kuerzel, e.name, e.erlaeuterung, e.status, e.protokolle, e.externNetz, e.tags, arr(e.anwendungen), arr(e.clients), arr(e.server), arr(e.netzverbindungen), arr(e.netzkomponenten), arr(e.raeume), arr(e.gebaeude)]);
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([nHeader, ...nRows]), 'Netzverbindungen');
-
-  // Clients
-  const cHeader = [null, 'Kürzel', 'Name', 'Erläuterung', 'Status', 'Anzahl', 'Plattform', 'Verantwortlich / Administrator', 'Benutzer', 'Tags', 'IT-Systeme', 'Netzverbindungen', 'Räume', 'Gebäude'];
-  const cRows = data.clients.map(e => [null, e.kuerzel, e.name, e.erlaeuterung, e.status, e.anzahl, e.plattform, e.verantwortlicher, e.benutzer, e.tags, arr(e.itSysteme), arr(e.netzverbindungen), arr(e.raeume), arr(e.gebaeude)]);
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([cHeader, ...cRows]), 'Clients');
-
-  // ICS-Systeme
-  const icsHeader = [null, 'Kürzel', 'Name', 'Erläuterung', 'Status', 'Anzahl', 'Plattform', 'Verantwortlich / Administrator', 'Benutzer', 'Tags', 'IT-Systeme', 'Netzverbindungen', 'Räume', 'Gebäude'];
-  const icsRows = data.icsSysteme.map(e => [null, e.kuerzel, e.name, e.erlaeuterung, e.status, e.anzahl, e.plattform, e.verantwortlicher, e.benutzer, e.tags, arr(e.itSysteme), arr(e.netzverbindungen), arr(e.raeume), arr(e.gebaeude)]);
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([icsHeader, ...icsRows]), 'ICS-Systeme');
-
-  // IoT-Systeme
-  const iotHeader = [null, 'Kürzel', 'Name', 'Erläuterung', 'Status', 'Anzahl', 'Plattform', 'Verantwortlich / Administrator', 'Benutzer', 'Tags', 'IT-Systeme', 'Netzverbindungen', 'Räume', 'Gebäude'];
-  const iotRows = data.iotSysteme.map(e => [null, e.kuerzel, e.name, e.erlaeuterung, e.status, e.anzahl, e.plattform, e.verantwortlicher, e.benutzer, e.tags, arr(e.itSysteme), arr(e.netzverbindungen), arr(e.raeume), arr(e.gebaeude)]);
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([iotHeader, ...iotRows]), 'IoT-Systeme');
-
-  // Räume
-  const rHeader = [null, 'Kürzel', 'Name', 'Erläuterung', 'Anzahl', 'Verantwortlich', 'Benutzer', 'Tags', 'Gebäude'];
-  const rRows = data.raeume.map(e => [null, e.kuerzel, e.name, e.erlaeuterung, e.anzahl, e.verantwortlicher, e.benutzer, e.tags, arr(e.gebaeude)]);
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([rHeader, ...rRows]), 'Räume');
-
-  // Gebäude
-  const gHeader = [null, 'Kürzel', 'Name', 'Erläuterung', 'Anzahl', 'Verantwortlich', 'Benutzer', 'Tags'];
-  const gRows = data.gebaeude.map(e => [null, e.kuerzel, e.name, e.erlaeuterung, e.anzahl, e.verantwortlicher, e.benutzer, e.tags]);
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([gHeader, ...gRows]), 'Gebäude');
-
-  const filename = `Strukturanalyse_${data.kundenname || 'Export'}_${data.letzteAktualisierung}.xlsx`;
-  XLSX.writeFile(wb, filename);
+  XLSX.writeFile(
+    wb,
+    `Cloud-Readiness-Workshop_${state.customerName || 'Export'}_${
+      new Date().toISOString().split('T')[0]
+    }.xlsx`
+  );
 }
