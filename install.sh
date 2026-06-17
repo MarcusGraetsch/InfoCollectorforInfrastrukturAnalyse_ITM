@@ -242,9 +242,14 @@ if [ "$DEPLOY_MODE" = "1" ]; then
   fi
   ok "Node.js: $(node --version)  npm: $(npm --version)"
 
+  # Corporate-Proxy-Umgebungen nutzen SSL-Inspektion mit selbst-signierten Zertifikaten.
+  # npm strict-ssl deaktivieren damit der Registry-Zugriff funktioniert.
+  npm config set strict-ssl false
+  ok "npm SSL-Prüfung deaktiviert (Corporate Proxy)"
+
   # npm braucht ein echtes TTY – kein Hintergrundprozess/Redirect, sonst crasht es.
   echo ""
-  echo -e "  ${CYAN}${BOLD}▷${RESET} ${WHITE}npm install${RESET} ${DIM}(kann 2–4 Minuten dauern – npm zeigt eigenen Fortschritt)${RESET}"
+  echo -e "  ${CYAN}${BOLD}▷${RESET} ${WHITE}npm install${RESET} ${DIM}(kann 1–3 Minuten dauern)${RESET}"
   echo -e "  ${DIM}────────────────────────────────────────────────────────────${RESET}"
   NODE_ENV=development npm install --no-audit --no-fund || true
   echo -e "  ${DIM}────────────────────────────────────────────────────────────${RESET}"
@@ -309,8 +314,11 @@ else
   ok "Node.js gefunden: $NODE_VER"
   ok "npm: $(npm --version)"
 
+  npm config set strict-ssl false
+  ok "npm SSL-Prüfung deaktiviert (Corporate Proxy)"
+
   echo ""
-  echo -e "  ${CYAN}${BOLD}▷${RESET} ${WHITE}npm install${RESET} ${DIM}(kann 2–4 Minuten dauern)${RESET}"
+  echo -e "  ${CYAN}${BOLD}▷${RESET} ${WHITE}npm install${RESET} ${DIM}(kann 1–3 Minuten dauern)${RESET}"
   echo -e "  ${DIM}────────────────────────────────────────────────────────────${RESET}"
   NODE_ENV=development npm install --no-audit --no-fund || true
   echo -e "  ${DIM}────────────────────────────────────────────────────────────${RESET}"
