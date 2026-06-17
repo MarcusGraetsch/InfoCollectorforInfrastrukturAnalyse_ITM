@@ -187,8 +187,29 @@ if [ "$DEPLOY_MODE" = "1" ]; then
     COMPOSE_CMD="$DOCKER_SUDO docker compose"
   fi
 
+  # Build the app on the host first (avoids npm network issues inside Docker)
+  step "App auf dem Host bauen (npm läuft außerhalb Docker)"
+
+  if ! command -v node &>/dev/null; then
+    warn "Node.js nicht gefunden. Installation wird gestartet..."
+    if [ "$OS" = "Linux" ]; then
+      curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - 2>/dev/null
+      sudo apt-get install -y nodejs 2>/dev/null || sudo dnf install -y nodejs 2>/dev/null || fail "Node.js-Installation fehlgeschlagen."
+    elif [ "$OS" = "Darwin" ]; then
+      command -v brew &>/dev/null && brew install node@20 || fail "Bitte Node.js manuell installieren: https://nodejs.org/"
+    fi
+  fi
+  ok "Node.js: $(node --version)  npm: $(npm --version)"
+
+  progress "Installiere Abhängigkeiten" 4
+  npm install --silent 2>&1 | tail -3
+
+  progress "Baue Produktions-Bundle" 4
+  npm run build 2>&1 | tail -3
+  ok "Build erfolgreich → dist/"
+
   echo ""
-  progress "Baue Docker-Image (kann einige Minuten dauern)" 3
+  progress "Baue Docker-Image" 2
   if ! APP_PORT="$APP_PORT" $COMPOSE_CMD build --no-cache; then
     fail "Docker-Build fehlgeschlagen. Bitte Ausgabe oben prüfen."
   fi
