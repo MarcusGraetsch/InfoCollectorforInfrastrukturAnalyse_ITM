@@ -215,21 +215,7 @@ if [ "$DEPLOY_MODE" = "1" ]; then
     fail "Docker-Daemon nicht erreichbar. Versuchen Sie: sudo systemctl start docker"
   fi
 
-  # Check if docker compose (plugin) or docker-compose (standalone) is available
   DOCKER_BIN="${DOCKER_SUDO} docker"
-  if $DOCKER_BIN compose version &>/dev/null 2>&1; then
-    COMPOSE_CMD="$DOCKER_BIN compose"
-    ok "Docker Compose: $($DOCKER_BIN compose version --short 2>/dev/null || echo 'v2')"
-  elif command -v docker-compose &>/dev/null; then
-    COMPOSE_CMD="${DOCKER_SUDO} docker-compose"
-    ok "Docker Compose: standalone ($(docker-compose --version 2>/dev/null | awk '{print $3}' | tr -d ','))"
-  else
-    warn "docker compose nicht gefunden, installiere docker-compose-plugin..."
-    sudo -E apt-get install -y -qq docker-compose-plugin 2>/dev/null \
-      || sudo -E apt-get install -y -qq docker-compose 2>/dev/null || true
-    COMPOSE_CMD="$DOCKER_BIN compose"
-  fi
-  ok "Compose-Befehl: $COMPOSE_CMD"
 
   # Build the app on the host first (avoids npm network issues inside Docker)
   step "App auf dem Host bauen (npm läuft außerhalb Docker)"
@@ -279,21 +265,24 @@ if [ "$DEPLOY_MODE" = "1" ]; then
   fi
   ok "Build fertig → dist/ ($(du -sh dist 2>/dev/null | cut -f1))"
 
+  # Bestehenden Container entfernen falls vorhanden
+  $DOCKER_BIN rm -f it-strukturanalyse 2>/dev/null || true
+
   echo ""
   echo -e "  ${CYAN}${BOLD}▷${RESET} ${WHITE}Docker-Image bauen${RESET} ${DIM}(nginx:alpine + dist/ — dauert ~30s)${RESET}"
   echo -e "  ${DIM}────────────────────────────────────────────────────────────${RESET}"
-  APP_PORT="$APP_PORT" $COMPOSE_CMD build --no-cache
+  $DOCKER_BIN build -t it-strukturanalyse .
   echo -e "  ${DIM}────────────────────────────────────────────────────────────${RESET}"
   ok "Docker-Image gebaut"
 
   echo ""
   echo -e "  ${CYAN}${BOLD}▷${RESET} ${WHITE}Container starten …${RESET}"
-  APP_PORT="$APP_PORT" $COMPOSE_CMD up -d
+  $DOCKER_BIN run -d -p "${APP_PORT}:80" --name it-strukturanalyse --restart unless-stopped it-strukturanalyse
 
   # Verify the container is actually running
   sleep 2
   if ! $DOCKER_BIN ps --filter "name=it-strukturanalyse" --filter "status=running" --format '{{.Names}}' | grep -q .; then
-    fail "Container läuft nicht. Logs: $COMPOSE_CMD logs"
+    fail "Container läuft nicht. Logs: $DOCKER_BIN logs it-strukturanalyse"
   fi
   ok "Container gestartet: it-strukturanalyse"
 
@@ -414,8 +403,9 @@ echo "  ║   Daten werden lokal im Browser gespeichert (localStorage)  ║"
 echo "  ║   Keine Daten verlassen die VM / diesen Rechner             ║"
 echo "  ║                                                              ║"
 if [ "$DEPLOY_MODE" = "1" ]; then
-echo "  ║   Stoppen:   docker compose down                             ║"
-echo "  ║   Starten:   docker compose up -d                           ║"
+echo "  ║   Stoppen:   sudo docker stop it-strukturanalyse             ║"
+echo "  ║   Starten:   sudo docker start it-strukturanalyse           ║"
+echo "  ║   Logs:      sudo docker logs it-strukturanalyse            ║"
 else
 echo "  ║   Stoppen:   kill \$(cat app.pid)                            ║"
 echo "  ║   Starten:   ./start.sh                                     ║"
