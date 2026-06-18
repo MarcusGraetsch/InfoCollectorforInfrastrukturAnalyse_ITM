@@ -358,19 +358,21 @@ export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose, 
             </div>
           </Field>
 
-          <Field label="Lizenz cloudfähig?">
-            <div className="flex gap-2">
-              {LIZENZ_OPTS.map(o => (
-                <QuickButton
-                  key={o}
-                  label={o}
-                  active={fields.lizenzCloudfaehig === o}
-                  onClick={() => set('lizenzCloudfaehig', o)}
-                  color={o === 'Ja' ? 'green' : o === 'Nein' ? 'red' : 'amber'}
-                />
-              ))}
-            </div>
-          </Field>
+          {meta.category === 'anwendungen' && (
+            <Field label="Lizenz cloudfähig?">
+              <div className="flex gap-2">
+                {LIZENZ_OPTS.map(o => (
+                  <QuickButton
+                    key={o}
+                    label={o}
+                    active={fields.lizenzCloudfaehig === o}
+                    onClick={() => set('lizenzCloudfaehig', o)}
+                    color={o === 'Ja' ? 'green' : o === 'Nein' ? 'red' : 'amber'}
+                  />
+                ))}
+              </div>
+            </Field>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <Field label="Migrationskomplexität">
