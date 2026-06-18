@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import type { AppState, CategoryKey } from './types';
-import { loadState, saveState } from './store';
-import { defaultState } from './store';
+import { loadState, saveState, defaultState, clearState } from './store';
 import { CATEGORIES, CATEGORY_MAP } from './categories';
 import { AppHeader } from './components/AppHeader';
 import type { AppMode } from './components/AppHeader';
@@ -166,8 +165,8 @@ function App() {
         onExportJSON={handleExportJSON}
         onExportReport={handleExportReport}
         onClearData={() => {
-          localStorage.clear();
-          setState(defaultState);
+          clearState();          // löscht Key, schreibt sofort leeren State zurück
+          setState(defaultState); // React-State auf leer setzen
           setMode('wizard');
         }}
       />
