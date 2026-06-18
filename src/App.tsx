@@ -28,7 +28,7 @@ function App() {
   const [editId, setEditId] = useState<string | null>(null);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [showEmailTemplate, setShowEmailTemplate] = useState(false);
-  const [showCloudWizard, setShowCloudWizard] = useState(false);
+  const [cloudWizardTargetId, setCloudWizardTargetId] = useState<string | null>(null);
 
   const updateState = useCallback((updater: (prev: AppState) => AppState) => {
     setState((prev) => {
@@ -185,7 +185,7 @@ function App() {
 
         {mode === 'offene-punkte' && (
           <div className="h-full overflow-y-auto">
-            <OffenePunkte state={state} />
+            <OffenePunkte state={state} onEditItem={id => setCloudWizardTargetId(id)} />
           </div>
         )}
 
@@ -194,7 +194,7 @@ function App() {
             <CloudDashboard
             state={state}
             onGoToWizard={() => setMode('wizard')}
-            onOpenCloudWizard={() => setShowCloudWizard(true)}
+            onOpenCloudWizard={() => setCloudWizardTargetId('')}
           />
           </div>
         )}
@@ -261,11 +261,12 @@ function App() {
           onCancel={() => setImportFile(null)}
         />
       )}
-      {showCloudWizard && (
+      {cloudWizardTargetId !== null && (
         <CloudReadinessWizard
           state={state}
           onSave={handleCloudFieldSave}
-          onClose={() => setShowCloudWizard(false)}
+          onClose={() => setCloudWizardTargetId(null)}
+          startId={cloudWizardTargetId || undefined}
         />
       )}
       {showEmailTemplate && (

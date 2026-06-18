@@ -132,9 +132,10 @@ const THEME_ICONS: Record<string, string> = {
 
 interface Props {
   state: AppState;
+  onEditItem: (id: string) => void;
 }
 
-export const OffenePunkte: React.FC<Props> = ({ state }) => {
+export const OffenePunkte: React.FC<Props> = ({ state, onEditItem }) => {
   const [tab, setTab] = useState<'liste' | 'interview'>('liste');
   const [filterCategory, setFilterCategory] = useState<CategoryKey | 'alle'>('alle');
 
@@ -308,8 +309,20 @@ export const OffenePunkte: React.FC<Props> = ({ state }) => {
                         </span>
                       ))}
                     </div>
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-amber-100 text-amber-700 text-xs font-bold flex items-center justify-center">
-                      {item.openFields.length}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 text-xs font-bold flex items-center justify-center">
+                        {item.openFields.length}
+                      </div>
+                      <button
+                        onClick={() => onEditItem(item.id)}
+                        title="Diesen Eintrag im Wizard bearbeiten"
+                        className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-hi-accent border border-hi-accent/30 rounded-lg hover:bg-hi-accent hover:text-white transition-all"
+                      >
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Bearbeiten
+                      </button>
                     </div>
                   </div>
                 ))}

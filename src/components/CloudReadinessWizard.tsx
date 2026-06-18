@@ -19,10 +19,20 @@ interface EditableMeta {
   category: CategoryKey;
 }
 
+const OPEN_CLOUD_KEYS: (keyof CloudFields)[] = [
+  'schutzbedarf', 'bereitstellung', 'lizenzCloudfaehig',
+  'migrationskomplexitaet', 'lebenszyklus', 'internetfaehig', 'datensouveraenitaet',
+];
+
+function hasOpenFields(item: CloudFields): boolean {
+  return OPEN_CLOUD_KEYS.some(k => !item[k] || item[k] === 'Unklar');
+}
+
 interface Props {
   state: AppState;
   onSave: (category: CategoryKey, id: string, fields: CloudFields, meta: EditableMeta) => void;
   onClose: () => void;
+  startId?: string;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -65,6 +75,7 @@ const SOUV_OPTS = [
   'Deutschland',
   'Streng souverän (C5 / Gaia-X)',
   'Confidential Computing (TEE / Enclave)',
+  'Unklar',
 ];
 
 function QuickButton({
@@ -155,11 +166,11 @@ function ScorePreview({ fields, category }: { fields: CloudFields; category: Cat
   );
 }
 
-export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose }) => {
+export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose, startId }) => {
   const items = useMemo((): ItemToReview[] => {
     const allAssessed = assessAll(state);
     return allAssessed
-      .filter(i => i.result.level === 'Unbewertet')
+      .filter(i => hasOpenFields(i))
       .map(i => ({
         id: i.id,
         kuerzel: i.kuerzel,
@@ -181,7 +192,13 @@ export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose }
       }));
   }, [state]);
 
-  const [index, setIndex] = useState(0);
+  const startIndex = useMemo(() => {
+    if (!startId) return 0;
+    const idx = items.findIndex(i => i.id === startId);
+    return idx >= 0 ? idx : 0;
+  }, [items, startId]);
+
+  const [index, setIndex] = useState(startIndex);
   const [fields, setFields] = useState<CloudFields>(() => items[0]?.fields ?? {});
   const [meta, setMeta] = useState<EditableMeta>(() => ({
     name: items[0]?.name ?? '',
@@ -399,18 +416,21 @@ export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose }
             </Field>
 
             <Field label="Datensouveränität">
-              <select
-                value={fields.datensouveraenitaet ?? ''}
-                onChange={e => setFields(prev => ({ ...prev, datensouveraenitaet: e.target.value }))}
-                className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white text-hi-navy focus:outline-none focus:ring-2 focus:ring-hi-accent"
-              >
-                <option value="">— nicht gesetzt —</option>
-                {SOUV_OPTS.map(o => <option key={o} value={o}>{o}</option>)}
-              </select>
+              <div className="flex gap-2 flex-wrap">
+                {SOUV_OPTS.map(o => (
+                  <QuickButton
+                    key={o}
+                    label={o}
+                    active={fields.datensouveraenitaet === o}
+                    onClick={() => set('datensouveraenitaet', o)}
+                    color={o === 'Unklar' ? 'gray' : o === 'Keine spezielle Anforderung' ? 'green' : o === 'Streng souverän (C5 / Gaia-X)' || o === 'Confidential Computing (TEE / Enclave)' ? 'purple' : 'amber'}
+                  />
+                ))}
+              </div>
             </Field>
           </div>
 
-          <Field label="Migrationsstrategie (optional überschreiben)">
+          <Field label="Migrationsstrategie">
             <div className="flex gap-2 flex-wrap">
               {EIGNUNG_OPTS.map(o => (
                 <QuickButton key={o} label={o} active={fields.cloudEignung === o} onClick={() => set('cloudEignung', o)} color="purple" />
