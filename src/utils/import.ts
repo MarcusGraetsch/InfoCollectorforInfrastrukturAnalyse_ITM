@@ -199,7 +199,13 @@ export function importClassifiedRows(
       newItems.push(item);
     }
 
-    (newState as Record<string, unknown>)[catKey] = [...existing, ...newItems];
+    const existingNames = new Set(
+      existing.map(e => String(e['name'] ?? '').toLowerCase().trim())
+    );
+    const dedupedItems = newItems.filter(
+      i => !existingNames.has(String(i['name'] ?? '').toLowerCase().trim())
+    );
+    (newState as Record<string, unknown>)[catKey] = [...existing, ...dedupedItems];
   }
 
   return newState;

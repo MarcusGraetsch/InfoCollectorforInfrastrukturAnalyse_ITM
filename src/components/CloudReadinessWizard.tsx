@@ -205,6 +205,8 @@ export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose, 
     return list;
   });
 
+  const consultantName = localStorage.getItem('consultant-name') ?? '';
+
   const [index, setIndex] = useState(0);
   const [fields, setFields] = useState<CloudFields>(() => items[0]?.fields ?? {});
   const [meta, setMeta] = useState<EditableMeta>(() => ({
@@ -212,6 +214,8 @@ export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose, 
     kuerzel: items[0]?.kuerzel ?? '',
     category: items[0]?.category ?? 'anwendungen',
   }));
+  const [newNote, setNewNote] = useState('');
+  const [vierAugenName, setVierAugenName] = useState('');
 
   const total = items.length;
   const item = items[index];
@@ -251,10 +255,28 @@ export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose, 
       kuerzel: items[next]?.kuerzel ?? '',
       category: items[next]?.category ?? 'anwendungen',
     });
+    setNewNote('');
+    setVierAugenName('');
+  };
+
+  const buildTaggedNote = (base: string): string => {
+    const now = new Date();
+    const datum = now.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const autor = consultantName || 'Unbekannt';
+    const parts: string[] = [];
+    if (newNote.trim()) {
+      parts.push(`[${autor} · ${datum}]\n${newNote.trim()}`);
+    }
+    if (vierAugenName.trim()) {
+      parts.push(`[4-Augen-Bestätigung: ${vierAugenName.trim()} · ${datum}]\nSchutzbedarf, Cloudfähigkeit und Migrationsstrategie geprüft und bestätigt.`);
+    }
+    if (parts.length === 0) return base;
+    return [...parts, ...(base ? [base] : [])].join('\n\n');
   };
 
   const handleSaveNext = () => {
-    onSave(item.category, item.id, fields, meta);
+    const finalFields = { ...fields, cloudNotiz: buildTaggedNote(fields.cloudNotiz ?? '') };
+    onSave(item.category, item.id, finalFields, meta);
     advanceTo(index + 1);
   };
 
@@ -458,14 +480,40 @@ export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose, 
             </div>
           </Field>
 
-          <Field label="Notiz / ToDo (optional)">
+          {fields.cloudNotiz && (
+            <Field label="Bisherige Notizen">
+              <div className="text-xs text-hi-slate bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 whitespace-pre-wrap max-h-28 overflow-y-auto">
+                {fields.cloudNotiz}
+              </div>
+            </Field>
+          )}
+
+          <Field label={`Neue Notiz${consultantName ? ` (${consultantName})` : ''}`}>
             <textarea
-              value={fields.cloudNotiz ?? ''}
-              onChange={e => setFields(prev => ({ ...prev, cloudNotiz: e.target.value }))}
+              value={newNote}
+              onChange={e => setNewNote(e.target.value)}
               rows={2}
               placeholder="Besonderheiten, offene Fragen, nächste Schritte…"
               className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-hi-navy focus:outline-none focus:ring-2 focus:ring-hi-accent resize-none"
             />
+            {!consultantName && (
+              <p className="text-[11px] text-amber-600 mt-1">
+                Tipp: Geben Sie Ihren Namen im Header-Feld „Berater" ein, damit Notizen automatisch signiert werden.
+              </p>
+            )}
+          </Field>
+
+          <Field label="Vier-Augen-Bestätigung (optional)">
+            <input
+              type="text"
+              value={vierAugenName}
+              onChange={e => setVierAugenName(e.target.value)}
+              placeholder="Name des prüfenden Beraters…"
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-hi-accent"
+            />
+            <p className="text-[11px] text-hi-slate mt-1">
+              Bestätigt Schutzbedarf, Cloudfähigkeit und Migrationsstrategie — wird als signierte Notiz gespeichert.
+            </p>
           </Field>
 
           <ScorePreview fields={fields} category={meta.category} />
