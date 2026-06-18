@@ -167,9 +167,10 @@ function App() {
         onExportJSON={handleExportJSON}
         onExportReport={handleExportReport}
         onClearData={() => {
-          clearState();          // löscht Key, schreibt sofort leeren State zurück
-          setState(defaultState); // React-State auf leer setzen
+          clearState();           // entfernt Installations-ID + Daten-Key
+          setState(defaultState); // React-State zurücksetzen
           setMode('wizard');
+          // Nächster saveState-Aufruf generiert neue ID → neuer Key → sauber
         }}
       />
 

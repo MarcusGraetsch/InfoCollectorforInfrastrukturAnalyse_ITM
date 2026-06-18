@@ -1,6 +1,22 @@
 import type { AppState } from './types';
 
-export const STORAGE_KEY = 'it-strukturanalyse-data';
+const INSTALL_ID_KEY = 'it-strukturanalyse-install-id';
+const OLD_DATA_KEY   = 'it-strukturanalyse-data'; // legacy key (pre-v2)
+
+function getDataKey(): string {
+  let id = localStorage.getItem(INSTALL_ID_KEY);
+  if (!id) {
+    id = Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+    localStorage.setItem(INSTALL_ID_KEY, id);
+    // One-time migration: carry over data from the old fixed key
+    const legacy = localStorage.getItem(OLD_DATA_KEY);
+    if (legacy) {
+      localStorage.setItem(`it-strukturanalyse-data-${id}`, legacy);
+      localStorage.removeItem(OLD_DATA_KEY);
+    }
+  }
+  return `it-strukturanalyse-data-${id}`;
+}
 
 export const defaultState: AppState = {
   customerName: '',
@@ -29,28 +45,29 @@ export const defaultState: AppState = {
 
 export function loadState(): AppState {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultState;
+    const raw = localStorage.getItem(getDataKey());
+    if (!raw) return { ...defaultState };
     return { ...defaultState, ...JSON.parse(raw) };
   } catch {
-    return defaultState;
+    return { ...defaultState };
   }
 }
 
 export function saveState(state: AppState): void {
   const updated = { ...state, lastUpdated: new Date().toISOString() };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+  localStorage.setItem(getDataKey(), JSON.stringify(updated));
 }
 
 /**
- * Löscht alle App-Daten aus dem localStorage und schreibt sofort den
- * leeren defaultState zurück. Das verhindert, dass noch in-flight liegende
- * React-updateState-Callbacks den alten State nach dem Clear neu schreiben.
+ * Löscht alle App-Daten und die Installations-ID.
+ * Beim nächsten App-Start wird eine neue ID generiert → neuer Storage-Key
+ * → komplett leerer Zustand, unabhängig davon was noch im Browser liegt.
  */
 export function clearState(): void {
-  localStorage.removeItem(STORAGE_KEY);
-  // Leeren Zustand sofort persistieren — überschreibt jeden Nachzügler
-  saveState(defaultState);
+  const key = getDataKey();
+  localStorage.removeItem(INSTALL_ID_KEY);
+  localStorage.removeItem(key);
+  // Keine saveState(defaultState) mehr nötig — fehlende ID = sauberer Start
 }
 
 export function generateId(): string {

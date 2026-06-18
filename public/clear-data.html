@@ -124,14 +124,17 @@
   <script>
     function clearData() {
       try {
-        // Clear all localStorage keys belonging to this app
+        // Remove install ID first — next app start generates a new one → new data key
+        localStorage.removeItem('it-strukturanalyse-install-id');
+        // Remove all app data keys (current and any legacy keys)
         const keysToRemove = [];
         for (let i = 0; i < localStorage.length; i++) {
-          keysToRemove.push(localStorage.key(i));
+          const k = localStorage.key(i);
+          if (k && k.startsWith('it-strukturanalyse')) keysToRemove.push(k);
         }
         keysToRemove.forEach(k => localStorage.removeItem(k));
-
-        // Also clear sessionStorage just in case
+        // Also clear consultant name
+        localStorage.removeItem('consultant-name');
         sessionStorage.clear();
 
         document.getElementById('confirm-view').style.display = 'none';
