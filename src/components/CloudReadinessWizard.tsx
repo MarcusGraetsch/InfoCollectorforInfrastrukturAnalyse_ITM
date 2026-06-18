@@ -13,9 +13,15 @@ interface ItemToReview {
   fields: CloudFields;
 }
 
+interface EditableMeta {
+  name: string;
+  kuerzel: string;
+  category: CategoryKey;
+}
+
 interface Props {
   state: AppState;
-  onSave: (category: CategoryKey, id: string, fields: CloudFields) => void;
+  onSave: (category: CategoryKey, id: string, fields: CloudFields, meta: EditableMeta) => void;
   onClose: () => void;
 }
 
@@ -26,6 +32,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   icsSysteme: 'ICS-System',
   iotSysteme: 'IoT-System',
 };
+
+const CATEGORY_KEYS = Object.keys(CATEGORY_LABELS) as CategoryKey[];
 
 const SCHUTZBEDARF_OPTS = ['Normal', 'Hoch', 'Sehr hoch'];
 const BEREITSTELLUNG_OPTS = [
@@ -39,9 +47,9 @@ const BEREITSTELLUNG_OPTS = [
   'Managed Kubernetes (Cloud)',
 ];
 const LIZENZ_OPTS = ['Ja', 'Nein', 'Unklar'];
-const KOMPL_OPTS = ['Niedrig', 'Mittel', 'Hoch'];
-const LEBENSZYKLUS_OPTS = ['Aktuell', 'Wartung läuft aus', 'End-of-Life'];
-const INTERNET_OPTS = ['Ja', 'Nein', 'Eingeschränkt'];
+const KOMPL_OPTS = ['Niedrig', 'Mittel', 'Hoch', 'Unklar'];
+const LEBENSZYKLUS_OPTS = ['Aktuell', 'Wartung läuft aus', 'End-of-Life', 'Unklar'];
+const INTERNET_OPTS = ['Ja', 'Nein', 'Eingeschränkt', 'Unklar'];
 const EIGNUNG_OPTS = [
   'Rehost (Lift & Shift)',
   'Replatform (leichte Anpassung)',
@@ -68,7 +76,7 @@ function QuickButton({
   label: string;
   active: boolean;
   onClick: () => void;
-  color?: 'blue' | 'amber' | 'red' | 'green' | 'purple';
+  color?: 'blue' | 'amber' | 'red' | 'green' | 'purple' | 'gray';
 }) {
   const colors = {
     blue: active
@@ -86,6 +94,9 @@ function QuickButton({
     purple: active
       ? 'bg-purple-600 text-white border-purple-600'
       : 'bg-white text-purple-700 border-purple-200 hover:border-purple-500',
+    gray: active
+      ? 'bg-gray-500 text-white border-gray-500'
+      : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400',
   };
   return (
     <button
@@ -172,7 +183,11 @@ export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose }
 
   const [index, setIndex] = useState(0);
   const [fields, setFields] = useState<CloudFields>(() => items[0]?.fields ?? {});
-  const [, setSkipped] = useState<Set<string>>(new Set());
+  const [meta, setMeta] = useState<EditableMeta>(() => ({
+    name: items[0]?.name ?? '',
+    kuerzel: items[0]?.kuerzel ?? '',
+    category: items[0]?.category ?? 'anwendungen',
+  }));
 
   const total = items.length;
   const item = items[index];
@@ -204,18 +219,23 @@ export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose }
   const set = (key: keyof CloudFields, val: string) =>
     setFields(prev => ({ ...prev, [key]: prev[key] === val ? '' : val }));
 
-  const handleSaveNext = () => {
-    onSave(item.category, item.id, fields);
-    const next = index + 1;
+  const advanceTo = (next: number) => {
     setIndex(next);
     setFields(items[next]?.fields ?? {});
+    setMeta({
+      name: items[next]?.name ?? '',
+      kuerzel: items[next]?.kuerzel ?? '',
+      category: items[next]?.category ?? 'anwendungen',
+    });
+  };
+
+  const handleSaveNext = () => {
+    onSave(item.category, item.id, fields, meta);
+    advanceTo(index + 1);
   };
 
   const handleSkip = () => {
-    setSkipped(prev => new Set(prev).add(item.id));
-    const next = index + 1;
-    setIndex(next);
-    setFields(items[next]?.fields ?? {});
+    advanceTo(index + 1);
   };
 
   const progress = Math.round((index / total) * 100);
@@ -239,7 +259,6 @@ export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose }
               </svg>
             </button>
           </div>
-          {/* Progress bar */}
           <div className="bg-white/20 rounded-full h-1.5 overflow-hidden">
             <div
               className="bg-hi-teal h-1.5 rounded-full transition-all duration-300"
@@ -248,13 +267,51 @@ export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose }
           </div>
         </div>
 
-        {/* Item header */}
-        <div className="px-6 py-3 bg-hi-gray border-b border-gray-200 flex-shrink-0 flex items-center gap-3">
-          <span className="font-mono text-hi-accent text-sm font-bold">{item.kuerzel}</span>
-          <span className="font-semibold text-hi-navy">{item.name}</span>
-          <span className="text-xs text-hi-slate bg-white border border-gray-200 rounded px-2 py-0.5 ml-auto">
-            {item.categoryLabel}
-          </span>
+        {/* Editable item header */}
+        <div className="px-6 py-3 bg-hi-gray border-b border-gray-200 flex-shrink-0">
+          <div className="flex items-start gap-3 flex-wrap">
+            {/* Kürzel */}
+            <div className="flex-shrink-0">
+              <label className="block text-[10px] font-semibold text-hi-slate uppercase tracking-wide mb-0.5">Kürzel</label>
+              <input
+                type="text"
+                value={meta.kuerzel}
+                onChange={e => setMeta(prev => ({ ...prev, kuerzel: e.target.value }))}
+                className="font-mono text-hi-accent text-sm font-bold bg-white border border-gray-200 rounded px-2 py-1 w-24 focus:outline-none focus:ring-2 focus:ring-hi-accent"
+              />
+            </div>
+            {/* Name */}
+            <div className="flex-1 min-w-[160px]">
+              <label className="block text-[10px] font-semibold text-hi-slate uppercase tracking-wide mb-0.5">Name</label>
+              <input
+                type="text"
+                value={meta.name}
+                onChange={e => setMeta(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full text-sm font-semibold text-hi-navy bg-white border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-hi-accent"
+              />
+            </div>
+            {/* Kategorie */}
+            <div className="flex-shrink-0">
+              <label className="block text-[10px] font-semibold text-hi-slate uppercase tracking-wide mb-0.5">Kategorie</label>
+              <select
+                value={meta.category}
+                onChange={e => setMeta(prev => ({ ...prev, category: e.target.value as CategoryKey }))}
+                className="text-xs text-hi-navy bg-white border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-hi-accent"
+              >
+                {CATEGORY_KEYS.map(k => (
+                  <option key={k} value={k}>{CATEGORY_LABELS[k]}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          {(meta.name !== item.name || meta.kuerzel !== item.kuerzel || meta.category !== item.category) && (
+            <p className="text-[10px] text-amber-600 mt-1.5 flex items-center gap-1">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              Änderungen werden mit gespeichert · Original: {item.kuerzel} · {item.name} · {CATEGORY_LABELS[item.category] ?? item.category}
+            </p>
+          )}
         </div>
 
         {/* Form */}
@@ -305,7 +362,7 @@ export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose }
                     label={o}
                     active={fields.migrationskomplexitaet === o}
                     onClick={() => set('migrationskomplexitaet', o)}
-                    color={o === 'Niedrig' ? 'green' : o === 'Hoch' ? 'red' : 'amber'}
+                    color={o === 'Niedrig' ? 'green' : o === 'Hoch' ? 'red' : o === 'Unklar' ? 'gray' : 'amber'}
                   />
                 ))}
               </div>
@@ -319,7 +376,7 @@ export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose }
                     label={o}
                     active={fields.lebenszyklus === o}
                     onClick={() => set('lebenszyklus', o)}
-                    color={o === 'Aktuell' ? 'green' : o === 'End-of-Life' ? 'red' : 'amber'}
+                    color={o === 'Aktuell' ? 'green' : o === 'End-of-Life' ? 'red' : o === 'Unklar' ? 'gray' : 'amber'}
                   />
                 ))}
               </div>
@@ -335,7 +392,7 @@ export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose }
                     label={o}
                     active={fields.internetfaehig === o}
                     onClick={() => set('internetfaehig', o)}
-                    color={o === 'Ja' ? 'green' : o === 'Nein' ? 'red' : 'amber'}
+                    color={o === 'Ja' ? 'green' : o === 'Nein' ? 'red' : o === 'Unklar' ? 'gray' : 'amber'}
                   />
                 ))}
               </div>
@@ -361,18 +418,17 @@ export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose }
             </div>
           </Field>
 
-          <Field label="Notiz (optional)">
+          <Field label="Notiz / ToDo (optional)">
             <textarea
               value={fields.cloudNotiz ?? ''}
               onChange={e => setFields(prev => ({ ...prev, cloudNotiz: e.target.value }))}
               rows={2}
-              placeholder="Besonderheiten, Abhängigkeiten, offene Fragen…"
+              placeholder="Besonderheiten, offene Fragen, nächste Schritte…"
               className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-hi-navy focus:outline-none focus:ring-2 focus:ring-hi-accent resize-none"
             />
           </Field>
 
-          {/* Live-Vorschau */}
-          <ScorePreview fields={fields} category={item.category} />
+          <ScorePreview fields={fields} category={meta.category} />
 
         </div>
 

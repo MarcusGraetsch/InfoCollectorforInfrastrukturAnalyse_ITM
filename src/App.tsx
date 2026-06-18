@@ -101,12 +101,36 @@ function App() {
     }
   };
 
-  const handleCloudFieldSave = (category: CategoryKey, id: string, fields: CloudFields) => {
+  const handleCloudFieldSave = (
+    originalCategory: CategoryKey,
+    id: string,
+    fields: CloudFields,
+    meta: { name: string; kuerzel: string; category: CategoryKey }
+  ) => {
     updateState(prev => {
-      const arr = prev[category] as unknown as (Record<string, unknown>)[];
+      const newState = { ...prev };
+      // Update cloud fields (and optionally name/kuerzel) on the original category
+      const arr = prev[originalCategory] as unknown as (Record<string, unknown>)[];
+      const updated = arr.map(item =>
+        item['id'] === id ? { ...item, ...fields, name: meta.name, kuerzel: meta.kuerzel } : item
+      );
+
+      if (meta.category === originalCategory) {
+        // Same category: just update in place
+        return { ...newState, [originalCategory]: updated };
+      }
+
+      // Category changed: remove from original, add to new category
+      const movedItem = updated.find(item => item['id'] === id);
+      if (!movedItem) return newState;
+
+      const withoutMoved = updated.filter(item => item['id'] !== id);
+      const targetArr = prev[meta.category] as unknown as (Record<string, unknown>)[];
+
       return {
-        ...prev,
-        [category]: arr.map(item => item['id'] === id ? { ...item, ...fields } : item),
+        ...newState,
+        [originalCategory]: withoutMoved,
+        [meta.category]: [...targetArr, movedItem],
       };
     });
   };
