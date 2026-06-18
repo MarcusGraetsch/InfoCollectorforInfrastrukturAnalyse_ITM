@@ -17,10 +17,12 @@ export interface SheetAnalysis {
 export interface ImportAnalysis {
   sheets: SheetAnalysis[];
   fileType: 'excel' | 'csv' | 'txt' | 'docx' | 'pdf' | 'unknown';
-  limitedAnalysis: boolean;
+  limitedAnalysis: boolean; // true wenn Inhalt nicht vollständig lesbar war
   mode: 'structured' | 'unstructured';
   classifiedRows?: RowClassification[];
 }
+
+// ── Row-by-row classification for unstructured files ─────────────────────
 
 export interface RowClassification {
   rowIndex: number;
@@ -180,88 +182,118 @@ function bestCategoryForColumns(
   return { category: bestCategory, confidence: bestConfidence, matchedFields: bestFields };
 }
 
-// ── Row-by-row classification rules ─────────────────────────────────────────
+// Priority-ordered rules. First matching rule wins if score >= threshold.
+// Pattern matched against: name + hersteller + modell (all lowercased, joined)
 const ROW_RULES: Array<{ pattern: RegExp; category: CategoryKey; score: number }> = [
-  // Storage (before server — NetApp etc.)
-  { pattern: /storage|netapp|tape[\s-]?librar|dxi\b|lto\b|nas\b(?!.*server)|san\b(?!.*server)|archivierung|wechseldatenträger|quantum|bandlaufwerk|netzwerkspeicher/i, category: 'datentraeger', score: 85 },
+  // Storage first (before server, since "NetApp Storage" etc.)
+  { pattern: /storage|netapp|tape.?librar|tap.?librar|dxi\b|lto\b|nas\b(?!.*server)|san\b(?!.*server)|archivierung|wechseldatenträger|quantum/i, category: 'datentraeger', score: 85 },
   // Network hardware
-  { pattern: /\bswitch(?!.*software)\b|router(?!.*software)|firewall|gateway(?!.*software)|access[\s-]?point|\bwlan\b(?!.*controller)|medienconverter|patch[\s-]?panel|proxy[\s-]?server|load[\s-]?balancer|palo[\s-]?alto|checkpoint|fortinet|sophos|juniper\b|cisco\b/i, category: 'netzkomponenten', score: 90 },
-  // ICS / OT
-  { pattern: /\bscada\b|plc\b|sps\b|simatic|wincc|prozessleittechnik|leittechnik|steuerung|s7[\s-]\d|beckhoff|rockwell|dcs\b|automation[\s-]?server/i, category: 'icsSysteme', score: 90 },
-  // IoT / Building
-  { pattern: /\busv\b|unterbrechungsfreie|alarmanlage|alarm[\s-]?(zentrale|panel)|kamera|cctv|zutrittskontrolle|knx\b|dali\b|gebäudeautomation|smart[\s-]?home|raspberry|mqtt|sensor|kopierer|drucker|mfp\b|netzwerkdrucker/i, category: 'iotSysteme', score: 85 },
-  // Server / VMs / Hypervisor
-  { pattern: /\besx[i]?\b|hypervisor|blade[\s-]?server|rack[\s-]?server|tower[\s-]?server|windows[\s-]?server|linux[\s-]?server|dhcp[\s-]?server|dns[\s-]?server|domain[\s-]?controller|dc[\s-]?\d|mail[\s-]?server|exchange[\s-]?server|backup[\s-]?server|print[\s-]?server|proxy\b|application[\s-]?server|app[\s-]?server|datenbank[\s-]?server|db[\s-]?server/i, category: 'server', score: 85 },
-  // Clients / Endpoints
-  { pattern: /laptop|notebook|desktop[\s-]?pc|\bpc\b(?!.*server)|\bworkstation\b|thin[\s-]?client|smartphone|tablet|mobilgerät|endgerät|windows[\s-]?10|windows[\s-]?11|macbook|mac[\s-]?pro(?!.*server)/i, category: 'clients', score: 85 },
+  { pattern: /switch(?!.*software)|router|firewall|gateway(?!.*software)|proxy|access[\s-]?point|wlan(?!.*controller)|medienconverter|patch[\s-]?panel|eduroam|radius[\s-]?server|telefon[\s-]?(anlage|router|alarm|plus)|telefonalage|radsec/i, category: 'netzkomponenten', score: 90 },
+  // Server infrastructure (physical/virtual)
+  { pattern: /\besx\b|hypervisor|\bvm\b(?!ware\s+workstation)|server(?!\s*farm\s*software)|domain[\s-]?controller|\bdc\b(?!\s*comics)|\bdhcp\b|\bdns\b|file[\s-]?server|backup[\s-]?server|kms\b|key[\s-]?management|windows[\s-]?(imager|update[\s-]?server|deployment)|active[\s-]?directory|\bad\b(?!\s*hoc)|readonlydc|readonly[\s-]?dc|\bvdi\b|radius[\s-]?server|ad[\s-]?server|interne[\s.]*zertifizierungsstell/i, category: 'server', score: 85 },
   // Applications / Software
-  { pattern: /\bsap\b|oracle\b(?!.*server)|microsoft[\s-]?(365|office|teams|sharepoint)|domino|lotus|erp\b|crm\b|cms\b|wiki\b|intranet|buchhaltung|faktura|warenwirtschaft|dms\b|dokumentenmanagement|helpdesk|ticketsystem|antivirus|monitoring[\s-]?software/i, category: 'anwendungen', score: 85 },
+  { pattern: /software|anwendung|domino|buchhaltung|wiki|intranet(?!\s*server)|mail(?![\s-]?server)|ticketsystem|zeiterfassung|druckerverwaltung|antragsmanagementsystem|managementsystem|verwaltungs|berechnungs|statistik|zweifaktor|authentifizierung|remote[\s-]?app\b|stipendiaten|zertifizierungsst|e[\s-]?mail[\s-]?archiv|dokumenten[\s-]?management|dms\b|erp\b|crm\b|tool\b|vertraulichkeit|vertrauenserkl|förderung|beantragungs|aqurate/i, category: 'anwendungen', score: 80 },
+  // Physical/IoT devices (USV, alarms, printers, copiers)
+  { pattern: /\busv\b|ups\b|socomec|alarmanlage|\balarm\b(?!.*server)|kopierer|cockpit[\s-]?box|drucker(?!verwaltung)|apc\b(?!.*software)|kamera(?!.*software)/i, category: 'iotSysteme', score: 80 },
   // Network connections
-  { pattern: /\bwan[\s-]|mpls\b|vpn[\s-]?tunnel|ipsec|leitung\b|glasfaser|dsl\b|sdwan|peering|expressroute|direct[\s-]?connect|anbindung/i, category: 'netzverbindungen', score: 80 },
-  // Rooms
-  { pattern: /serverraum|technikraum|verteilerraum|\brechenzentrum\b|\brz\b(?!.*server)|\bdatacenter\b|rechenzentrum|mdf\b|idf\b|rack[\s-]?raum|netzwerkraum/i, category: 'raeume', score: 85 },
-  // Buildings / Locations
-  { pattern: /gebäude|standort(?!.*server)|liegenschaft|filiale|niederlassung|campus|werk[\s-]?\w|bürogebäude/i, category: 'gebaeude', score: 75 },
-  // Data objects
-  { pattern: /personenbezogen|dsgvo|datenschutz|gdpr|klassifizierung|vertraulich|datenkategorie|informationsobjekt/i, category: 'daten', score: 80 },
-  // Business processes
-  { pattern: /geschäftsprozess|kernprozess|workflow|fachbereich|verfahren\b(?!.*server)/i, category: 'geschaeftsprozesse', score: 80 },
+  { pattern: /vpn\b|mpls\b|wan[\s-]?anbindung|standleitung|internet[\s-]?anbindung|lwl|lichtwellenleiter/i, category: 'netzverbindungen', score: 80 },
+  // Clients
+  { pattern: /\bclient\b(?!.*server)|laptop|notebook|\bdesktop\b|\bpc\b(?!\s*server)|arbeitsplatz(?!.*server)|smartphone|tablet|thin[\s-]?client|zero[\s-]?client/i, category: 'clients', score: 80 },
+  // ICS
+  { pattern: /\bsps\b|\bplc\b|\bscada\b|\bics\b|steuerung(?!.*software)|simatic|s7[\s-]|wincc|prozessleittechnik|ot[\s-]?netz/i, category: 'icsSysteme', score: 85 },
 ];
 
-function detectColumnRoles(columns: string[]): { nameCol: string | null; anzahlCol: string | null; herstellerCol: string | null; modellCol: string | null; standortCol: string | null } {
-  const find = (patterns: RegExp[]) => columns.find(c => patterns.some(p => p.test(c))) ?? null;
+// Detects which columns in an unstructured sheet contain: name, anzahl, hersteller, modell, standort
+// by matching column header strings against known patterns.
+function detectColumnRoles(columns: string[]): {
+  nameCol: string | null;
+  anzahlCol: string | null;
+  herstellerCol: string | null;
+  modellCol: string | null;
+  standortCol: string | null;
+} {
+  const find = (patterns: RegExp) => columns.find(c => patterns.test(c.toLowerCase())) ?? null;
   return {
-    nameCol: find([/^(name|bezeichnung|kurzbeschreibung|description|komponent|gerät|system|analyse)/i, /^[^_]/]),
-    anzahlCol: find([/^(anzahl|count|qty|menge|stück)/i]),
-    herstellerCol: find([/^(hersteller|vendor|manufacturer|marke)/i]),
-    modellCol: find([/^(modell|model|typ|type|version)/i]),
-    standortCol: find([/^(standort|location|ort|raum|site)/i]),
+    nameCol:      find(/kurzbeschreibung|bezeichnung|beschreibung|name|komponente|gerät|system|titel|objekt/),
+    anzahlCol:    find(/anzahl|count|menge|stück|qty/),
+    herstellerCol:find(/hersteller|vendor|manufacturer|marke|brand/),
+    modellCol:    find(/modell|model|type|typ|version|artikel/),
+    standortCol:  find(/standort|location|ort|raum|gebäude/),
   };
 }
 
 export function classifyRows(
-  allRows: Record<string, unknown>[],
+  rows: Record<string, unknown>[],
   columns: string[]
 ): RowClassification[] {
   const roles = detectColumnRoles(columns);
 
-  // First row might be a sub-header (e.g. "Kurzbeschreibung | Anzahl | …") — skip if so
-  const firstRowText = Object.values(allRows[0] ?? {}).join(' ').toLowerCase();
-  const isSubHeader = ['kurzbeschreibung', 'description', 'anzahl', 'hersteller'].filter(k => firstRowText.includes(k)).length >= 2;
-  const dataRows = isSubHeader ? allRows.slice(1) : allRows;
+  // If no name column found, use the first column
+  const nameCol = roles.nameCol ?? columns[0] ?? '';
 
   const results: RowClassification[] = [];
-  let lastCategory: CategoryKey = 'server';
 
-  for (let i = 0; i < dataRows.length; i++) {
-    const row = dataRows[i];
-    const name = String(
-      (roles.nameCol ? row[roles.nameCol] : Object.values(row)[0]) ?? ''
-    ).trim();
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const rawName = String(row[nameCol] ?? '').trim().replace(/\r\n|\r|\n/g, ' ').trim();
 
-    if (!name) continue;
+    // Merge continuation rows (empty name) into the previous entry's erlaeuterung
+    if (!rawName && results.length > 0) {
+      const prev = results[results.length - 1];
+      // Append sub-description to the previous entry's rawData notes
+      const subDesc = columns
+        .filter(c => c !== nameCol)
+        .map(c => String(row[c] ?? '').trim())
+        .filter(Boolean)
+        .join(' | ');
+      if (subDesc) {
+        const existing = String(prev.rawData['_subDesc'] ?? '');
+        prev.rawData['_subDesc'] = existing ? `${existing}; ${subDesc}` : subDesc;
+      }
+      continue;
+    }
 
-    const hersteller = String(roles.herstellerCol ? row[roles.herstellerCol] ?? '' : '');
-    const modell = String(roles.modellCol ? row[roles.modellCol] ?? '' : '');
-    const searchText = [name, hersteller, modell].join(' ');
+    if (!rawName) continue;
 
-    let bestCategory: CategoryKey = lastCategory;
+    // Build match text from name + hersteller + modell
+    const hersteller = String(row[roles.herstellerCol ?? ''] ?? '').trim();
+    const modell = String(row[roles.modellCol ?? ''] ?? '').trim();
+    const matchText = [rawName, hersteller, modell].filter(Boolean).join(' ');
+
+    let best: CategoryKey = 'server'; // fallback
     let bestScore = 0;
 
     for (const rule of ROW_RULES) {
-      if (rule.pattern.test(searchText) && rule.score > bestScore) {
-        bestScore = rule.score;
-        bestCategory = rule.category;
+      if (rule.pattern.test(matchText)) {
+        if (rule.score > bestScore) {
+          bestScore = rule.score;
+          best = rule.category;
+          break; // rules are priority-ordered
+        }
       }
     }
 
-    lastCategory = bestCategory;
+    // Keyword fallback via CATEGORY_KEYWORDS if no rule matched well
+    if (bestScore === 0) {
+      const kw = scoreByKeywords(matchText);
+      if (kw.best && kw.confidence > 20) {
+        best = kw.best;
+        bestScore = kw.confidence;
+      }
+    }
+
     results.push({
       rowIndex: i,
-      name,
-      rawData: row,
-      suggestedCategory: bestCategory,
-      confidence: bestScore > 0 ? bestScore : 40,
+      name: rawName,
+      rawData: {
+        ...row,
+        _hersteller: hersteller,
+        _modell: modell,
+        _anzahl: String(row[roles.anzahlCol ?? ''] ?? '').trim(),
+        _standort: String(row[roles.standortCol ?? ''] ?? '').trim(),
+      },
+      suggestedCategory: best,
+      confidence: bestScore,
     });
   }
 
@@ -287,13 +319,30 @@ function analyzeSpreadsheet(data: Uint8Array): ImportAnalysis {
     };
   });
 
+  // Switch to unstructured mode if no sheet has decent column confidence
   const maxConf = Math.max(...sheets.map(s => s.confidence), 0);
-  if (maxConf < 30 && sheets.length > 0) {
+  if (maxConf < 30) {
+    // Take the first sheet with data
     const firstSheet = sheets[0];
-    const ws = wb.Sheets[firstSheet.sheetName];
-    const allRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: '' });
-    const classifiedRows = classifyRows(allRows, firstSheet.columns);
-    return { sheets, fileType: 'excel', limitedAnalysis: false, mode: 'unstructured', classifiedRows };
+    if (firstSheet) {
+      const ws = wb.Sheets[firstSheet.sheetName];
+      const allRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: '' });
+      const columns = allRows.length > 0 ? Object.keys(allRows[0]) : [];
+
+      // First row might be a sub-header (e.g. "Kurzbeschreibung | Anzahl | Hersteller | ...")
+      // Detect: if first row values are all short non-numeric strings → skip it as header
+      let dataRows = allRows;
+      if (allRows.length > 1) {
+        const firstRowVals = Object.values(allRows[0]).map(v => String(v).trim());
+        const looksLikeHeader = firstRowVals.every(v => v.length < 30 && isNaN(Number(v)));
+        if (looksLikeHeader) {
+          dataRows = allRows.slice(1);
+        }
+      }
+
+      const classifiedRows = classifyRows(dataRows, columns);
+      return { sheets, fileType: 'excel', limitedAnalysis: false, mode: 'unstructured', classifiedRows };
+    }
   }
 
   return { sheets, fileType: 'excel', limitedAnalysis: false, mode: 'structured' };

@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx';
 import type { AppState, CategoryKey } from '../types';
 import { CATEGORIES } from '../categories';
-import { generateId } from '../store';
+import { generateId, generateKuerzel } from '../store';
 import type { RowClassification } from './importAnalyzer';
 
 export async function importFromExcel(file: File, currentState: AppState): Promise<AppState> {
@@ -92,46 +92,6 @@ function parseCsvToRows(text: string): Record<string, unknown>[] {
   });
 }
 
-export function importClassifiedRows(
-  rows: RowClassification[],
-  currentState: AppState
-): AppState {
-  const newState = { ...currentState };
-  const grouped = new Map<CategoryKey, RowClassification[]>();
-  for (const row of rows) {
-    const arr = grouped.get(row.suggestedCategory) ?? [];
-    arr.push(row);
-    grouped.set(row.suggestedCategory, arr);
-  }
-  for (const [categoryKey, catRows] of grouped.entries()) {
-    const cat = CATEGORIES.find(c => c.key === categoryKey);
-    if (!cat) continue;
-    const existing = newState[categoryKey] as unknown as Record<string, unknown>[];
-    const existingMap = new Map(existing.map(e => [e['kuerzel'] ?? e['id'], e]));
-    for (const row of catRows) {
-      const raw = row.rawData;
-      const item: Record<string, unknown> = { id: generateId() };
-      // Map raw columns to BSI fields by position / label matching
-      const vals = Object.values(raw);
-      item['name'] = row.name;
-      if (vals[1] !== undefined && vals[1] !== '') item['anzahl'] = String(vals[1]);
-      if (vals[2] !== undefined && vals[2] !== '') item['hersteller'] = String(vals[2]);
-      if (vals[3] !== undefined && vals[3] !== '') {
-        if (cat.fields.find(f => f.key === 'modell')) item['modell'] = String(vals[3]);
-        else if (cat.fields.find(f => f.key === 'typ')) item['typ'] = String(vals[3]);
-      }
-      if (vals[4] !== undefined && vals[4] !== '') item['standort'] = String(vals[4]);
-      // Auto-generate kuerzel from name
-      const kuerzel = row.name.replace(/[^A-Za-z0-9äöüÄÖÜ]/g, '').substring(0, 8).toUpperCase() +
-        '-' + Math.floor(Math.random() * 900 + 100);
-      item['kuerzel'] = kuerzel;
-      existingMap.set(kuerzel, item);
-    }
-    (newState as Record<string, unknown>)[categoryKey] = Array.from(existingMap.values());
-  }
-  return newState;
-}
-
 export async function importFromExcelWithMapping(
   file: File,
   mapping: Record<string, CategoryKey | null>,
@@ -172,4 +132,75 @@ export async function importFromExcelWithMapping(
     reader.onerror = reject;
     reader.readAsArrayBuffer(file);
   });
+}
+
+export function importClassifiedRows(
+  rows: RowClassification[],
+  currentState: AppState
+): AppState {
+  const newState = { ...currentState };
+  
+  // Group rows by category
+  const grouped = new Map<CategoryKey, RowClassification[]>();
+  for (const row of rows) {
+    const cat = row.suggestedCategory;
+    if (!grouped.has(cat)) grouped.set(cat, []);
+    grouped.get(cat)!.push(row);
+  }
+
+  for (const [catKey, catRows] of grouped) {
+    const cat = CATEGORIES.find(c => c.key === catKey);
+    if (!cat) continue;
+    
+    const existing = (newState[catKey] as unknown as Record<string, unknown>[]);
+    const newItems: Record<string, unknown>[] = [];
+
+    for (const row of catRows) {
+      const d = row.rawData;
+      const hersteller = String(d['_hersteller'] ?? '').trim();
+      const modell = String(d['_modell'] ?? '').trim();
+      const anzahl = String(d['_anzahl'] ?? '').trim();
+      const standort = String(d['_standort'] ?? '').trim();
+      const subDesc = String(d['_subDesc'] ?? '').trim();
+
+      const plattformStr = [hersteller, modell].filter(Boolean).join(' ');
+      
+      let erlaeuterung = '';
+      if (standort) erlaeuterung += `Standort: ${standort}`;
+      if (subDesc) erlaeuterung += (erlaeuterung ? '\n' : '') + subDesc;
+
+      const allItems = [...existing, ...newItems] as { kuerzel: string }[];
+      const kuerzel = generateKuerzel(cat.prefix, allItems);
+
+      const item: Record<string, unknown> = {
+        id: generateId(),
+        kuerzel,
+        name: row.name,
+        erlaeuterung,
+        status: 'Aktiv',
+        tags: '',
+      };
+
+      // Category-specific fields
+      if (anzahl) item['anzahl'] = anzahl;
+      if (plattformStr && ['server', 'netzkomponenten', 'clients', 'icsSysteme', 'iotSysteme'].includes(catKey)) {
+        item['plattform'] = plattformStr;
+      }
+      // multiref fields → empty arrays
+      for (const f of cat.fields) {
+        if (f.type === 'multiref' && !(f.key in item)) {
+          item[f.key] = [];
+        }
+        if (!(f.key in item)) {
+          item[f.key] = '';
+        }
+      }
+
+      newItems.push(item);
+    }
+
+    (newState as Record<string, unknown>)[catKey] = [...existing, ...newItems];
+  }
+
+  return newState;
 }
