@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import type { AppState, CategoryKey } from './types';
-import { loadState, saveState, defaultState, clearState } from './store';
+import { loadState, saveState, defaultState, clearState, generateId } from './store';
 import { CATEGORIES, CATEGORY_MAP } from './categories';
 import { AppHeader } from './components/AppHeader';
 import type { AppMode } from './components/AppHeader';
@@ -92,8 +92,9 @@ function App() {
     if (!importFile) return;
     try {
       const newState = await importFromExcelWithMapping(importFile, mapping, state);
-      setState(newState);
-      saveState(newState);
+      const withDoc = addQuelldokument(newState, importFile.name, 'Excel');
+      setState(withDoc);
+      saveState(withDoc);
       setImportFile(null);
       alert('Import erfolgreich!');
     } catch (err) {
@@ -140,8 +141,9 @@ function App() {
     if (!importFile) return;
     try {
       const newState = importClassifiedRows(rows, state);
-      setState(newState);
-      saveState(newState);
+      const withDoc = addQuelldokument(newState, importFile.name, 'Excel');
+      setState(withDoc);
+      saveState(withDoc);
       setImportFile(null);
       alert(`Import erfolgreich! ${rows.length} Einträge importiert.`);
     } catch (err) {
@@ -276,6 +278,21 @@ function App() {
       )}
     </div>
   );
+}
+
+function addQuelldokument(s: import('./types').AppState, name: string, art: string): import('./types').AppState {
+  const today = new Date().toISOString().slice(0, 10);
+  const alreadyExists = s.quelldokumente.some(d => d.name === name);
+  if (alreadyExists) return s;
+  const doc: import('./types').Quelldokument = {
+    id: generateId(),
+    name,
+    art,
+    erhaltenAm: today,
+    ausgewertet: false,
+    notiz: '',
+  };
+  return { ...s, quelldokumente: [...s.quelldokumente, doc] };
 }
 
 export default App;
