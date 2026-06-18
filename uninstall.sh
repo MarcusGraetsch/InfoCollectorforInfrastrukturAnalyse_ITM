@@ -76,27 +76,22 @@ echo ""
 # ────────────────────────────────────────────────────────────
 echo -e "${BOLD}Schritt 2 von 4: Browser-Daten (localStorage) löschen${RESET}"
 echo ""
-echo "  Die App speichert alle Daten im Browser-Speicher (localStorage)."
-echo "  Dieser Speicher ist unabhängig vom Programmordner und bleibt"
-echo "  erhalten — auch nach einer Neuinstallation der App."
-echo ""
-echo "  Um ihn zu leeren, muss die App kurz geöffnet sein."
+echo "  WICHTIG: Die App speichert alle Daten im Browser-Speicher"
+echo "  (localStorage). Dieser Speicher ist unabhängig vom Programmordner"
+echo "  und bleibt nach einer Neuinstallation erhalten!"
 echo ""
 
 # App-Port ermitteln
 APP_PORT=""
-# 1. Aus PID-Datei / laufendem Prozess
 if [[ -f "$SCRIPT_DIR/app.pid" ]]; then
   _pid=$(cat "$SCRIPT_DIR/app.pid" 2>/dev/null || true)
   if [[ -n "$_pid" ]] && kill -0 "$_pid" 2>/dev/null; then
     APP_PORT=$(ss -tlnp 2>/dev/null | awk -v pid="$_pid" '$0 ~ "pid="pid"," {match($4,/:([0-9]+)$/,a); print a[1]; exit}' || true)
   fi
 fi
-# 2. Aus laufendem Docker-Container
 if [[ -z "$APP_PORT" ]] && command -v docker &>/dev/null; then
   APP_PORT=$(docker ps --format '{{.Ports}}' --filter "name=${DOCKER_CONTAINER}" 2>/dev/null \
     | grep -oP '0\.0\.0\.0:\K[0-9]+(?=->)' | head -1 || true)
-  # Auch Varianten prüfen
   if [[ -z "$APP_PORT" ]]; then
     for v in "${DOCKER_COMPOSE_VARIANTS[@]}"; do
       APP_PORT=$(docker ps --format '{{.Ports}}' --filter "name=${v}" 2>/dev/null \
@@ -105,31 +100,40 @@ if [[ -z "$APP_PORT" ]] && command -v docker &>/dev/null; then
     done
   fi
 fi
-# 3. Standard-Port als Fallback
 APP_PORT="${APP_PORT:-8080}"
+APP_URL="http://localhost:${APP_PORT}"
 
-CLEAR_URL="http://localhost:${APP_PORT}/clear-data.html"
+echo -e "  ${CYAN}Bitte führen Sie jetzt EINEN dieser Schritte durch:${RESET}"
+echo ""
+echo -e "  ${BOLD}Option A — Roten Button in der App (empfohlen):${RESET}"
+echo "    1. Öffnen Sie die App: ${BOLD}${APP_URL}${RESET}"
+echo "    2. Klicken Sie oben rechts auf den roten Button ${BOLD}»Daten löschen«${RESET}"
+echo "    3. Bestätigen Sie den Dialog — fertig."
+echo ""
+echo -e "  ${BOLD}Option B — Browser-Einstellungen (falls App nicht mehr startet):${RESET}"
+echo "    Chrome/Edge: F12 → Application → Storage → localStorage"
+echo "                 → Rechtsklick auf localhost:${APP_PORT} → Clear"
+echo "    Firefox:     F12 → Speicher → Lokaler Speicher"
+echo "                 → Rechtsklick auf localhost:${APP_PORT} → Alles löschen"
+echo ""
+echo -e "  ${BOLD}Option C — App-URL direkt im Browser öffnen und Daten löschen:${RESET}"
+echo "    ${BOLD}${APP_URL}/clear-data.html${RESET}"
+echo ""
 
-echo -e "  ${CYAN}Bitte öffnen Sie jetzt diese URL in Ihrem Browser:${RESET}"
-echo ""
-echo -e "  ${BOLD}${CLEAR_URL}${RESET}"
-echo ""
-echo "  Die Seite löscht alle lokalen App-Daten mit einem Klick."
-echo "  Danach können Sie hierher zurückkehren."
-echo ""
-
-# Versuchen, URL automatisch zu öffnen
+# Browser versuchen zu öffnen
 if command -v xdg-open &>/dev/null; then
-  xdg-open "$CLEAR_URL" 2>/dev/null || true
+  xdg-open "$APP_URL" 2>/dev/null || true
 elif command -v open &>/dev/null; then
-  open "$CLEAR_URL" 2>/dev/null || true
+  open "$APP_URL" 2>/dev/null || true
 fi
 
-read -r -p "  Browser-Daten gelöscht (oder App war nie geöffnet)? [j/N] " answer_clear
+read -r -p "  Browser-Daten wurden gelöscht? [j/N] " answer_clear
 if [[ ! "$answer_clear" =~ ^[jJyY]$ ]]; then
   echo ""
-  echo -e "  ${DIM}Browser-Daten wurden nicht gelöscht — Deinstallation wird trotzdem fortgesetzt.${RESET}"
-  echo -e "  ${DIM}Sie können die Daten später manuell im Browser unter Einstellungen → Datenschutz → Website-Daten löschen.${RESET}"
+  echo -e "  ${YELLOW}⚠ Browser-Daten wurden NICHT gelöscht.${RESET}"
+  echo -e "  ${DIM}Bei einer Neuinstallation werden die alten Daten wieder sichtbar sein.${RESET}"
+  echo -e "  ${DIM}Holen Sie den Schritt nach: App öffnen → roter Button »Daten löschen«.${RESET}"
+  echo ""
 fi
 
 echo ""

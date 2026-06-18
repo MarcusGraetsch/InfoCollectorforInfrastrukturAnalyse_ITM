@@ -26,6 +26,7 @@ interface Props {
   onExportWorkshop: () => void;
   onExportJSON: () => void;
   onExportReport: () => void;
+  onClearData: () => void;
 }
 
 const TABS = [
@@ -77,9 +78,16 @@ export const AppHeader: React.FC<Props> = ({
   onExportWorkshop,
   onExportJSON,
   onExportReport,
+  onClearData,
 }) => {
   const importRef = React.useRef<HTMLInputElement>(null);
+  const [showClearConfirm, setShowClearConfirm] = React.useState(false);
   const offeneCount = useMemo(() => countOffenePunkte(state), [state]);
+
+  const handleClearConfirmed = () => {
+    onClearData();
+    setShowClearConfirm(false);
+  };
 
   return (
     <header className="bg-hi-navy text-white shadow-2xl flex-shrink-0">
@@ -170,8 +178,53 @@ export const AppHeader: React.FC<Props> = ({
             Import
           </button>
           <input ref={importRef} type="file" accept=".xlsx,.xls,.csv,.txt,.tsv,.docx,.pdf,.json" onChange={onImport} className="hidden" />
+          <div className="w-px h-6 bg-white/20 mx-1" />
+          <button
+            onClick={() => setShowClearConfirm(true)}
+            title="Alle lokalen Daten unwiderruflich löschen (vor Deinstallation)"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-700 hover:bg-red-600 text-white border border-red-500/40 rounded text-xs font-semibold uppercase tracking-wider transition-all"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Daten löschen
+          </button>
         </div>
       </div>
+
+      {/* Confirm dialog */}
+      {showClearConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+            <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
+              <svg className="w-7 h-7 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h2 className="text-lg font-bold text-center text-hi-navy mb-2">Alle Daten löschen?</h2>
+            <p className="text-sm text-hi-slate text-center leading-relaxed mb-5">
+              Alle erfassten Daten dieser IT Strukturanalyse werden unwiderruflich aus dem Browser-Speicher gelöscht. Sichern Sie Ihre Daten vorher per JSON-Backup oder Excel-Export.
+            </p>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-5 text-xs text-red-700">
+              Diese Aktion ist <strong>nicht rückgängig</strong> zu machen. Alle Einträge, Cloud-Bewertungen und Notizen gehen verloren.
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowClearConfirm(false)}
+                className="flex-1 px-4 py-2 text-sm font-semibold text-hi-navy border border-gray-200 rounded-lg hover:bg-hi-gray transition-colors"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={handleClearConfirmed}
+                className="flex-1 px-4 py-2 text-sm font-bold text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Ja, alles löschen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Navigation tabs */}
       <div className="px-6 flex gap-0.5 pt-1">
