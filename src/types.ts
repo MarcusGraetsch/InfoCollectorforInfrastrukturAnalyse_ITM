@@ -18,6 +18,7 @@ export interface CloudFields {
   schutzbedarf?: 'Normal' | 'Hoch' | 'Sehr hoch' | '';
   datensouveraenitaet?: string;
   bereitstellung?: string;
+  cloudDienst?: string;
   lizenzCloudfaehig?: string;
   migrationskomplexitaet?: string;
   lebenszyklus?: string;

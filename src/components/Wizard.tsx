@@ -33,6 +33,7 @@ const TREIBER_OPTIONS = [
   'Skalierbarkeit / Flexibilität',
   'Ausfallsicherheit / Verfügbarkeit',
   'Modernisierung / Innovation',
+  'Container- / Kubernetes-Modernisierung',
   'Standort-/RZ-Konsolidierung',
   'Betrieb / Fachkräftemangel',
   'Compliance / Sicherheit',
@@ -41,10 +42,16 @@ const TREIBER_OPTIONS = [
 
 const ZIELUMGEBUNG_OPTIONS = [
   'Souverän / BSI-konform (C5, Gaia-X, DE)',
+  'Confidential Computing (enclaive.io / TEE)',
   'Microsoft Azure',
-  'AWS',
-  'Google Cloud',
+  'AWS (Amazon Web Services)',
+  'Google Cloud (GCP)',
+  'STACKIT (Schwarz Gruppe)',
+  'IONOS Cloud',
+  'VMware Tanzu (TKG / TAP)',
   'Private / Hosted Cloud',
+  'Kubernetes (On-Premises / Self-managed)',
+  'Hybrid Cloud (On-Prem + Cloud)',
   'Provider-neutral / noch offen',
 ];
 
