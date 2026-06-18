@@ -1,0 +1,126 @@
+# CLAUDE.md — IT Strukturanalyse · Entwicklungskontext
+
+Dieses Dokument beschreibt Architektur, aktuelle Entwicklungsrichtung und geplante Features für Claude Code Sessions.
+
+---
+
+## Projektstatus & Technischer Stack
+
+- **React 18 + TypeScript + Vite**, Styling via **Tailwind CSS** (Design-Token: `hi-navy`, `hi-accent`, `hi-teal`, `hi-slate`, `hi-gray`)
+- **Kein Backend, kein Server-State** — alle Daten leben im Browser-`localStorage` (Store: `src/store.ts`)
+- Deployment: Docker (nginx) oder `npx serve`, Port konfigurierbar (Standard 8080)
+- Branch-Konvention: Feature-Branches von `claude/dazzling-ride-04upm4`, Commits immer mit Co-Author-Tag
+
+---
+
+## Kernarchitektur
+
+```
+src/
+  types.ts          — Alle TypeScript-Interfaces (BaseItem, CloudFields, AppState, …)
+  categories.ts     — Deklarative Kategorie-Definitionen (Felder, Labels, Suggestions)
+  cloudReadiness.ts — Heuristisches Scoring-Modell (assess / assessAll / summarize)
+  store.ts          — localStorage-Persistenz (loadState / saveState / updateState)
+  App.tsx           — Haupt-Controller: Routing zwischen Modi, globale State-Mutationen
+  components/
+    Wizard.tsx            — Geführte Ersterfassung (Schritt für Schritt)
+    CloudDashboard.tsx    — Cloud-Readiness-Auswertung (KPIs, 6R-Verteilung, Tabelle)
+    CloudReadinessWizard.tsx — Nacherfassung fehlender Cloud-Felder (modal, iterativ)
+    CategoryForm.tsx      — Formular für einzelne Kategorie-Einträge
+    CategoryList.tsx      — Übersichtstabelle je Kategorie
+    ImportWizard.tsx      — Excel/JSON-Import mit Mapping-Dialog
+    EmailTemplate.tsx     — Generierung von Erstanfrage-E-Mails
+    HelpPanel.tsx         — Kontexthilfe (BSI-Hintergründe)
+```
+
+**Kategorien mit Cloud-Readiness-Bewertung:** `anwendungen`, `server`, `clients`, `icsSysteme`, `iotSysteme`
+
+**Scoring-Logik:** Heuristisch (0–100), Schwellen: ≥70 = Hoch, 45–69 = Mittel, <45 = Niedrig. `Unklar`-Werte bei Migrationskomplexität / Lebenszyklus / Internetfähigkeit sind bewusst neutral (kein Punktabzug) — sie markieren offene Fragen.
+
+---
+
+## Entwicklungsrichtung: Von der Datenaufnahme zum Beratungs-Workflow-Tool
+
+Das Tool begann als **strukturierte Datenaufnahme** für BSI-Strukturanalysen. Die natürliche nächste Ebene ist ein **leichtgewichtiges Projektmanagement** für Cloud-Strategie, -Transformation und Audits — ohne externe Tools, direkt im Beratungskontext nutzbar.
+
+Die Leitidee: **Aus „Unklar"-Einträgen werden automatisch Aufgaben**, aus Aufgaben werden Termine, aus Terminen werden Berichte. Das Tool begleitet den gesamten Beratungszyklus.
+
+---
+
+## Feature-Ideen (priorisiert)
+
+### Kurzfristig (nächste Sessions)
+
+**ToDo-/Offene-Punkte-Liste**
+- Alle Felder mit Wert `Unklar` automatisch als offene Punkte aggregieren
+- Ansicht: gefilterte Liste „Was muss noch geklärt werden?" mit Zuweisung (Person, Termin)
+- Export als E-Mail oder Tagesordnungspunkt
+
+**Interview-/Workshop-Vorbereitung**
+- Aus den offenen Punkten automatisch eine strukturierte Fragenliste generieren
+- Gruppiert nach Kategorie und Thema (Schutzbedarf, Lizenz, Lebenszyklus, …)
+- Als PDF oder druckbares HTML exportierbar
+
+**Fortschritts-Cockpit**
+- Wie viele Einträge sind vollständig erfasst? Wie viele haben noch `Unklar`-Felder?
+- Ampel-Status je Kategorie (Grün = vollständig, Gelb = teilweise, Rot = unbearbeitet)
+- Sichtbar direkt im Dashboard, nicht nur im Cloud-Wizard
+
+### Mittelfristig
+
+**Maßnahmen-/Aufgabenverwaltung**
+- Je Eintrag: strukturierte Aufgabenliste mit Status (Offen / In Arbeit / Erledigt)
+- Fälligkeitsdatum, Verantwortlicher (Freitext)
+- Gesamtansicht aller Aufgaben über alle Kategorien hinweg (Kanban-ähnlich oder Liste)
+- Export als Excel-Aufgabenliste oder CSV für Projektplan-Import
+
+**Sitzungsprotokoll / Arbeitssitzungen**
+- Wizard-Modus speziell für Re-Bewertungs-Sitzungen: zeigt nur Einträge mit Status `Unklar`
+- Notizfeld für Sitzungsprotokoll-Einträge pro Objekt
+- Abschlussseite: „In dieser Sitzung wurden X Einträge von Unklar auf bewertet gesetzt"
+
+**Risikobewertung (BSI-Grundschutz-Schutzbedarf)**
+- Erweiterung des Schutzbedarfs-Felds um Vertraulichkeit / Integrität / Verfügbarkeit (CIA-Triade)
+- Einfache Risikoampel basierend auf Schutzbedarf × Bereitstellung
+- Grundlage für BSI-200-2-Risikoübersicht
+
+**Vergleichs-/Delta-Ansicht**
+- JSON-Snapshots mit Datum-Stempel als Versionen speichern
+- Delta-Ansicht: Was hat sich zwischen zwei Aufnahmen geändert? (neu / geändert / entfernt)
+- Nützlich für Audit-Follow-ups oder Folge-Projekte
+
+### Längerfristig
+
+**Audit-Vorbereitungs-Modus**
+- Prüfkatalog-Ansicht: Welche Informationen sind für ISO 27001 / BSI-Grundschutz / TISAX nötig?
+- Ampel-Mapping: Welche Pflichtfelder fehlen noch für den nächsten Audit?
+- Exportformat für Auditoren (strukturiertes PDF/Excel)
+
+**Rollenkonzept / Mehrbenutzer (Client-seitig)**
+- Lokale Profile (kein Server nötig): Berater vs. Kunde
+- Kunde kann bestimmte Felder selbst ausfüllen (z.B. Schutzbedarf, Verantwortliche)
+- Berater sieht vollständigen Bearbeitungsstand
+
+**KI-gestützte Vorschläge** *(experimentell)*
+- Basierend auf Kategorie + Name automatisch Schutzbedarf / Bereitstellung vorschlagen
+- Z.B. „ERP-System" → Hoch, On-Premises (virtualisiert), Lizenz unklar
+- Als auswählbaren Startvorschlag, nicht als Pflichtauswahl
+
+---
+
+## Designprinzipien (nicht brechen)
+
+- **Kein Backend** bis explizit anders entschieden — localStorage bleibt die einzige Persistenz
+- **Kein Login** — das Tool ist für Beratungssituationen ohne IT-Infrastruktur beim Kunden gedacht
+- **Offline-fähig** — nach Installation kein Internet nötig
+- **Druckbarkeit** — alle Exporte müssen ohne Browser-Extras funktionieren
+- **Keine Breaking Changes** am bestehenden JSON-Export-Format ohne Migrations-Logik
+
+---
+
+## Bekannte technische Schulden
+
+- `updateState` in `App.tsx` ist zentral aber untypisiert (`Record<string, unknown>[]`) — langfristig durch typisierte Updater ersetzen
+- Cloud-Readiness-Score ignoriert aktuell `Unklar`-Werte (neutral) — könnte explizit als "ToDo-Marker" im Score sichtbar werden
+- `dist/` ist in `.gitignore` — `clear-data.html` muss beim Docker-Build aus `public/` kommen (✓ bereits so)
+- Excel-Import-Mapping ist fragil bei unbekannten Spaltenköpfen — robustere Fuzzy-Matching-Logik wäre sinnvoll
