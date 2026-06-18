@@ -124,16 +124,12 @@
   <script>
     function clearData() {
       try {
-        // Remove install ID first — next app start generates a new one → new data key
-        localStorage.removeItem('it-strukturanalyse-install-id');
-        // Remove all app data keys (current and any legacy keys)
         const keysToRemove = [];
         for (let i = 0; i < localStorage.length; i++) {
           const k = localStorage.key(i);
           if (k && k.startsWith('it-strukturanalyse')) keysToRemove.push(k);
         }
         keysToRemove.forEach(k => localStorage.removeItem(k));
-        // Also clear consultant name
         localStorage.removeItem('consultant-name');
         sessionStorage.clear();
 
@@ -142,6 +138,13 @@
       } catch (e) {
         alert('Fehler beim Löschen: ' + e.message);
       }
+    }
+
+    // ?auto=1 → sofort löschen ohne Klick (z.B. vom Deinstallations-Skript aufgerufen)
+    if (new URLSearchParams(window.location.search).get('auto') === '1') {
+      window.addEventListener('DOMContentLoaded', function() {
+        setTimeout(clearData, 300);
+      });
     }
   </script>
 </body>
