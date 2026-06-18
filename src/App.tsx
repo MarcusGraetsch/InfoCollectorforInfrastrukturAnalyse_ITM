@@ -14,7 +14,9 @@ import { exportConsultantReport } from './utils/exportReport';
 import { importFromExcelWithMapping, importClassifiedRows } from './utils/import';
 import { ImportWizard } from './components/ImportWizard';
 import { EmailTemplate } from './components/EmailTemplate';
+import { CloudReadinessWizard } from './components/CloudReadinessWizard';
 import type { RowClassification } from './utils/importAnalyzer';
+import type { CloudFields } from './types';
 
 function App() {
   const [state, setState] = useState<AppState>(loadState);
@@ -24,6 +26,7 @@ function App() {
   const [editId, setEditId] = useState<string | null>(null);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [showEmailTemplate, setShowEmailTemplate] = useState(false);
+  const [showCloudWizard, setShowCloudWizard] = useState(false);
 
   const updateState = useCallback((updater: (prev: AppState) => AppState) => {
     setState((prev) => {
@@ -98,6 +101,16 @@ function App() {
     }
   };
 
+  const handleCloudFieldSave = (category: CategoryKey, id: string, fields: CloudFields) => {
+    updateState(prev => {
+      const arr = prev[category] as unknown as (Record<string, unknown>)[];
+      return {
+        ...prev,
+        [category]: arr.map(item => item['id'] === id ? { ...item, ...fields } : item),
+      };
+    });
+  };
+
   const handleImportRowsConfirm = (rows: RowClassification[]) => {
     if (!importFile) return;
     try {
@@ -141,7 +154,11 @@ function App() {
 
         {mode === 'dashboard' && (
           <div className="h-full overflow-y-auto">
-            <CloudDashboard state={state} onGoToWizard={() => setMode('wizard')} />
+            <CloudDashboard
+            state={state}
+            onGoToWizard={() => setMode('wizard')}
+            onOpenCloudWizard={() => setShowCloudWizard(true)}
+          />
           </div>
         )}
 
@@ -205,6 +222,13 @@ function App() {
           onConfirm={handleImportConfirm}
           onConfirmRows={handleImportRowsConfirm}
           onCancel={() => setImportFile(null)}
+        />
+      )}
+      {showCloudWizard && (
+        <CloudReadinessWizard
+          state={state}
+          onSave={handleCloudFieldSave}
+          onClose={() => setShowCloudWizard(false)}
         />
       )}
       {showEmailTemplate && (
