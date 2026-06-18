@@ -82,11 +82,13 @@ export const AppHeader: React.FC<Props> = ({
 }) => {
   const importRef = React.useRef<HTMLInputElement>(null);
   const [showClearConfirm, setShowClearConfirm] = React.useState(false);
+  const [showClearDone, setShowClearDone] = React.useState(false);
   const offeneCount = useMemo(() => countOffenePunkte(state), [state]);
 
   const handleClearConfirmed = () => {
     onClearData();
     setShowClearConfirm(false);
+    setShowClearDone(true);
   };
 
   return (
@@ -202,9 +204,12 @@ export const AppHeader: React.FC<Props> = ({
               </svg>
             </div>
             <h2 className="text-lg font-bold text-center text-hi-navy mb-2">Alle Daten löschen?</h2>
-            <p className="text-sm text-hi-slate text-center leading-relaxed mb-5">
+            <p className="text-sm text-hi-slate text-center leading-relaxed mb-4">
               Alle erfassten Daten dieser IT Strukturanalyse werden unwiderruflich aus dem Browser-Speicher gelöscht. Sichern Sie Ihre Daten vorher per JSON-Backup oder Excel-Export.
             </p>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 text-xs text-amber-800">
+              <strong>Wichtig:</strong> Schließen Sie alle anderen Browser-Tabs mit dieser App bevor Sie löschen — sonst können offene Tabs die Daten neu schreiben.
+            </div>
             <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-5 text-xs text-red-700">
               Diese Aktion ist <strong>nicht rückgängig</strong> zu machen. Alle Einträge, Cloud-Bewertungen und Notizen gehen verloren.
             </div>
@@ -222,6 +227,37 @@ export const AppHeader: React.FC<Props> = ({
                 Ja, alles löschen
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success dialog */}
+      {showClearDone && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center">
+            <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-emerald-100 flex items-center justify-center">
+              <svg className="w-7 h-7 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h2 className="text-lg font-bold text-hi-navy mb-2">Daten gelöscht</h2>
+            <p className="text-sm text-hi-slate leading-relaxed mb-4">
+              Alle lokalen Daten wurden aus dem Browser-Speicher entfernt und durch einen leeren Zustand ersetzt.
+            </p>
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-5 text-xs text-gray-600 text-left">
+              <div className="font-semibold mb-1">Nächste Schritte bei der Deinstallation:</div>
+              <ol className="list-decimal list-inside space-y-0.5">
+                <li>Dieses Fenster schließen</li>
+                <li>Browser-Tab schließen</li>
+                <li>Deinstallation im Terminal fortsetzen</li>
+              </ol>
+            </div>
+            <button
+              onClick={() => setShowClearDone(false)}
+              className="px-6 py-2 bg-hi-accent text-white rounded-lg text-sm font-bold hover:bg-hi-blue transition-colors"
+            >
+              Verstanden
+            </button>
           </div>
         </div>
       )}

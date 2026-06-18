@@ -1,6 +1,6 @@
 import type { AppState } from './types';
 
-const STORAGE_KEY = 'it-strukturanalyse-data';
+export const STORAGE_KEY = 'it-strukturanalyse-data';
 
 export const defaultState: AppState = {
   customerName: '',
@@ -40,6 +40,17 @@ export function loadState(): AppState {
 export function saveState(state: AppState): void {
   const updated = { ...state, lastUpdated: new Date().toISOString() };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+}
+
+/**
+ * Löscht alle App-Daten aus dem localStorage und schreibt sofort den
+ * leeren defaultState zurück. Das verhindert, dass noch in-flight liegende
+ * React-updateState-Callbacks den alten State nach dem Clear neu schreiben.
+ */
+export function clearState(): void {
+  localStorage.removeItem(STORAGE_KEY);
+  // Leeren Zustand sofort persistieren — überschreibt jeden Nachzügler
+  saveState(defaultState);
 }
 
 export function generateId(): string {
