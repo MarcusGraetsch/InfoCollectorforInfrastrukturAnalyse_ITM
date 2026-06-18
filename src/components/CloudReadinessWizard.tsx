@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { AppState, CategoryKey } from '../types';
 import type { CloudFields } from '../types';
 import { assessAll } from '../cloudReadiness';
@@ -216,9 +216,21 @@ export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose, 
   }));
   const [newNote, setNewNote] = useState('');
   const [vierAugenName, setVierAugenName] = useState('');
+  const [copySourceId, setCopySourceId] = useState('');
 
   const total = items.length;
   const item = items[index];
+
+  // Same-category items with at least one filled (non-Unklar) cloud field
+  const copySourceCandidates = useMemo(() => {
+    const cat = item?.category;
+    if (!cat) return [];
+    const arr = state[cat] as unknown as (CloudFields & { id: string; name: string; kuerzel: string })[];
+    return arr.filter(i => {
+      if (i.id === item?.id) return false;
+      return OPEN_CLOUD_KEYS.some(k => i[k] && i[k] !== 'Unklar');
+    });
+  }, [state, item]);
 
   if (!item) {
     return (
@@ -257,6 +269,7 @@ export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose, 
     });
     setNewNote('');
     setVierAugenName('');
+    setCopySourceId('');
   };
 
   const buildTaggedNote = (base: string): string => {
@@ -272,6 +285,24 @@ export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose, 
     }
     if (parts.length === 0) return base;
     return [...parts, ...(base ? [base] : [])].join('\n\n');
+  };
+
+  const handleCopyFrom = (sourceId: string) => {
+    if (!sourceId) return;
+    const cat = item?.category;
+    if (!cat) return;
+    const arr = state[cat] as unknown as (CloudFields & { id: string })[];
+    const source = arr.find(i => i.id === sourceId);
+    if (!source) return;
+    setFields(prev => {
+      const next = { ...prev };
+      for (const k of OPEN_CLOUD_KEYS) {
+        const v = source[k] as string | undefined;
+        if (v && v !== 'Unklar') next[k] = v as never;
+      }
+      return next;
+    });
+    setCopySourceId('');
   };
 
   const handleSaveNext = () => {
@@ -515,6 +546,34 @@ export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose, 
               Bestätigt Schutzbedarf, Cloudfähigkeit und Migrationsstrategie — wird als signierte Notiz gespeichert.
             </p>
           </Field>
+
+          {copySourceCandidates.length > 0 && (
+            <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 flex items-center gap-3">
+              <svg className="w-4 h-4 text-hi-accent flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              <div className="flex-1 min-w-0">
+                <label className="block text-xs font-semibold text-hi-navy mb-1">Von ähnlichem Item übernehmen</label>
+                <select
+                  value={copySourceId}
+                  onChange={e => setCopySourceId(e.target.value)}
+                  className="text-xs border border-blue-200 rounded-lg px-2 py-1.5 bg-white text-hi-navy focus:outline-none focus:ring-2 focus:ring-hi-accent w-full"
+                >
+                  <option value="">— Quelle wählen —</option>
+                  {copySourceCandidates.map(c => (
+                    <option key={c.id} value={c.id}>{c.kuerzel} · {c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <button
+                onClick={() => handleCopyFrom(copySourceId)}
+                disabled={!copySourceId}
+                className="flex-shrink-0 px-3 py-1.5 text-xs font-bold bg-hi-accent text-white rounded-lg hover:bg-hi-blue transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Übernehmen
+              </button>
+            </div>
+          )}
 
           <ScorePreview fields={fields} category={meta.category} />
 
