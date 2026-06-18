@@ -11,7 +11,8 @@ import { CloudDashboard } from './components/CloudDashboard';
 import { exportToExcel, exportWorkshopPackage } from './utils/export';
 import { exportToJSON, importFromJSON } from './utils/exportJSON';
 import { exportConsultantReport } from './utils/exportReport';
-import { importFromExcelWithMapping } from './utils/import';
+import { importFromExcelWithMapping, importClassifiedRows } from './utils/import';
+import type { RowClassification } from './utils/importAnalyzer';
 import { ImportWizard } from './components/ImportWizard';
 import { EmailTemplate } from './components/EmailTemplate';
 
@@ -95,6 +96,14 @@ function App() {
       alert('Import fehlgeschlagen: ' + String(err));
       setImportFile(null);
     }
+  };
+
+  const handleImportRowsConfirm = (rows: RowClassification[]) => {
+    const newState = importClassifiedRows(rows, state);
+    setState(newState);
+    saveState(newState);
+    setImportFile(null);
+    alert(`${rows.length} Einträge importiert!`);
   };
 
   const categoryDef = CATEGORY_MAP[activeCategory];
@@ -188,6 +197,7 @@ function App() {
         <ImportWizard
           file={importFile}
           onConfirm={handleImportConfirm}
+          onConfirmRows={handleImportRowsConfirm}
           onCancel={() => setImportFile(null)}
         />
       )}

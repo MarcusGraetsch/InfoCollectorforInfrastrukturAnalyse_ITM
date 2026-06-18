@@ -17,7 +17,17 @@ export interface SheetAnalysis {
 export interface ImportAnalysis {
   sheets: SheetAnalysis[];
   fileType: 'excel' | 'csv' | 'txt' | 'docx' | 'pdf' | 'unknown';
-  limitedAnalysis: boolean; // true wenn Inhalt nicht vollständig lesbar war
+  limitedAnalysis: boolean;
+  mode: 'structured' | 'unstructured';
+  classifiedRows?: RowClassification[];
+}
+
+export interface RowClassification {
+  rowIndex: number;
+  name: string;
+  rawData: Record<string, unknown>;
+  suggestedCategory: CategoryKey;
+  confidence: number;
 }
 
 // ── Keyword-Wörterbuch je BSI-Kategorie ────────────────────────────────────
@@ -170,6 +180,94 @@ function bestCategoryForColumns(
   return { category: bestCategory, confidence: bestConfidence, matchedFields: bestFields };
 }
 
+// ── Row-by-row classification rules ─────────────────────────────────────────
+const ROW_RULES: Array<{ pattern: RegExp; category: CategoryKey; score: number }> = [
+  // Storage (before server — NetApp etc.)
+  { pattern: /storage|netapp|tape[\s-]?librar|dxi\b|lto\b|nas\b(?!.*server)|san\b(?!.*server)|archivierung|wechseldatenträger|quantum|bandlaufwerk|netzwerkspeicher/i, category: 'datentraeger', score: 85 },
+  // Network hardware
+  { pattern: /\bswitch(?!.*software)\b|router(?!.*software)|firewall|gateway(?!.*software)|access[\s-]?point|\bwlan\b(?!.*controller)|medienconverter|patch[\s-]?panel|proxy[\s-]?server|load[\s-]?balancer|palo[\s-]?alto|checkpoint|fortinet|sophos|juniper\b|cisco\b/i, category: 'netzkomponenten', score: 90 },
+  // ICS / OT
+  { pattern: /\bscada\b|plc\b|sps\b|simatic|wincc|prozessleittechnik|leittechnik|steuerung|s7[\s-]\d|beckhoff|rockwell|dcs\b|automation[\s-]?server/i, category: 'icsSysteme', score: 90 },
+  // IoT / Building
+  { pattern: /\busv\b|unterbrechungsfreie|alarmanlage|alarm[\s-]?(zentrale|panel)|kamera|cctv|zutrittskontrolle|knx\b|dali\b|gebäudeautomation|smart[\s-]?home|raspberry|mqtt|sensor|kopierer|drucker|mfp\b|netzwerkdrucker/i, category: 'iotSysteme', score: 85 },
+  // Server / VMs / Hypervisor
+  { pattern: /\besx[i]?\b|hypervisor|blade[\s-]?server|rack[\s-]?server|tower[\s-]?server|windows[\s-]?server|linux[\s-]?server|dhcp[\s-]?server|dns[\s-]?server|domain[\s-]?controller|dc[\s-]?\d|mail[\s-]?server|exchange[\s-]?server|backup[\s-]?server|print[\s-]?server|proxy\b|application[\s-]?server|app[\s-]?server|datenbank[\s-]?server|db[\s-]?server/i, category: 'server', score: 85 },
+  // Clients / Endpoints
+  { pattern: /laptop|notebook|desktop[\s-]?pc|\bpc\b(?!.*server)|\bworkstation\b|thin[\s-]?client|smartphone|tablet|mobilgerät|endgerät|windows[\s-]?10|windows[\s-]?11|macbook|mac[\s-]?pro(?!.*server)/i, category: 'clients', score: 85 },
+  // Applications / Software
+  { pattern: /\bsap\b|oracle\b(?!.*server)|microsoft[\s-]?(365|office|teams|sharepoint)|domino|lotus|erp\b|crm\b|cms\b|wiki\b|intranet|buchhaltung|faktura|warenwirtschaft|dms\b|dokumentenmanagement|helpdesk|ticketsystem|antivirus|monitoring[\s-]?software/i, category: 'anwendungen', score: 85 },
+  // Network connections
+  { pattern: /\bwan[\s-]|mpls\b|vpn[\s-]?tunnel|ipsec|leitung\b|glasfaser|dsl\b|sdwan|peering|expressroute|direct[\s-]?connect|anbindung/i, category: 'netzverbindungen', score: 80 },
+  // Rooms
+  { pattern: /serverraum|technikraum|verteilerraum|\brechenzentrum\b|\brz\b(?!.*server)|\bdatacenter\b|rechenzentrum|mdf\b|idf\b|rack[\s-]?raum|netzwerkraum/i, category: 'raeume', score: 85 },
+  // Buildings / Locations
+  { pattern: /gebäude|standort(?!.*server)|liegenschaft|filiale|niederlassung|campus|werk[\s-]?\w|bürogebäude/i, category: 'gebaeude', score: 75 },
+  // Data objects
+  { pattern: /personenbezogen|dsgvo|datenschutz|gdpr|klassifizierung|vertraulich|datenkategorie|informationsobjekt/i, category: 'daten', score: 80 },
+  // Business processes
+  { pattern: /geschäftsprozess|kernprozess|workflow|fachbereich|verfahren\b(?!.*server)/i, category: 'geschaeftsprozesse', score: 80 },
+];
+
+function detectColumnRoles(columns: string[]): { nameCol: string | null; anzahlCol: string | null; herstellerCol: string | null; modellCol: string | null; standortCol: string | null } {
+  const find = (patterns: RegExp[]) => columns.find(c => patterns.some(p => p.test(c))) ?? null;
+  return {
+    nameCol: find([/^(name|bezeichnung|kurzbeschreibung|description|komponent|gerät|system|analyse)/i, /^[^_]/]),
+    anzahlCol: find([/^(anzahl|count|qty|menge|stück)/i]),
+    herstellerCol: find([/^(hersteller|vendor|manufacturer|marke)/i]),
+    modellCol: find([/^(modell|model|typ|type|version)/i]),
+    standortCol: find([/^(standort|location|ort|raum|site)/i]),
+  };
+}
+
+export function classifyRows(
+  allRows: Record<string, unknown>[],
+  columns: string[]
+): RowClassification[] {
+  const roles = detectColumnRoles(columns);
+
+  // First row might be a sub-header (e.g. "Kurzbeschreibung | Anzahl | …") — skip if so
+  const firstRowText = Object.values(allRows[0] ?? {}).join(' ').toLowerCase();
+  const isSubHeader = ['kurzbeschreibung', 'description', 'anzahl', 'hersteller'].filter(k => firstRowText.includes(k)).length >= 2;
+  const dataRows = isSubHeader ? allRows.slice(1) : allRows;
+
+  const results: RowClassification[] = [];
+  let lastCategory: CategoryKey = 'server';
+
+  for (let i = 0; i < dataRows.length; i++) {
+    const row = dataRows[i];
+    const name = String(
+      (roles.nameCol ? row[roles.nameCol] : Object.values(row)[0]) ?? ''
+    ).trim();
+
+    if (!name) continue;
+
+    const hersteller = String(roles.herstellerCol ? row[roles.herstellerCol] ?? '' : '');
+    const modell = String(roles.modellCol ? row[roles.modellCol] ?? '' : '');
+    const searchText = [name, hersteller, modell].join(' ');
+
+    let bestCategory: CategoryKey = lastCategory;
+    let bestScore = 0;
+
+    for (const rule of ROW_RULES) {
+      if (rule.pattern.test(searchText) && rule.score > bestScore) {
+        bestScore = rule.score;
+        bestCategory = rule.category;
+      }
+    }
+
+    lastCategory = bestCategory;
+    results.push({
+      rowIndex: i,
+      name,
+      rawData: row,
+      suggestedCategory: bestCategory,
+      confidence: bestScore > 0 ? bestScore : 40,
+    });
+  }
+
+  return results;
+}
+
 // ── Excel / XLSX / XLS ──────────────────────────────────────────────────────
 function analyzeSpreadsheet(data: Uint8Array): ImportAnalysis {
   const wb = XLSX.read(data, { type: 'array' });
@@ -188,7 +286,17 @@ function analyzeSpreadsheet(data: Uint8Array): ImportAnalysis {
       source: 'columns' as AnalysisSource,
     };
   });
-  return { sheets, fileType: 'excel', limitedAnalysis: false };
+
+  const maxConf = Math.max(...sheets.map(s => s.confidence), 0);
+  if (maxConf < 30 && sheets.length > 0) {
+    const firstSheet = sheets[0];
+    const ws = wb.Sheets[firstSheet.sheetName];
+    const allRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: '' });
+    const classifiedRows = classifyRows(allRows, firstSheet.columns);
+    return { sheets, fileType: 'excel', limitedAnalysis: false, mode: 'unstructured', classifiedRows };
+  }
+
+  return { sheets, fileType: 'excel', limitedAnalysis: false, mode: 'structured' };
 }
 
 // ── CSV / TXT ───────────────────────────────────────────────────────────────
@@ -198,7 +306,7 @@ function analyzeText(text: string, fileName: string): ImportAnalysis {
   const sep = firstLine.includes('\t') ? '\t' : firstLine.includes(';') ? ';' : ',';
   const lines = text.split('\n').filter(l => l.trim());
   if (lines.length === 0) {
-    return { sheets: [], fileType: 'csv', limitedAnalysis: false };
+    return { sheets: [], fileType: 'csv', limitedAnalysis: false, mode: 'structured' };
   }
   const columns = lines[0].split(sep).map(c => c.trim().replace(/^["']|["']$/g, ''));
   const rowCount = Math.max(0, lines.length - 1);
@@ -230,6 +338,7 @@ function analyzeText(text: string, fileName: string): ImportAnalysis {
     }],
     fileType: fileName.endsWith('.csv') ? 'csv' : 'txt',
     limitedAnalysis: false,
+    mode: 'structured',
   };
 }
 
@@ -251,6 +360,7 @@ function analyzeByFilename(fileName: string, fileType: 'docx' | 'pdf'): ImportAn
     }],
     fileType,
     limitedAnalysis: true,
+    mode: 'structured',
   };
 }
 
