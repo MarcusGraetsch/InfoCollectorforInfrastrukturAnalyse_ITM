@@ -39,6 +39,18 @@ function ConfidenceBadge({ confidence, source }: { confidence: number; source: s
   );
 }
 
+function RowConfidenceBadge({ confidence }: { confidence: number }) {
+  const col =
+    confidence >= 70 ? 'bg-emerald-100 text-emerald-700' :
+    confidence >= 40 ? 'bg-amber-100 text-amber-700' :
+                       'bg-red-100 text-red-600';
+  return (
+    <span className={`inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full ${col}`}>
+      {confidence}%
+    </span>
+  );
+}
+
 function AutoBadge({ category }: { category: CategoryKey }) {
   const label = CATEGORIES.find(c => c.key === category)?.label ?? category;
   return (
@@ -67,22 +79,37 @@ function LimitedAnalysisNote({ fileType }: { fileType: string }) {
   );
 }
 
+// Category summary pill
+function CategoryPill({ catKey, count }: { catKey: CategoryKey; count: number }) {
+  const label = CATEGORIES.find(c => c.key === catKey)?.label ?? catKey;
+  return (
+    <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full bg-hi-navy/10 text-hi-navy">
+      {label}: {count}
+    </span>
+  );
+}
+
 export const ImportWizard: React.FC<Props> = ({ file, onConfirm, onConfirmRows, onCancel }) => {
   const [analysis, setAnalysis] = useState<ImportAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mapping, setMapping] = useState<Record<string, CategoryKey | null>>({});
-  const [rowOverrides, setRowOverrides] = useState<Record<number, CategoryKey>>({});
+  const [classifiedRows, setClassifiedRows] = useState<RowClassification[]>([]);
+  const [rowCategories, setRowCategories] = useState<Record<number, CategoryKey>>({});
 
   useEffect(() => {
     analyzeFile(file)
       .then(result => {
         setAnalysis(result);
-        const initial: Record<string, CategoryKey | null> = {};
-        for (const s of result.sheets) {
-          initial[s.sheetName] = s.suggestedCategory;
+        if (result.mode === 'unstructured' && result.classifiedRows) {
+          setClassifiedRows(result.classifiedRows);
+        } else {
+          const initial: Record<string, CategoryKey | null> = {};
+          for (const s of result.sheets) {
+            initial[s.sheetName] = s.suggestedCategory;
+          }
+          setMapping(initial);
         }
-        setMapping(initial);
         setLoading(false);
       })
       .catch(err => {
@@ -94,23 +121,119 @@ export const ImportWizard: React.FC<Props> = ({ file, onConfirm, onConfirmRows, 
   const sheets = analysis?.sheets ?? [];
   const fileType = analysis?.fileType ?? 'unknown';
   const fileTypeLabel = FILE_TYPE_LABELS[fileType] ?? 'Datei';
-  const isUnstructured = analysis?.mode === 'unstructured';
-  const classifiedRows = analysis?.classifiedRows ?? [];
 
   const autoCount = sheets.filter(s => s.suggestedCategory !== null).length;
   const needsManual = sheets.filter(s => s.suggestedCategory === null).length;
 
-  const handleConfirm = () => {
-    if (isUnstructured) {
-      const finalRows = classifiedRows.map(r => ({
-        ...r,
-        suggestedCategory: rowOverrides[r.rowIndex] ?? r.suggestedCategory,
-      }));
-      onConfirmRows(finalRows);
-    } else {
-      onConfirm(mapping);
-    }
+  // Unstructured mode: compute effective rows (with user overrides)
+  const effectiveRows: RowClassification[] = classifiedRows.map(r => ({
+    ...r,
+    suggestedCategory: rowCategories[r.rowIndex] ?? r.suggestedCategory,
+  }));
+
+  // Category summary
+  const categorySummary = new Map<CategoryKey, number>();
+  for (const r of effectiveRows) {
+    categorySummary.set(r.suggestedCategory, (categorySummary.get(r.suggestedCategory) ?? 0) + 1);
+  }
+
+  const handleConfirmRows = () => {
+    onConfirmRows(effectiveRows);
   };
+
+  if (analysis?.mode === 'unstructured' && !loading && !error) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+
+          {/* Header */}
+          <div className="bg-hi-navy px-6 py-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-white font-bold text-lg">
+                Zeilenweise Klassifizierung &mdash; {classifiedRows.length} Einträge erkannt
+              </h2>
+              <p className="text-white/60 text-sm mt-0.5">{file.name}</p>
+            </div>
+            <button onClick={onCancel} className="text-white/60 hover:text-white transition-colors">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            {/* Category summary pills */}
+            <div className="flex flex-wrap gap-2">
+              {Array.from(categorySummary.entries()).map(([catKey, count]) => (
+                <CategoryPill key={catKey} catKey={catKey} count={count} />
+              ))}
+            </div>
+
+            {/* Row table */}
+            <div className="overflow-y-auto max-h-[400px] rounded-xl border border-gray-200">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 sticky top-0">
+                  <tr>
+                    <th className="text-left px-4 py-2 font-semibold text-hi-navy text-xs">Name</th>
+                    <th className="text-left px-4 py-2 font-semibold text-hi-navy text-xs">Erkannte Kategorie</th>
+                    <th className="text-left px-4 py-2 font-semibold text-hi-navy text-xs">Konfidenz</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {classifiedRows.map(row => {
+                    const effectiveCat = rowCategories[row.rowIndex] ?? row.suggestedCategory;
+                    const lowConf = row.confidence < 50;
+                    return (
+                      <tr
+                        key={row.rowIndex}
+                        className={`border-t border-gray-100 ${lowConf ? 'bg-amber-50/60' : 'hover:bg-gray-50'}`}
+                      >
+                        <td className="px-4 py-2 text-hi-navy font-medium max-w-[200px] truncate" title={row.name}>
+                          {row.name}
+                        </td>
+                        <td className="px-4 py-2">
+                          <select
+                            value={effectiveCat}
+                            onChange={e => setRowCategories(prev => ({
+                              ...prev,
+                              [row.rowIndex]: e.target.value as CategoryKey,
+                            }))}
+                            className="text-xs border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-hi-accent bg-white text-hi-navy w-full"
+                          >
+                            {CATEGORIES.map(cat => (
+                              <option key={cat.key} value={cat.key}>{cat.label}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-4 py-2">
+                          <RowConfidenceBadge confidence={row.confidence} />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+            <button
+              onClick={onCancel}
+              className="px-4 py-2 text-sm font-medium text-hi-slate hover:text-hi-navy transition-colors"
+            >
+              Abbrechen
+            </button>
+            <button
+              onClick={handleConfirmRows}
+              className="px-5 py-2 text-sm font-bold bg-hi-accent text-white rounded-lg hover:bg-hi-blue transition-colors"
+            >
+              Import starten ({effectiveRows.length} Einträge)
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
@@ -139,56 +262,7 @@ export const ImportWizard: React.FC<Props> = ({ file, onConfirm, onConfirmRows, 
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">{error}</div>
           )}
-          {!loading && !error && isUnstructured && (
-            <div className="space-y-4">
-              <div className="flex items-start gap-2 bg-sky-50 border border-sky-200 rounded-lg px-3 py-2.5 text-xs text-sky-800">
-                <svg className="w-4 h-4 flex-shrink-0 mt-0.5 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>
-                  <strong>Gemischte Datei erkannt:</strong> Jede Zeile wird einzeln klassifiziert.
-                  Bitte prüfen und ggf. korrigieren, dann „Import starten".
-                </span>
-              </div>
-              <div className="rounded-xl border border-gray-200 overflow-hidden">
-                <table className="w-full text-xs">
-                  <thead className="bg-hi-navy text-white">
-                    <tr>
-                      <th className="px-3 py-2 text-left font-semibold">Bezeichnung</th>
-                      <th className="px-3 py-2 text-left font-semibold w-40">Kategorie</th>
-                      <th className="px-3 py-2 text-right font-semibold w-16">Treffer</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {classifiedRows.map(row => {
-                      const current = rowOverrides[row.rowIndex] ?? row.suggestedCategory;
-                      const conf = row.confidence;
-                      const confColor = conf >= 80 ? 'text-emerald-600' : conf >= 50 ? 'text-amber-600' : 'text-red-500';
-                      return (
-                        <tr key={row.rowIndex} className="hover:bg-gray-50">
-                          <td className="px-3 py-1.5 text-hi-navy font-medium">{row.name}</td>
-                          <td className="px-3 py-1.5">
-                            <select
-                              value={current}
-                              onChange={e => setRowOverrides(prev => ({ ...prev, [row.rowIndex]: e.target.value as CategoryKey }))}
-                              className="w-full text-xs border border-gray-200 rounded px-2 py-1 bg-white text-hi-navy focus:outline-none focus:ring-1 focus:ring-hi-accent"
-                            >
-                              {CATEGORIES.map(cat => (
-                                <option key={cat.key} value={cat.key}>{cat.label}</option>
-                              ))}
-                            </select>
-                          </td>
-                          <td className={`px-3 py-1.5 text-right font-bold ${confColor}`}>{conf}%</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {!loading && !error && !isUnstructured && (
+          {!loading && !error && (
             <div className="space-y-4">
 
               {/* Zusammenfassung */}
@@ -310,10 +384,10 @@ export const ImportWizard: React.FC<Props> = ({ file, onConfirm, onConfirmRows, 
               Abbrechen
             </button>
             <button
-              onClick={handleConfirm}
+              onClick={() => onConfirm(mapping)}
               className="px-5 py-2 text-sm font-bold bg-hi-accent text-white rounded-lg hover:bg-hi-blue transition-colors"
             >
-              {isUnstructured ? `${classifiedRows.length} Einträge importieren` : 'Import starten'}
+              Import starten
             </button>
           </div>
         )}
