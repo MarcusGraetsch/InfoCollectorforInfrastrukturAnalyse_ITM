@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import type { CategoryKey } from '../types';
 import { CATEGORIES } from '../categories';
 import { analyzeFile } from '../utils/importAnalyzer';
-import type { SheetAnalysis, ImportAnalysis } from '../utils/importAnalyzer';
+import type { SheetAnalysis, ImportAnalysis, RowClassification } from '../utils/importAnalyzer';
 
 interface Props {
   file: File;
   onConfirm: (mapping: Record<string, CategoryKey | null>) => void;
+  onConfirmRows: (rows: RowClassification[]) => void;
   onCancel: () => void;
 }
 
@@ -66,11 +67,12 @@ function LimitedAnalysisNote({ fileType }: { fileType: string }) {
   );
 }
 
-export const ImportWizard: React.FC<Props> = ({ file, onConfirm, onCancel }) => {
+export const ImportWizard: React.FC<Props> = ({ file, onConfirm, onConfirmRows, onCancel }) => {
   const [analysis, setAnalysis] = useState<ImportAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mapping, setMapping] = useState<Record<string, CategoryKey | null>>({});
+  const [rowOverrides, setRowOverrides] = useState<Record<number, CategoryKey>>({});
 
   useEffect(() => {
     analyzeFile(file)
@@ -92,9 +94,23 @@ export const ImportWizard: React.FC<Props> = ({ file, onConfirm, onCancel }) => 
   const sheets = analysis?.sheets ?? [];
   const fileType = analysis?.fileType ?? 'unknown';
   const fileTypeLabel = FILE_TYPE_LABELS[fileType] ?? 'Datei';
+  const isUnstructured = analysis?.mode === 'unstructured';
+  const classifiedRows = analysis?.classifiedRows ?? [];
 
   const autoCount = sheets.filter(s => s.suggestedCategory !== null).length;
   const needsManual = sheets.filter(s => s.suggestedCategory === null).length;
+
+  const handleConfirm = () => {
+    if (isUnstructured) {
+      const finalRows = classifiedRows.map(r => ({
+        ...r,
+        suggestedCategory: rowOverrides[r.rowIndex] ?? r.suggestedCategory,
+      }));
+      onConfirmRows(finalRows);
+    } else {
+      onConfirm(mapping);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
@@ -123,7 +139,56 @@ export const ImportWizard: React.FC<Props> = ({ file, onConfirm, onCancel }) => 
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">{error}</div>
           )}
-          {!loading && !error && (
+          {!loading && !error && isUnstructured && (
+            <div className="space-y-4">
+              <div className="flex items-start gap-2 bg-sky-50 border border-sky-200 rounded-lg px-3 py-2.5 text-xs text-sky-800">
+                <svg className="w-4 h-4 flex-shrink-0 mt-0.5 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>
+                  <strong>Gemischte Datei erkannt:</strong> Jede Zeile wird einzeln klassifiziert.
+                  Bitte prüfen und ggf. korrigieren, dann „Import starten".
+                </span>
+              </div>
+              <div className="rounded-xl border border-gray-200 overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead className="bg-hi-navy text-white">
+                    <tr>
+                      <th className="px-3 py-2 text-left font-semibold">Bezeichnung</th>
+                      <th className="px-3 py-2 text-left font-semibold w-40">Kategorie</th>
+                      <th className="px-3 py-2 text-right font-semibold w-16">Treffer</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {classifiedRows.map(row => {
+                      const current = rowOverrides[row.rowIndex] ?? row.suggestedCategory;
+                      const conf = row.confidence;
+                      const confColor = conf >= 80 ? 'text-emerald-600' : conf >= 50 ? 'text-amber-600' : 'text-red-500';
+                      return (
+                        <tr key={row.rowIndex} className="hover:bg-gray-50">
+                          <td className="px-3 py-1.5 text-hi-navy font-medium">{row.name}</td>
+                          <td className="px-3 py-1.5">
+                            <select
+                              value={current}
+                              onChange={e => setRowOverrides(prev => ({ ...prev, [row.rowIndex]: e.target.value as CategoryKey }))}
+                              className="w-full text-xs border border-gray-200 rounded px-2 py-1 bg-white text-hi-navy focus:outline-none focus:ring-1 focus:ring-hi-accent"
+                            >
+                              {CATEGORIES.map(cat => (
+                                <option key={cat.key} value={cat.key}>{cat.label}</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className={`px-3 py-1.5 text-right font-bold ${confColor}`}>{conf}%</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {!loading && !error && !isUnstructured && (
             <div className="space-y-4">
 
               {/* Zusammenfassung */}
@@ -245,10 +310,10 @@ export const ImportWizard: React.FC<Props> = ({ file, onConfirm, onCancel }) => 
               Abbrechen
             </button>
             <button
-              onClick={() => onConfirm(mapping)}
+              onClick={handleConfirm}
               className="px-5 py-2 text-sm font-bold bg-hi-accent text-white rounded-lg hover:bg-hi-blue transition-colors"
             >
-              Import starten
+              {isUnstructured ? `${classifiedRows.length} Einträge importieren` : 'Import starten'}
             </button>
           </div>
         )}
