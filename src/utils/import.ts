@@ -1,10 +1,10 @@
-import * as XLSX from 'xlsx';
 import type { AppState, CategoryKey } from '../types';
 import { CATEGORIES } from '../categories';
 import { generateId, generateKuerzel } from '../store';
 import type { RowClassification } from './importAnalyzer';
 
 export async function importFromExcel(file: File, currentState: AppState): Promise<AppState> {
+  const XLSX = await import('xlsx');
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -113,6 +113,7 @@ export async function importFromExcelWithMapping(
   }
 
   // XLSX / XLS (und alles andere)
+  const XLSX = await import('xlsx');
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {

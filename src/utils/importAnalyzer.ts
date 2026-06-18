@@ -1,6 +1,7 @@
-import * as XLSX from 'xlsx';
 import { CATEGORIES } from '../categories';
 import type { CategoryKey } from '../types';
+
+type XLSXModule = typeof import('xlsx');
 
 export type AnalysisSource = 'columns' | 'keywords' | 'filename';
 
@@ -301,7 +302,7 @@ export function classifyRows(
 }
 
 // ── Excel / XLSX / XLS ──────────────────────────────────────────────────────
-function analyzeSpreadsheet(data: Uint8Array): ImportAnalysis {
+function analyzeSpreadsheet(XLSX: XLSXModule, data: Uint8Array): ImportAnalysis {
   const wb = XLSX.read(data, { type: 'array' });
   const sheets: SheetAnalysis[] = wb.SheetNames.map(sheetName => {
     const ws = wb.Sheets[sheetName];
@@ -436,17 +437,17 @@ export function analyzeFile(file: File): Promise<ImportAnalysis> {
     });
   }
   // xlsx / xls und alles andere als Tabelle versuchen
-  return new Promise((resolve, reject) => {
+  return import('xlsx').then(XLSX => new Promise<ImportAnalysis>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = e => {
       try {
         const data = new Uint8Array(e.target!.result as ArrayBuffer);
-        resolve(analyzeSpreadsheet(data));
+        resolve(analyzeSpreadsheet(XLSX, data));
       } catch (err) { reject(err); }
     };
     reader.onerror = reject;
     reader.readAsArrayBuffer(file);
-  });
+  }));
 }
 
 // Rückwärtskompatibilität für bestehende Aufrufe

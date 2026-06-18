@@ -2,6 +2,16 @@ import React, { useMemo, useState, useEffect } from 'react';
 import type { AppState, CategoryKey, CloudFields } from '../types';
 import { ASSESSABLE_CATEGORIES } from '../cloudReadiness';
 import { findUnlinkedSuggestions } from '../utils/bidirectional';
+import {
+  CLOUD_FIELD_DEFS,
+  CLOUD_FIELD_BY_KEY,
+  CLOUD_THEMES,
+  CLOUD_THEME_ICONS,
+  isOpenField,
+  isFieldRelevant,
+  type CloudFieldKey,
+  type CloudTheme,
+} from '../cloudFields';
 
 const CATEGORY_LABELS: Record<string, string> = {
   anwendungen: 'Anwendungen',
@@ -18,12 +28,12 @@ const ALL_CATEGORY_LABELS: Record<string, string> = {
 };
 
 interface OpenField {
-  fieldKey: keyof CloudFields;
+  fieldKey: CloudFieldKey;
   label: string;
   currentValue: string;
   isUnklar: boolean;
   question: string;
-  theme: 'Betrieb & Bereitstellung' | 'Lizenz & Kosten' | 'Lebenszyklus & Technik' | 'Sicherheit & Compliance';
+  theme: CloudTheme;
 }
 
 interface OpenItem {
@@ -35,69 +45,9 @@ interface OpenItem {
   openFields: OpenField[];
 }
 
-const FIELD_DEFS: {
-  key: keyof CloudFields;
-  label: string;
-  theme: OpenField['theme'];
-  question: (name: string) => string;
-  opts: string[];
-}[] = [
-  {
-    key: 'schutzbedarf',
-    label: 'Schutzbedarf',
-    theme: 'Sicherheit & Compliance',
-    question: (n) => `Wie hoch ist der Schutzbedarf von „${n}"? (Normal / Hoch / Sehr hoch)`,
-    opts: ['Normal', 'Hoch', 'Sehr hoch', 'Unklar'],
-  },
-  {
-    key: 'bereitstellung',
-    label: 'Bereitstellung',
-    theme: 'Betrieb & Bereitstellung',
-    question: (n) => `Wo läuft „${n}" aktuell? On-Premises, Hybrid, Private Cloud oder SaaS/Public Cloud?`,
-    opts: ['On-Premises (physisch)', 'On-Premises (virtualisiert)', 'Hybrid', 'Private Cloud', 'SaaS / Public Cloud', 'Container (Docker/Podman)', 'Kubernetes (On-Prem)', 'Managed Kubernetes (Cloud)', 'Unklar'],
-  },
-  {
-    key: 'lizenzCloudfaehig',
-    label: 'Lizenz cloudfähig',
-    theme: 'Lizenz & Kosten',
-    question: (n) => `Erlaubt die Lizenz von „${n}" einen Cloud- oder Hosting-Betrieb?`,
-    opts: ['Ja', 'Nein', 'Unklar'],
-  },
-  {
-    key: 'migrationskomplexitaet',
-    label: 'Migrationskomplexität',
-    theme: 'Betrieb & Bereitstellung',
-    question: (n) => `Wie komplex wäre eine Migration von „${n}"?`,
-    opts: ['Niedrig', 'Mittel', 'Hoch', 'Unklar'],
-  },
-  {
-    key: 'lebenszyklus',
-    label: 'Lebenszyklus-Status',
-    theme: 'Lebenszyklus & Technik',
-    question: (n) => `Wie ist der Wartungs- und Supportstatus von „${n}"?`,
-    opts: ['Aktuell', 'Wartung läuft aus', 'End-of-Life', 'Unklar'],
-  },
-  {
-    key: 'internetfaehig',
-    label: 'Internet-/Cloudfähigkeit',
-    theme: 'Betrieb & Bereitstellung',
-    question: (n) => `Kann „${n}" über das Internet oder aus der Cloud betrieben werden?`,
-    opts: ['Ja', 'Nein', 'Eingeschränkt', 'Unklar'],
-  },
-  {
-    key: 'datensouveraenitaet',
-    label: 'Datensouveränität',
-    theme: 'Sicherheit & Compliance',
-    question: (n) => `Welche regulatorischen Anforderungen gelten für die Daten von „${n}"?`,
-    opts: ['Keine spezielle Anforderung', 'EU / DSGVO', 'Deutschland', 'Streng souverän (C5 / Gaia-X)', 'Confidential Computing (TEE / Enclave)', 'Unklar'],
-  },
-];
-
-const FIELD_BY_KEY = Object.fromEntries(FIELD_DEFS.map(f => [f.key, f]));
-
-function isOpen(val: string | undefined): boolean {
-  return !val || val === '' || val === 'Unklar';
-}
+const FIELD_BY_KEY = CLOUD_FIELD_BY_KEY;
+const THEMES = CLOUD_THEMES;
+const THEME_ICONS = CLOUD_THEME_ICONS;
 
 function buildOpenItems(state: AppState): OpenItem[] {
   const result: OpenItem[] = [];
@@ -105,9 +55,10 @@ function buildOpenItems(state: AppState): OpenItem[] {
     const items = state[cat] as unknown as (CloudFields & { id: string; kuerzel: string; name: string })[];
     for (const item of items) {
       const openFields: OpenField[] = [];
-      for (const def of FIELD_DEFS) {
-        const val = item[def.key] as string | undefined;
-        if (isOpen(val)) {
+      for (const def of CLOUD_FIELD_DEFS) {
+        if (!isFieldRelevant(def, cat)) continue;
+        const val = (item as unknown as Record<string, unknown>)[def.key] as string | undefined;
+        if (isOpenField(val)) {
           openFields.push({
             fieldKey: def.key,
             label: def.label,
@@ -132,20 +83,6 @@ function buildOpenItems(state: AppState): OpenItem[] {
   }
   return result;
 }
-
-const THEMES: OpenField['theme'][] = [
-  'Betrieb & Bereitstellung',
-  'Lizenz & Kosten',
-  'Lebenszyklus & Technik',
-  'Sicherheit & Compliance',
-];
-
-const THEME_ICONS: Record<string, string> = {
-  'Betrieb & Bereitstellung': '🖥',
-  'Lizenz & Kosten': '📄',
-  'Lebenszyklus & Technik': '🔄',
-  'Sicherheit & Compliance': '🔒',
-};
 
 interface Props {
   state: AppState;
@@ -318,7 +255,7 @@ export const OffenePunkte: React.FC<Props> = ({ state, onEditItem, onBatchCloudU
 
   // Batch selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [batchField, setBatchField] = useState<keyof CloudFields>('schutzbedarf');
+  const [batchField, setBatchField] = useState<CloudFieldKey>('schutzbedarf');
   const [batchValue, setBatchValue] = useState('');
   const [batchDone, setBatchDone] = useState(false);
 
@@ -359,7 +296,7 @@ export const OffenePunkte: React.FC<Props> = ({ state, onEditItem, onBatchCloudU
     [filtered, selectedIds]
   );
   const openFieldsInSelection = useMemo(() => {
-    const fieldCounts = new Map<keyof CloudFields, number>();
+    const fieldCounts = new Map<CloudFieldKey, number>();
     for (const item of selectedItems) {
       for (const f of item.openFields) {
         fieldCounts.set(f.fieldKey, (fieldCounts.get(f.fieldKey) ?? 0) + 1);
@@ -409,7 +346,7 @@ export const OffenePunkte: React.FC<Props> = ({ state, onEditItem, onBatchCloudU
   };
 
   const batchFieldDef = FIELD_BY_KEY[batchField];
-  const batchOpts = batchFieldDef?.opts ?? [];
+  const batchOpts = batchFieldDef?.options ?? [];
   const batchAffectedCount = selectedItems.filter(i => i.openFields.some(f => f.fieldKey === batchField)).length;
 
   const handlePrint = () => window.print();
@@ -636,14 +573,14 @@ export const OffenePunkte: React.FC<Props> = ({ state, onEditItem, onBatchCloudU
                     {/* Field selector */}
                     <select
                       value={batchField}
-                      onChange={e => { setBatchField(e.target.value as keyof CloudFields); setBatchValue(''); setBatchDone(false); }}
+                      onChange={e => { setBatchField(e.target.value as CloudFieldKey); setBatchValue(''); setBatchDone(false); }}
                       className="text-xs border border-white/20 rounded-lg px-3 py-2 bg-white/10 text-white focus:outline-none focus:ring-2 focus:ring-hi-teal"
                     >
                       {openFieldsInSelection.length > 0
                         ? openFieldsInSelection.map(k => (
                             <option key={k} value={k}>{FIELD_BY_KEY[k]?.label ?? k}</option>
                           ))
-                        : FIELD_DEFS.map(f => (
+                        : CLOUD_FIELD_DEFS.map(f => (
                             <option key={f.key} value={f.key}>{f.label}</option>
                           ))
                       }

@@ -1,9 +1,13 @@
-import * as XLSX from 'xlsx';
+import type * as XLSX from 'xlsx';
 import type { AppState } from '../types';
 import { CATEGORIES } from '../categories';
 import { assessAll, summarize } from '../cloudReadiness';
 
-function addOverviewSheet(wb: XLSX.WorkBook, state: AppState, titel: string): void {
+// xlsx wird dynamisch geladen (~600 kB), damit der Initial-Bundle klein bleibt.
+// Excel-Im-/Export wird erst bei Button-Klick gebraucht.
+type XLSXModule = typeof import('xlsx');
+
+function addOverviewSheet(XLSX: XLSXModule, wb: XLSX.WorkBook, state: AppState, titel: string): void {
   const overviewData = [
     [titel, ''],
     ['Kunde:', state.customerName],
@@ -15,7 +19,7 @@ function addOverviewSheet(wb: XLSX.WorkBook, state: AppState, titel: string): vo
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(overviewData), 'Übersicht');
 }
 
-function addCategorySheets(wb: XLSX.WorkBook, state: AppState): void {
+function addCategorySheets(XLSX: XLSXModule, wb: XLSX.WorkBook, state: AppState): void {
   for (const cat of CATEGORIES) {
     const items = state[cat.key] as unknown as Record<string, unknown>[];
     const headers = cat.fields.map((f) => f.label);
@@ -31,10 +35,11 @@ function addCategorySheets(wb: XLSX.WorkBook, state: AppState): void {
   }
 }
 
-export function exportToExcel(state: AppState): void {
+export async function exportToExcel(state: AppState): Promise<void> {
+  const XLSX = await import('xlsx');
   const wb = XLSX.utils.book_new();
-  addOverviewSheet(wb, state, 'IT Strukturanalyse');
-  addCategorySheets(wb, state);
+  addOverviewSheet(XLSX, wb, state, 'IT Strukturanalyse');
+  addCategorySheets(XLSX, wb, state);
   XLSX.writeFile(
     wb,
     `IT-Strukturanalyse_${state.customerName || 'Export'}_${new Date().toISOString().split('T')[0]}.xlsx`
@@ -46,9 +51,10 @@ export function exportToExcel(state: AppState): void {
  * Unterlagen + automatische Cloud-Readiness-Bewertung. Dient als Grundlage
  * für den Cloud-Readiness-Workshop.
  */
-export function exportWorkshopPackage(state: AppState): void {
+export async function exportWorkshopPackage(state: AppState): Promise<void> {
+  const XLSX = await import('xlsx');
   const wb = XLSX.utils.book_new();
-  addOverviewSheet(wb, state, 'Cloud-Readiness Workshop-Paket');
+  addOverviewSheet(XLSX, wb, state, 'Cloud-Readiness Workshop-Paket');
 
   // Cloud-Strategie-Rahmen
   const cs = state.cloudStrategy;
@@ -131,7 +137,7 @@ export function exportWorkshopPackage(state: AppState): void {
     'Unterlagen'
   );
 
-  addCategorySheets(wb, state);
+  addCategorySheets(XLSX, wb, state);
 
   XLSX.writeFile(
     wb,

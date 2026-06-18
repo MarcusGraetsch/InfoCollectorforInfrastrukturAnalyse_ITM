@@ -1,7 +1,8 @@
 import React from 'react';
 import type { CategoryDef } from '../categories';
-import type { AppState, CategoryKey, CloudFields } from '../types';
+import type { AppState, CategoryKey } from '../types';
 import { ASSESSABLE_CATEGORIES } from '../cloudReadiness';
+import { getOpenCloudFieldDefs } from '../cloudFields';
 
 interface Props {
   categoryDef: CategoryDef;
@@ -11,27 +12,8 @@ interface Props {
   onDelete: (id: string) => void;
 }
 
-const CLOUD_KEYS: (keyof CloudFields)[] = [
-  'schutzbedarf', 'bereitstellung', 'lizenzCloudfaehig',
-  'migrationskomplexitaet', 'lebenszyklus', 'internetfaehig', 'datensouveraenitaet',
-];
-
-const CLOUD_LABELS: Record<string, string> = {
-  schutzbedarf: 'Schutzbedarf',
-  bereitstellung: 'Bereitstellung',
-  lizenzCloudfaehig: 'Lizenz cloudfähig',
-  migrationskomplexitaet: 'Migrationskomplexität',
-  lebenszyklus: 'Lebenszyklus-Status',
-  internetfaehig: 'Internet-/Cloudfähig',
-  datensouveraenitaet: 'Datensouveränität',
-};
-
-function isOpenField(val: unknown): boolean {
-  return !val || val === '' || val === 'Unklar';
-}
-
-function getOpenCloudFields(item: Record<string, unknown>): string[] {
-  return CLOUD_KEYS.filter(k => isOpenField(item[k as string])).map(k => CLOUD_LABELS[k]);
+function getOpenCloudFields(item: Record<string, unknown>, category: CategoryKey): string[] {
+  return getOpenCloudFieldDefs(item, category).map(d => d.label);
 }
 
 function getGeneralCompleteness(item: Record<string, unknown>, def: CategoryDef): { filled: number; total: number } {
@@ -60,7 +42,7 @@ export const CategoryList: React.FC<Props> = ({ categoryDef, state, onNew, onEdi
   const isCloudCategory = (ASSESSABLE_CATEGORIES as CategoryKey[]).includes(categoryDef.key);
 
   const totalOpen = isCloudCategory
-    ? items.reduce((sum, item) => sum + getOpenCloudFields(item).length, 0)
+    ? items.reduce((sum, item) => sum + getOpenCloudFields(item, categoryDef.key).length, 0)
     : 0;
 
   return (
@@ -112,7 +94,7 @@ export const CategoryList: React.FC<Props> = ({ categoryDef, state, onNew, onEdi
             </thead>
             <tbody className="divide-y divide-gray-50">
               {items.map((item) => {
-                const openCloud = isCloudCategory ? getOpenCloudFields(item) : [];
+                const openCloud = isCloudCategory ? getOpenCloudFields(item, categoryDef.key) : [];
                 const gen = getGeneralCompleteness(item, categoryDef);
                 const pct = gen.total > 0 ? Math.round((gen.filled / gen.total) * 100) : 100;
 
