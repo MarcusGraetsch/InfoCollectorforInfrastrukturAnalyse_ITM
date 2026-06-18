@@ -9,6 +9,8 @@ import { CategoryForm } from './components/CategoryForm';
 import { Wizard } from './components/Wizard';
 import { CloudDashboard } from './components/CloudDashboard';
 import { exportToExcel, exportWorkshopPackage } from './utils/export';
+import { exportToJSON, importFromJSON } from './utils/exportJSON';
+import { exportConsultantReport } from './utils/exportReport';
 import { importFromExcelWithMapping } from './utils/import';
 import { ImportWizard } from './components/ImportWizard';
 import { EmailTemplate } from './components/EmailTemplate';
@@ -60,9 +62,24 @@ function App() {
     updateState((prev) => ({ ...prev, customerName: name }));
   const handleExport = () => exportToExcel(state);
   const handleExportWorkshop = () => exportWorkshopPackage(state);
+  const handleExportJSON = () => exportToJSON(state);
+  const handleExportReport = () => exportConsultantReport(state);
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.name.endsWith('.json')) {
+      try {
+        const text = await file.text();
+        const newState = importFromJSON(text);
+        setState(newState);
+        saveState(newState);
+        alert('JSON-Backup erfolgreich importiert!');
+      } catch (err) {
+        alert('JSON-Import fehlgeschlagen: ' + String(err));
+      }
+      e.target.value = '';
+      return;
+    }
     setImportFile(file);
     e.target.value = '';
   };
@@ -92,6 +109,8 @@ function App() {
         onImport={handleImport}
         onExport={handleExport}
         onExportWorkshop={handleExportWorkshop}
+        onExportJSON={handleExportJSON}
+        onExportReport={handleExportReport}
       />
 
       <div className="flex-1 overflow-hidden">
