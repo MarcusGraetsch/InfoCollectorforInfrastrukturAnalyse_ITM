@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import type { AppState, CategoryKey } from '../types';
 import type { CloudFields } from '../types';
 import { assessAll } from '../cloudReadiness';
@@ -168,9 +168,11 @@ function ScorePreview({ fields, category }: { fields: CloudFields; category: Cat
 }
 
 export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose, startId }) => {
-  const items = useMemo((): ItemToReview[] => {
+  // Snapshot items ONCE on mount — do not re-derive from state while the wizard
+  // is open, otherwise saved items drop out of the list and the index breaks.
+  const [items] = useState<ItemToReview[]>(() => {
     const allAssessed = assessAll(state);
-    return allAssessed
+    const list = allAssessed
       .filter(i => hasOpenFields(i))
       .map(i => ({
         id: i.id,
@@ -192,15 +194,18 @@ export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose, 
           cloudNotiz: i.cloudNotiz,
         },
       }));
-  }, [state]);
+    if (startId) {
+      const idx = list.findIndex(i => i.id === startId);
+      if (idx > 0) {
+        // Move the target item to the front so it's shown first
+        const [target] = list.splice(idx, 1);
+        list.unshift(target);
+      }
+    }
+    return list;
+  });
 
-  const startIndex = useMemo(() => {
-    if (!startId) return 0;
-    const idx = items.findIndex(i => i.id === startId);
-    return idx >= 0 ? idx : 0;
-  }, [items, startId]);
-
-  const [index, setIndex] = useState(startIndex);
+  const [index, setIndex] = useState(0);
   const [fields, setFields] = useState<CloudFields>(() => items[0]?.fields ?? {});
   const [meta, setMeta] = useState<EditableMeta>(() => ({
     name: items[0]?.name ?? '',
