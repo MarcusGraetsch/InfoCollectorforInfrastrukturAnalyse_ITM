@@ -59,15 +59,17 @@ export function saveState(state: AppState): void {
 }
 
 /**
- * Löscht alle App-Daten und die Installations-ID.
- * Beim nächsten App-Start wird eine neue ID generiert → neuer Storage-Key
- * → komplett leerer Zustand, unabhängig davon was noch im Browser liegt.
+ * Löscht ALLE App-Daten aus localStorage — install-ID, alle data-Keys (inkl.
+ * Legacy-Key), und consultant-name. Beim nächsten Start neue ID → leerer Zustand.
  */
 export function clearState(): void {
-  const key = getDataKey();
-  localStorage.removeItem(INSTALL_ID_KEY);
-  localStorage.removeItem(key);
-  // Keine saveState(defaultState) mehr nötig — fehlende ID = sauberer Start
+  const keysToRemove: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('it-strukturanalyse')) keysToRemove.push(k);
+  }
+  keysToRemove.forEach(k => localStorage.removeItem(k));
+  localStorage.removeItem('consultant-name');
 }
 
 export function generateId(): string {

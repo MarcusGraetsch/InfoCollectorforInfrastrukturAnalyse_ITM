@@ -15,14 +15,6 @@ const ALL_CATEGORY_LABELS: Record<string, string> = {
   ...CATEGORY_LABELS,
   netzverbindungen: 'Netzverbindungen',
   netzkomponenten: 'Netzkomponenten',
-  geschaeftsprozesse: 'Geschäftsprozesse',
-  daten: 'Daten',
-  datentraeger: 'Datenträger',
-  clients: 'Clients',
-  icsSysteme: 'ICS-Systeme',
-  iotSysteme: 'IoT-Systeme',
-  raeume: 'Räume',
-  gebaeude: 'Gebäude',
 };
 
 interface OpenField {
@@ -101,8 +93,7 @@ const FIELD_DEFS: {
   },
 ];
 
-const FIELD_LABEL_MAP = Object.fromEntries(FIELD_DEFS.map(f => [f.key, f.label]));
-const FIELD_OPTS_MAP = Object.fromEntries(FIELD_DEFS.map(f => [f.key, f.opts]));
+const FIELD_BY_KEY = Object.fromEntries(FIELD_DEFS.map(f => [f.key, f]));
 
 function isOpen(val: string | undefined): boolean {
   return !val || val === '' || val === 'Unklar';
@@ -163,152 +154,6 @@ interface Props {
   onApplyLinks: (links: { sourceCategory: CategoryKey; sourceId: string; sourceField: string; targetIds: string[] }[]) => void;
 }
 
-// ── Batch-Aktionen ─────────────────────────────────────────────────────────
-
-type BatchScope = 'leer' | 'unklar' | 'alle';
-
-function BatchTab({ state, onBatchCloudUpdate }: { state: AppState; onBatchCloudUpdate: Props['onBatchCloudUpdate'] }) {
-  const [fieldKey, setFieldKey] = useState<keyof CloudFields>('schutzbedarf');
-  const [value, setValue] = useState('');
-  const [scope, setScope] = useState<BatchScope>('unklar');
-  const [filterCat, setFilterCat] = useState<CategoryKey | 'alle'>('alle');
-  const [preview, setPreview] = useState<{ category: CategoryKey; id: string; name: string; kuerzel: string; current: string }[]>([]);
-  const [done, setDone] = useState(false);
-
-  const opts = FIELD_OPTS_MAP[fieldKey] ?? [];
-
-  const computePreview = () => {
-    const results: typeof preview = [];
-    for (const cat of ASSESSABLE_CATEGORIES) {
-      if (filterCat !== 'alle' && filterCat !== cat) continue;
-      const items = state[cat] as unknown as (Record<string, unknown> & { id: string; name: string; kuerzel: string })[];
-      for (const item of items) {
-        const current = (item[fieldKey as string] as string | undefined) ?? '';
-        const matches =
-          scope === 'alle' ||
-          (scope === 'leer' && (!current || current === '')) ||
-          (scope === 'unklar' && (current === 'Unklar' || !current));
-        if (matches) results.push({ category: cat, id: item.id, name: item.name, kuerzel: item.kuerzel, current });
-      }
-    }
-    setPreview(results);
-    setDone(false);
-  };
-
-  const applyBatch = () => {
-    const updates = preview.map(p => ({ category: p.category, id: p.id, field: fieldKey as string, value }));
-    onBatchCloudUpdate(updates);
-    setDone(true);
-    setPreview([]);
-  };
-
-  return (
-    <div className="space-y-5 max-w-2xl">
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">
-        <h3 className="text-sm font-bold text-hi-navy">Feld auswählen</h3>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-hi-slate uppercase tracking-wide mb-1">Feld</label>
-            <select
-              value={fieldKey}
-              onChange={e => { setFieldKey(e.target.value as keyof CloudFields); setValue(''); setPreview([]); setDone(false); }}
-              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-hi-accent"
-            >
-              {FIELD_DEFS.map(f => (
-                <option key={f.key} value={f.key}>{f.label}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-hi-slate uppercase tracking-wide mb-1">Wert setzen auf</label>
-            <select
-              value={value}
-              onChange={e => { setValue(e.target.value); setPreview([]); setDone(false); }}
-              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-hi-accent"
-            >
-              <option value="">— bitte wählen —</option>
-              {opts.map(o => <option key={o} value={o}>{o}</option>)}
-            </select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-hi-slate uppercase tracking-wide mb-1">Betroffene Einträge</label>
-            <div className="flex gap-2">
-              {([['leer', 'Leer'], ['unklar', 'Unklar'], ['alle', 'Alle']] as [BatchScope, string][]).map(([s, l]) => (
-                <button
-                  key={s}
-                  onClick={() => { setScope(s); setPreview([]); setDone(false); }}
-                  className={`flex-1 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${scope === s ? 'bg-hi-accent text-white border-hi-accent' : 'bg-white text-hi-navy border-gray-200 hover:border-hi-accent'}`}
-                >
-                  {l}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-hi-slate uppercase tracking-wide mb-1">Kategorie</label>
-            <select
-              value={filterCat}
-              onChange={e => { setFilterCat(e.target.value as CategoryKey | 'alle'); setPreview([]); setDone(false); }}
-              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-hi-accent"
-            >
-              <option value="alle">Alle Kategorien</option>
-              {ASSESSABLE_CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>)}
-            </select>
-          </div>
-        </div>
-
-        <button
-          onClick={computePreview}
-          disabled={!value}
-          className="px-4 py-2 text-sm font-semibold bg-hi-gray text-hi-navy border border-gray-200 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          Vorschau berechnen
-        </button>
-      </div>
-
-      {done && (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-sm text-emerald-800 font-semibold">
-          ✓ Batch-Aktion erfolgreich angewendet.
-        </div>
-      )}
-
-      {preview.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-5 py-3 bg-hi-gray border-b border-gray-200 flex items-center justify-between">
-            <h3 className="text-sm font-bold text-hi-navy">{preview.length} Einträge betroffen</h3>
-            <button
-              onClick={applyBatch}
-              className="px-4 py-1.5 text-xs font-bold bg-hi-accent text-white rounded-lg hover:bg-hi-blue transition-colors"
-            >
-              Jetzt anwenden · „{FIELD_LABEL_MAP[fieldKey]}" → {value}
-            </button>
-          </div>
-          <div className="divide-y divide-gray-50 max-h-64 overflow-y-auto">
-            {preview.map(p => (
-              <div key={p.id} className="px-5 py-2.5 flex items-center gap-4 text-sm">
-                <span className="font-mono text-hi-accent text-xs font-bold w-24 flex-shrink-0">{p.kuerzel}</span>
-                <span className="text-hi-navy flex-1">{p.name}</span>
-                <span className="text-xs text-hi-slate">{CATEGORY_LABELS[p.category]}</span>
-                <span className="text-xs text-gray-400">{p.current || '—'} → <strong className="text-hi-navy">{value}</strong></span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {preview.length === 0 && !done && (
-        <p className="text-xs text-hi-slate px-1">
-          Wählen Sie ein Feld und einen Zielwert, dann klicken Sie „Vorschau berechnen". Die Vorschau zeigt alle betroffenen Einträge bevor die Änderung gespeichert wird.
-        </p>
-      )}
-    </div>
-  );
-}
-
 // ── Verknüpfungs-Wizard ────────────────────────────────────────────────────
 
 interface LinkSuggestion {
@@ -323,8 +168,9 @@ interface LinkSuggestion {
 
 function buildLinkSuggestions(state: AppState): LinkSuggestion[] {
   const results: LinkSuggestion[] = [];
-  const allCats = Object.keys(state).filter(k =>
-    Array.isArray(state[k as CategoryKey])
+  const stateAsRecord = state as unknown as Record<string, unknown>;
+  const allCats = Object.keys(stateAsRecord).filter(k =>
+    Array.isArray(stateAsRecord[k])
   ) as CategoryKey[];
 
   for (const cat of allCats) {
@@ -400,7 +246,7 @@ function LinksTab({ state, onApplyLinks }: { state: AppState; onApplyLinks: Prop
     <div className="space-y-4 max-w-3xl">
       <div className="flex items-center justify-between">
         <p className="text-sm text-hi-slate">
-          Basierend auf Namensähnlichkeiten wurden mögliche Verknüpfungen gefunden. Wählen Sie die gewünschten aus und klicken Sie „Verknüpfungen anlegen".
+          Basierend auf Namensähnlichkeiten wurden mögliche Verknüpfungen gefunden. Wählen Sie aus und klicken Sie „Anlegen".
         </p>
         <button
           onClick={applyLinks}
@@ -427,7 +273,7 @@ function LinksTab({ state, onApplyLinks }: { state: AppState; onApplyLinks: Prop
                 <span className="font-mono text-hi-accent text-xs font-bold">{sugg.sourceKuerzel}</span>
                 <span className="text-sm font-semibold text-hi-navy">{sugg.sourceName}</span>
                 <span className="text-xs text-hi-slate bg-white border border-gray-200 rounded px-1.5 py-0.5">{ALL_CATEGORY_LABELS[sugg.sourceCategory] ?? sugg.sourceCategory}</span>
-                <span className="text-xs text-gray-400">→ Feld: <strong>{sugg.sourceField}</strong></span>
+                <span className="text-xs text-gray-400 ml-1">→ <strong>{sugg.sourceField}</strong></span>
               </div>
             </div>
             <div className="divide-y divide-gray-50">
@@ -467,8 +313,14 @@ function LinksTab({ state, onApplyLinks }: { state: AppState; onApplyLinks: Prop
 // ── Main Component ─────────────────────────────────────────────────────────
 
 export const OffenePunkte: React.FC<Props> = ({ state, onEditItem, onBatchCloudUpdate, onApplyLinks }) => {
-  const [tab, setTab] = useState<'liste' | 'interview' | 'batch' | 'links'>('liste');
+  const [tab, setTab] = useState<'liste' | 'interview' | 'links'>('liste');
   const [filterCategory, setFilterCategory] = useState<CategoryKey | 'alle'>('alle');
+
+  // Batch selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [batchField, setBatchField] = useState<keyof CloudFields>('schutzbedarf');
+  const [batchValue, setBatchValue] = useState('');
+  const [batchDone, setBatchDone] = useState(false);
 
   const allOpen = useMemo(() => buildOpenItems(state), [state]);
 
@@ -501,8 +353,58 @@ export const OffenePunkte: React.FC<Props> = ({ state, onEditItem, onBatchCloudU
     return map;
   }, [filtered]);
 
-  const handlePrint = () => window.print();
+  // Determine which fields are open across selected items
+  const selectedItems = useMemo(
+    () => filtered.filter(i => selectedIds.has(i.id)),
+    [filtered, selectedIds]
+  );
+  const openFieldsInSelection = useMemo(() => {
+    const fieldCounts = new Map<keyof CloudFields, number>();
+    for (const item of selectedItems) {
+      for (const f of item.openFields) {
+        fieldCounts.set(f.fieldKey, (fieldCounts.get(f.fieldKey) ?? 0) + 1);
+      }
+    }
+    return [...fieldCounts.entries()].sort((a, b) => b[1] - a[1]).map(([k]) => k);
+  }, [selectedItems]);
 
+  const toggleSelectItem = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+    setBatchDone(false);
+  };
+
+  const selectAll = () => {
+    setSelectedIds(new Set(filtered.map(i => i.id)));
+    setBatchDone(false);
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+    setBatchDone(false);
+  };
+
+  const applyBatch = () => {
+    if (!batchValue) return;
+    const updates = selectedItems
+      .filter(item => item.openFields.some(f => f.fieldKey === batchField))
+      .map(item => ({ category: item.category, id: item.id, field: batchField as string, value: batchValue }));
+    if (updates.length > 0) {
+      onBatchCloudUpdate(updates);
+      setBatchDone(true);
+      setSelectedIds(new Set());
+      setBatchValue('');
+    }
+  };
+
+  const batchFieldDef = FIELD_BY_KEY[batchField];
+  const batchOpts = batchFieldDef?.opts ?? [];
+  const batchAffectedCount = selectedItems.filter(i => i.openFields.some(f => f.fieldKey === batchField)).length;
+
+  const handlePrint = () => window.print();
   const showKpis = tab === 'liste' || tab === 'interview';
 
   return (
@@ -522,10 +424,10 @@ export const OffenePunkte: React.FC<Props> = ({ state, onEditItem, onBatchCloudU
           <div>
             <h2 className="text-2xl font-bold text-hi-navy">Offene Punkte</h2>
             <p className="text-sm text-hi-slate mt-1">
-              Cloud-Felder klären, Verknüpfungen prüfen und Batch-Aktionen durchführen.
+              Cloud-Felder klären, Verknüpfungen prüfen, Batch-Aktionen durchführen.
             </p>
           </div>
-          {(tab === 'liste' || tab === 'interview') && (
+          {showKpis && (
             <button
               onClick={handlePrint}
               className="flex items-center gap-2 px-4 py-2 bg-hi-navy text-white rounded-lg text-sm font-semibold hover:bg-hi-blue transition-colors shadow print:hidden"
@@ -538,7 +440,6 @@ export const OffenePunkte: React.FC<Props> = ({ state, onEditItem, onBatchCloudU
           )}
         </div>
 
-        {/* KPI Row — nur bei liste/interview-Tab */}
         {showKpis && (
           <div className="grid grid-cols-3 gap-3 mt-4">
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
@@ -549,7 +450,7 @@ export const OffenePunkte: React.FC<Props> = ({ state, onEditItem, onBatchCloudU
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
               <div className="text-xs font-semibold text-hi-slate uppercase tracking-wider mb-1">Explizit „Unklar"</div>
               <div className="text-3xl font-bold text-amber-500">{unklarCount}</div>
-              <div className="text-xs text-gray-400 mt-0.5">Felder die bewusst offen gelassen wurden</div>
+              <div className="text-xs text-gray-400 mt-0.5">Felder bewusst offen gelassen</div>
             </div>
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
               <div className="text-xs font-semibold text-hi-slate uppercase tracking-wider mb-1">Noch nicht erfasst</div>
@@ -565,7 +466,6 @@ export const OffenePunkte: React.FC<Props> = ({ state, onEditItem, onBatchCloudU
             {([
               ['liste', 'Offene Punkte'],
               ['interview', 'Interview-Vorbereitung'],
-              ['batch', 'Batch-Aktionen'],
               ['links', 'Verknüpfungen'],
             ] as [typeof tab, string][]).map(([t, l]) => (
               <button
@@ -583,7 +483,7 @@ export const OffenePunkte: React.FC<Props> = ({ state, onEditItem, onBatchCloudU
               <span className="text-xs text-hi-slate font-medium">Kategorie:</span>
               <select
                 value={filterCategory}
-                onChange={e => setFilterCategory(e.target.value as CategoryKey | 'alle')}
+                onChange={e => { setFilterCategory(e.target.value as CategoryKey | 'alle'); clearSelection(); }}
                 className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-hi-navy focus:outline-none focus:ring-2 focus:ring-hi-accent"
               >
                 <option value="alle">Alle ({allOpen.length})</option>
@@ -609,57 +509,163 @@ export const OffenePunkte: React.FC<Props> = ({ state, onEditItem, onBatchCloudU
             <p className="text-sm text-hi-slate">Alle cloud-relevanten Felder sind vollständig erfasst.</p>
           </div>
         ) : (
-          <div className="space-y-4 print:space-y-6">
-            {ASSESSABLE_CATEGORIES.filter(c => byCategory[c]).map(cat => (
-              <div key={cat} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="px-5 py-3 bg-hi-gray border-b border-gray-200 flex items-center gap-3">
-                  <h3 className="text-sm font-bold text-hi-navy uppercase tracking-wider">{CATEGORY_LABELS[cat]}</h3>
-                  <span className="text-xs bg-amber-100 text-amber-700 border border-amber-200 rounded-full px-2 py-0.5 font-bold">
-                    {byCategory[cat]!.length} Objekte
-                  </span>
+          <>
+            {/* Selection controls */}
+            <div className="flex items-center gap-3 print:hidden">
+              <button
+                onClick={selectedIds.size === filtered.length ? clearSelection : selectAll}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-hi-slate border border-gray-200 rounded-lg hover:border-hi-accent hover:text-hi-navy bg-white transition-all"
+              >
+                <div className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center ${selectedIds.size === filtered.length && filtered.length > 0 ? 'bg-hi-accent border-hi-accent' : 'border-gray-400'}`}>
+                  {selectedIds.size === filtered.length && filtered.length > 0 && (
+                    <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
                 </div>
-                <div className="divide-y divide-gray-50">
-                  {byCategory[cat]!.map(item => (
-                    <div key={item.id} className="px-5 py-3 flex items-start gap-4">
-                      <div className="w-32 flex-shrink-0">
-                        <div className="font-mono text-hi-accent text-xs font-bold">{item.kuerzel}</div>
-                        <div className="text-sm font-semibold text-hi-navy mt-0.5 leading-snug">{item.name}</div>
-                      </div>
-                      <div className="flex-1 flex flex-wrap gap-2">
-                        {item.openFields.map(f => (
-                          <span
-                            key={f.fieldKey}
-                            className={`text-xs px-2.5 py-1 rounded-full border font-medium ${
-                              f.isUnklar
-                                ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                : 'bg-red-50 text-red-600 border-red-200'
-                            }`}
-                          >
-                            {f.label}{f.isUnklar ? ' · Unklar' : ' · fehlt'}
-                          </span>
-                        ))}
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <div className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 text-xs font-bold flex items-center justify-center">
-                          {item.openFields.length}
-                        </div>
-                        <button
-                          onClick={() => onEditItem(item.id)}
-                          title="Im Wizard bearbeiten"
-                          className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-hi-accent border border-hi-accent/30 rounded-lg hover:bg-hi-accent hover:text-white transition-all"
+                {selectedIds.size === filtered.length && filtered.length > 0 ? 'Alle abwählen' : 'Alle markieren'}
+              </button>
+              {selectedIds.size > 0 && (
+                <span className="text-xs text-hi-navy font-semibold">
+                  {selectedIds.size} von {filtered.length} ausgewählt
+                </span>
+              )}
+              {batchDone && (
+                <span className="text-xs text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+                  ✓ Batch-Aktion angewendet
+                </span>
+              )}
+            </div>
+
+            {/* Item list */}
+            <div className="space-y-4 print:space-y-6">
+              {ASSESSABLE_CATEGORIES.filter(c => byCategory[c]).map(cat => (
+                <div key={cat} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="px-5 py-3 bg-hi-gray border-b border-gray-200 flex items-center gap-3">
+                    <h3 className="text-sm font-bold text-hi-navy uppercase tracking-wider">{CATEGORY_LABELS[cat]}</h3>
+                    <span className="text-xs bg-amber-100 text-amber-700 border border-amber-200 rounded-full px-2 py-0.5 font-bold">
+                      {byCategory[cat]!.length} Objekte
+                    </span>
+                  </div>
+                  <div className="divide-y divide-gray-50">
+                    {byCategory[cat]!.map(item => {
+                      const isSelected = selectedIds.has(item.id);
+                      return (
+                        <div
+                          key={item.id}
+                          className={`px-5 py-3 flex items-start gap-3 transition-colors ${isSelected ? 'bg-blue-50' : ''}`}
                         >
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                          Bearbeiten
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                          {/* Checkbox */}
+                          <button
+                            onClick={() => toggleSelectItem(item.id)}
+                            className={`mt-1 flex-shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-all print:hidden ${isSelected ? 'bg-hi-accent border-hi-accent' : 'border-gray-300 hover:border-hi-accent'}`}
+                          >
+                            {isSelected && (
+                              <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </button>
+
+                          <div className="w-32 flex-shrink-0">
+                            <div className="font-mono text-hi-accent text-xs font-bold">{item.kuerzel}</div>
+                            <div className="text-sm font-semibold text-hi-navy mt-0.5 leading-snug">{item.name}</div>
+                          </div>
+                          <div className="flex-1 flex flex-wrap gap-2">
+                            {item.openFields.map(f => (
+                              <span
+                                key={f.fieldKey}
+                                className={`text-xs px-2.5 py-1 rounded-full border font-medium ${
+                                  f.isUnklar
+                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                    : 'bg-red-50 text-red-600 border-red-200'
+                                }`}
+                              >
+                                {f.label}{f.isUnklar ? ' · Unklar' : ' · fehlt'}
+                              </span>
+                            ))}
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0 print:hidden">
+                            <div className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 text-xs font-bold flex items-center justify-center">
+                              {item.openFields.length}
+                            </div>
+                            <button
+                              onClick={() => onEditItem(item.id)}
+                              title="Im Wizard bearbeiten"
+                              className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-hi-accent border border-hi-accent/30 rounded-lg hover:bg-hi-accent hover:text-white transition-all"
+                            >
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                              Bearbeiten
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* ── FLOATING BATCH ACTION BAR ── */}
+            {selectedIds.size > 0 && (
+              <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-2xl px-4 print:hidden">
+                <div className="bg-hi-navy rounded-2xl shadow-2xl border border-white/10 p-4">
+                  <div className="flex items-center gap-1 mb-3 flex-wrap">
+                    <span className="text-xs font-bold text-white/60 uppercase tracking-wider mr-1">
+                      {selectedIds.size} Objekte ausgewählt — Feld setzen:
+                    </span>
+                    <button
+                      onClick={clearSelection}
+                      className="ml-auto text-xs text-white/40 hover:text-white/70 transition-colors"
+                    >
+                      × Auswahl aufheben
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* Field selector */}
+                    <select
+                      value={batchField}
+                      onChange={e => { setBatchField(e.target.value as keyof CloudFields); setBatchValue(''); setBatchDone(false); }}
+                      className="text-xs border border-white/20 rounded-lg px-3 py-2 bg-white/10 text-white focus:outline-none focus:ring-2 focus:ring-hi-teal"
+                    >
+                      {openFieldsInSelection.length > 0
+                        ? openFieldsInSelection.map(k => (
+                            <option key={k} value={k}>{FIELD_BY_KEY[k]?.label ?? k}</option>
+                          ))
+                        : FIELD_DEFS.map(f => (
+                            <option key={f.key} value={f.key}>{f.label}</option>
+                          ))
+                      }
+                    </select>
+
+                    <span className="text-white/40 text-sm">→</span>
+
+                    {/* Value selector */}
+                    <select
+                      value={batchValue}
+                      onChange={e => { setBatchValue(e.target.value); setBatchDone(false); }}
+                      className="flex-1 text-xs border border-white/20 rounded-lg px-3 py-2 bg-white/10 text-white focus:outline-none focus:ring-2 focus:ring-hi-teal"
+                    >
+                      <option value="">— Wert wählen —</option>
+                      {batchOpts.map(o => <option key={o} value={o}>{o}</option>)}
+                    </select>
+
+                    {/* Apply */}
+                    <button
+                      onClick={applyBatch}
+                      disabled={!batchValue || batchAffectedCount === 0}
+                      className="px-4 py-2 text-sm font-bold bg-hi-teal text-white rounded-lg hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+                    >
+                      Auf {batchAffectedCount} setzen
+                    </button>
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )
       )}
 
@@ -667,9 +673,7 @@ export const OffenePunkte: React.FC<Props> = ({ state, onEditItem, onBatchCloudU
       {tab === 'interview' && (
         <div className="space-y-5 print:space-y-8">
           <div className="hidden print:block">
-            <p className="text-sm text-gray-600 mb-4">
-              Strukturierte Fragenliste zur Klärung offener Punkte.
-            </p>
+            <p className="text-sm text-gray-600 mb-4">Strukturierte Fragenliste zur Klärung offener Punkte.</p>
           </div>
           {THEMES.filter(t => byTheme[t]).map(theme => (
             <div key={theme} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden print:border print:shadow-none print:rounded-none">
@@ -709,11 +713,6 @@ export const OffenePunkte: React.FC<Props> = ({ state, onEditItem, onBatchCloudU
             Tipp: „Drucken / PDF" oben rechts erzeugt eine vollständige Fragenliste mit Antwortfeldern.
           </p>
         </div>
-      )}
-
-      {/* ── TAB: BATCH-AKTIONEN ── */}
-      {tab === 'batch' && (
-        <BatchTab state={state} onBatchCloudUpdate={onBatchCloudUpdate} />
       )}
 
       {/* ── TAB: VERKNÜPFUNGEN ── */}
