@@ -146,7 +146,7 @@ export const AppHeader: React.FC<Props> = ({
             </svg>
             Import
           </button>
-          <input ref={importRef} type="file" accept=".xlsx,.xls,.json" onChange={onImport} className="hidden" />
+          <input ref={importRef} type="file" accept=".xlsx,.xls,.csv,.txt,.tsv,.docx,.pdf,.json" onChange={onImport} className="hidden" />
         </div>
       </div>
 

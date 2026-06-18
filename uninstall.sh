@@ -28,8 +28,12 @@ echo ""
 echo -e "${BG_NAVY}${WHITE}${BOLD}"
 echo "  ╔══════════════════════════════════════════════════════════════╗"
 echo "  ║                                                              ║"
-echo "  ║   HiSolutions AG · IT Strukturanalyse                       ║"
-echo "  ║   DEINSTALLATION                                             ║"
+echo "  ║   ██╗  ██╗██╗                                               ║"
+echo "  ║   ██║  ██║██║  Solutions AG                                 ║"
+echo "  ║   ███████║██║  ──────────────────────────────────────────   ║"
+echo "  ║   ██╔══██║██║  IT Strukturanalyse  ·  Deinstallation        ║"
+echo "  ║   ██║  ██║██║  Cloud-Readiness Suite                        ║"
+echo "  ║   ╚═╝  ╚═╝╚═╝  BSI IT-Grundschutz 200-2  ·  © 2026         ║"
 echo "  ║                                                              ║"
 echo "  ╚══════════════════════════════════════════════════════════════╝"
 echo -e "${RESET}"
@@ -84,26 +88,56 @@ fi
 
 # Docker
 if command -v docker &>/dev/null; then
-  # Container stoppen
-  if docker ps -q --filter "name=$DOCKER_CONTAINER" | grep -q .; then
+  _docker_found=0
+
+  # Laufende Container mit exakt diesem Namen suchen (^ und $ = exakter Match)
+  RUNNING_ID=$(docker ps -q --filter "name=^/${DOCKER_CONTAINER}$" 2>/dev/null || true)
+  if [[ -n "$RUNNING_ID" ]]; then
+    _docker_found=1
     echo -e "  ${DIM}Stoppe Docker-Container '$DOCKER_CONTAINER' …${RESET}"
-    docker stop "$DOCKER_CONTAINER" >/dev/null
-    echo -e "  ${GREEN}✓ Container gestoppt${RESET}"
+    if docker stop "$RUNNING_ID" >/dev/null 2>&1; then
+      echo -e "  ${GREEN}✓ Container gestoppt${RESET}"
+    else
+      echo -e "  ${YELLOW}⚠ Container konnte nicht gestoppt werden (evtl. bereits gestoppt)${RESET}"
+    fi
   fi
-  # Container entfernen
-  if docker ps -aq --filter "name=$DOCKER_CONTAINER" | grep -q .; then
+
+  # Alle Container (auch gestoppte) mit exakt diesem Namen suchen
+  ALL_ID=$(docker ps -aq --filter "name=^/${DOCKER_CONTAINER}$" 2>/dev/null || true)
+  if [[ -n "$ALL_ID" ]]; then
+    _docker_found=1
     echo -e "  ${DIM}Entferne Docker-Container '$DOCKER_CONTAINER' …${RESET}"
-    docker rm "$DOCKER_CONTAINER" >/dev/null
-    echo -e "  ${GREEN}✓ Container entfernt${RESET}"
+    if docker rm "$ALL_ID" >/dev/null 2>&1; then
+      echo -e "  ${GREEN}✓ Container entfernt${RESET}"
+    else
+      echo -e "  ${YELLOW}⚠ Container konnte nicht entfernt werden${RESET}"
+    fi
   fi
+
+  # docker-compose erzeugt manchmal <name>-1 oder <name>_1
+  for VARIANT in "${DOCKER_CONTAINER}-1" "${DOCKER_CONTAINER}_1"; do
+    VARIANT_ID=$(docker ps -aq --filter "name=^/${VARIANT}$" 2>/dev/null || true)
+    if [[ -n "$VARIANT_ID" ]]; then
+      _docker_found=1
+      echo -e "  ${DIM}Entferne Container-Variante '$VARIANT' …${RESET}"
+      docker stop "$VARIANT_ID" >/dev/null 2>&1 || true
+      docker rm "$VARIANT_ID" >/dev/null 2>&1 || true
+      echo -e "  ${GREEN}✓ Container-Variante entfernt${RESET}"
+    fi
+  done
+
   # Image entfernen
-  if docker image inspect "$DOCKER_IMAGE" &>/dev/null; then
+  if docker image inspect "$DOCKER_IMAGE" >/dev/null 2>&1; then
+    _docker_found=1
     echo -e "  ${DIM}Entferne Docker-Image '$DOCKER_IMAGE' …${RESET}"
-    docker rmi "$DOCKER_IMAGE" >/dev/null
-    echo -e "  ${GREEN}✓ Image entfernt${RESET}"
+    if docker rmi "$DOCKER_IMAGE" >/dev/null 2>&1; then
+      echo -e "  ${GREEN}✓ Image entfernt${RESET}"
+    else
+      echo -e "  ${YELLOW}⚠ Image konnte nicht entfernt werden (evtl. noch in Verwendung)${RESET}"
+    fi
   fi
-  if ! docker ps -q --filter "name=$DOCKER_CONTAINER" | grep -q . && \
-     ! docker image inspect "$DOCKER_IMAGE" &>/dev/null; then
+
+  if [[ "$_docker_found" -eq 0 ]]; then
     echo -e "  ${DIM}(Keine Docker-Ressourcen gefunden — bereits entfernt oder nie installiert)${RESET}"
   fi
 else
