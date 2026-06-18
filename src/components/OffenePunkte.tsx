@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import type { AppState, CategoryKey, CloudFields } from '../types';
 import { ASSESSABLE_CATEGORIES } from '../cloudReadiness';
 import { findUnlinkedSuggestions } from '../utils/bidirectional';
@@ -367,6 +367,14 @@ export const OffenePunkte: React.FC<Props> = ({ state, onEditItem, onBatchCloudU
     }
     return [...fieldCounts.entries()].sort((a, b) => b[1] - a[1]).map(([k]) => k);
   }, [selectedItems]);
+
+  // Auto-sync batchField to first open field in selection when selection changes
+  useEffect(() => {
+    if (openFieldsInSelection.length > 0 && !openFieldsInSelection.includes(batchField)) {
+      setBatchField(openFieldsInSelection[0]);
+      setBatchValue('');
+    }
+  }, [openFieldsInSelection]);
 
   const toggleSelectItem = (id: string) => {
     setSelectedIds(prev => {
