@@ -87,10 +87,13 @@ echo ""
 # ────────────────────────────────────────────────────────────
 echo -e "${BOLD}Schritt 2 von 4: Browser-Daten (localStorage) löschen${RESET}"
 echo ""
-echo "  WICHTIG: Die App speichert alle Daten im Browser-Speicher (localStorage)."
-echo "  Dieser Speicher überlebt Docker-Neuinstallationen vollständig!"
-echo "  Seit der aktuellen Version rotiert die App den Storage-Key beim Neustart,"
-echo "  aber ältere Datenpunkte sollten trotzdem bereinigt werden."
+echo -e "  ${YELLOW}${BOLD}WICHTIG — dieser Schritt ist entscheidend!${RESET}"
+echo ""
+echo "  Die App speichert alle Daten im Browser-Speicher (localStorage)."
+echo "  Dieser Speicher ist UNABHÄNGIG von Docker, dem Projektordner und"
+echo "  dem Betriebssystem — er überlebt jede Neuinstallation komplett."
+echo "  Docker löschen + Ordner löschen + neu installieren reicht NICHT."
+echo "  Nur das direkte Löschen im Browser entfernt die Daten wirklich."
 echo ""
 
 # App-Port ermitteln
@@ -115,27 +118,49 @@ fi
 APP_PORT="${APP_PORT:-8080}"
 APP_URL="http://localhost:${APP_PORT}"
 
-echo -e "  ${BOLD}Empfohlen: Browser-Daten jetzt löschen${RESET}"
-echo ""
-echo -e "  ${CYAN}Option A — Spezielle Lösch-Seite (einfachste Methode):${RESET}"
-echo -e "    Öffnen Sie im Browser: ${BOLD}${APP_URL}/clear-data.html${RESET}"
-echo "    → Klicken Sie auf 'Ja, alle Daten jetzt löschen'"
-echo ""
-echo -e "  ${CYAN}Option B — Roter Button in der App:${RESET}"
-echo -e "    Öffnen Sie: ${BOLD}${APP_URL}${RESET}"
-echo -e "    → Klicken Sie oben rechts auf ${BOLD}»Daten löschen«${RESET}"
-echo ""
-echo -e "  ${CYAN}Option C — Browser-DevTools:${RESET}"
-echo "    Chrome/Edge: F12 → Application → Storage → localStorage → Clear All"
-echo "    Firefox:     F12 → Speicher → Lokaler Speicher → Alles löschen"
-echo ""
-
-# Browser öffnen
-if command -v xdg-open &>/dev/null; then
-  xdg-open "${APP_URL}/clear-data.html" 2>/dev/null &
-elif command -v open &>/dev/null; then
-  open "${APP_URL}/clear-data.html" 2>/dev/null || true
+# Prüfen ob die App noch erreichbar ist
+APP_REACHABLE=0
+if curl -sf --max-time 3 "${APP_URL}/clear-data.html" >/dev/null 2>&1; then
+  APP_REACHABLE=1
 fi
+
+if [[ "$APP_REACHABLE" -eq 1 ]]; then
+  echo -e "  ${GREEN}✓ App läuft noch — öffne Lösch-Seite automatisch …${RESET}"
+  echo ""
+  # ?auto=1 → Seite löscht localStorage sofort beim Laden ohne Klick
+  CLEAR_URL="${APP_URL}/clear-data.html?auto=1"
+  if command -v xdg-open &>/dev/null; then
+    xdg-open "$CLEAR_URL" 2>/dev/null &
+  elif command -v open &>/dev/null; then
+    open "$CLEAR_URL" 2>/dev/null || true
+  fi
+  echo "  Die Seite löscht alle Browser-Daten automatisch beim Öffnen."
+  echo -e "  Falls der Browser nicht aufgeht: ${BOLD}${CLEAR_URL}${RESET}"
+  echo ""
+  echo "  Warten 4 Sekunden damit der Browser die Seite laden kann …"
+  sleep 4
+  echo ""
+else
+  echo -e "  ${YELLOW}⚠ App ist nicht erreichbar (Container läuft nicht?).${RESET}"
+  echo "  Bitte löschen Sie die Browser-Daten manuell — eine der folgenden Methoden:"
+  echo ""
+fi
+
+echo -e "  ${CYAN}Falls die automatische Löschung nicht geklappt hat — Manuelle Methoden:${RESET}"
+echo ""
+echo -e "  ${BOLD}Methode A — Browser-Konsole (schnellste Methode):${RESET}"
+echo -e "    1. Browser öffnen, beliebige Seite aufrufen"
+echo -e "    2. ${BOLD}F12${RESET} drücken → Tab ${BOLD}„Konsole"${RESET} / ${BOLD}„Console"${RESET}"
+echo -e "    3. Diesen Befehl eingeben und Enter drücken:"
+echo ""
+echo -e "       ${BOLD}Object.keys(localStorage).filter(k=>k.startsWith('it-strukturanalyse')||k==='consultant-name').forEach(k=>localStorage.removeItem(k))${RESET}"
+echo ""
+echo -e "  ${BOLD}Methode B — Browser-DevTools (visuell):${RESET}"
+echo "    Chrome/Edge: F12 → Application → Storage → Local Storage"
+echo "                 → http://localhost:${APP_PORT} → Rechtsklick → Clear"
+echo "    Firefox:     F12 → Speicher → Lokaler Speicher"
+echo "                 → http://localhost:${APP_PORT} → Alle löschen"
+echo ""
 
 read -r -p "  Browser-Daten wurden gelöscht (oder App war nie genutzt)? [j/N] " answer_clear
 if [[ ! "$answer_clear" =~ ^[jJyY]$ ]]; then
