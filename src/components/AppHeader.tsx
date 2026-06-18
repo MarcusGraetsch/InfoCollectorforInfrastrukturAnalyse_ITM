@@ -1,7 +1,20 @@
-import React from 'react';
-import type { AppState } from '../types';
+import React, { useMemo } from 'react';
+import type { AppState, CloudFields } from '../types';
+import { ASSESSABLE_CATEGORIES } from '../cloudReadiness';
 
-export type AppMode = 'wizard' | 'detail' | 'dashboard';
+function countOffenePunkte(state: AppState): number {
+  let count = 0;
+  for (const cat of ASSESSABLE_CATEGORIES) {
+    const items = state[cat] as unknown as (CloudFields & { id: string })[];
+    for (const item of items) {
+      const fields: (keyof CloudFields)[] = ['schutzbedarf', 'bereitstellung', 'lizenzCloudfaehig', 'migrationskomplexitaet', 'lebenszyklus', 'internetfaehig', 'datensouveraenitaet'];
+      if (fields.some(k => !item[k] || item[k] === 'Unklar')) count++;
+    }
+  }
+  return count;
+}
+
+export type AppMode = 'wizard' | 'detail' | 'dashboard' | 'offene-punkte';
 
 interface Props {
   state: AppState;
@@ -15,7 +28,7 @@ interface Props {
   onExportReport: () => void;
 }
 
-const TABS: { key: AppMode; label: string; icon: React.ReactNode }[] = [
+const TABS = [
   {
     key: 'wizard',
     label: 'Assistent',
@@ -43,7 +56,16 @@ const TABS: { key: AppMode; label: string; icon: React.ReactNode }[] = [
       </svg>
     ),
   },
-];
+  {
+    key: 'offene-punkte',
+    label: 'Offene Punkte',
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+      </svg>
+    ),
+  },
+] as const satisfies { key: AppMode; label: string; icon: React.ReactNode }[];
 
 export const AppHeader: React.FC<Props> = ({
   state,
@@ -57,6 +79,7 @@ export const AppHeader: React.FC<Props> = ({
   onExportReport,
 }) => {
   const importRef = React.useRef<HTMLInputElement>(null);
+  const offeneCount = useMemo(() => countOffenePunkte(state), [state]);
 
   return (
     <header className="bg-hi-navy text-white shadow-2xl flex-shrink-0">
@@ -164,6 +187,11 @@ export const AppHeader: React.FC<Props> = ({
           >
             {t.icon}
             {t.label}
+            {t.key === 'offene-punkte' && offeneCount > 0 && (
+              <span className="ml-1 bg-amber-400 text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none">
+                {offeneCount}
+              </span>
+            )}
           </button>
         ))}
       </div>

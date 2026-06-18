@@ -15,6 +15,7 @@ import { importFromExcelWithMapping, importClassifiedRows } from './utils/import
 import { ImportWizard } from './components/ImportWizard';
 import { EmailTemplate } from './components/EmailTemplate';
 import { CloudReadinessWizard } from './components/CloudReadinessWizard';
+import { OffenePunkte } from './components/OffenePunkte';
 import type { RowClassification } from './utils/importAnalyzer';
 import type { CloudFields } from './types';
 
@@ -174,6 +175,12 @@ function App() {
             onGoToDashboard={() => setMode('dashboard')}
             onShowEmailTemplate={() => setShowEmailTemplate(true)}
           />
+        )}
+
+        {mode === 'offene-punkte' && (
+          <div className="h-full overflow-y-auto">
+            <OffenePunkte state={state} />
+          </div>
         )}
 
         {mode === 'dashboard' && (
