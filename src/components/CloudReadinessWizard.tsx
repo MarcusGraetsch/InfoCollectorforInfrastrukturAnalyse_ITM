@@ -55,6 +55,7 @@ const BEREITSTELLUNG_OPTS = [
   'Container (Docker/Podman)',
   'Kubernetes (On-Prem)',
   'Managed Kubernetes (Cloud)',
+  'Unklar',
 ];
 const LIZENZ_OPTS = ['Ja', 'Nein', 'Unklar'];
 const KOMPL_OPTS = ['Niedrig', 'Mittel', 'Hoch', 'Unklar'];
@@ -185,6 +186,7 @@ export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose, 
           lizenzCloudfaehig: i.lizenzCloudfaehig || 'Unklar',
           migrationskomplexitaet: i.migrationskomplexitaet || 'Unklar',
           lebenszyklus: i.lebenszyklus || 'Unklar',
+          lebenszyklusDatum: i.lebenszyklusDatum,
           internetfaehig: i.internetfaehig || 'Unklar',
           cloudEignung: i.cloudEignung,
           cloudNotiz: i.cloudNotiz,
@@ -397,6 +399,17 @@ export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose, 
                   />
                 ))}
               </div>
+              {(fields.lebenszyklus === 'Wartung läuft aus' || fields.lebenszyklus === 'End-of-Life') && (
+                <div className="mt-2 flex items-center gap-2">
+                  <label className="text-xs text-hi-slate whitespace-nowrap">Datum:</label>
+                  <input
+                    type="date"
+                    value={fields.lebenszyklusDatum || ''}
+                    onChange={e => set('lebenszyklusDatum', e.target.value)}
+                    className="text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-hi-accent"
+                  />
+                </div>
+              )}
             </Field>
           </div>
 

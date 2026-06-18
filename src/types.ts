@@ -22,6 +22,7 @@ export interface CloudFields {
   lizenzCloudfaehig?: string;
   migrationskomplexitaet?: string;
   lebenszyklus?: string;
+  lebenszyklusDatum?: string;
   internetfaehig?: string;
   cloudEignung?: string;
   cloudNotiz?: string;
