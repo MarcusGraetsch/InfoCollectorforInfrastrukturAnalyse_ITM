@@ -48,6 +48,7 @@ export interface Datum extends BaseItem {
 
 export interface Anwendung extends BaseItem, CloudFields {
   status: Status;
+  typ: string;
   verantwortlicher: string;
   benutzer: string;
   anwendungen: string[];

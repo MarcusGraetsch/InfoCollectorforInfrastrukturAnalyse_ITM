@@ -84,6 +84,13 @@ export const AppHeader: React.FC<Props> = ({
   const [showClearConfirm, setShowClearConfirm] = React.useState(false);
   const [showClearDone, setShowClearDone] = React.useState(false);
   const offeneCount = useMemo(() => countOffenePunkte(state), [state]);
+  const [consultantName, setConsultantName] = React.useState(
+    () => localStorage.getItem('consultant-name') ?? ''
+  );
+  const handleConsultantChange = (v: string) => {
+    setConsultantName(v);
+    localStorage.setItem('consultant-name', v);
+  };
 
   const handleClearConfirmed = () => {
     onClearData();
@@ -114,18 +121,32 @@ export const AppHeader: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* Customer input */}
-        <div className="flex items-center gap-2 flex-1 max-w-xs ml-4">
-          <label className="text-hi-light text-xs whitespace-nowrap font-medium uppercase tracking-wider">
-            Kunde
-          </label>
-          <input
-            type="text"
-            value={state.customerName}
-            onChange={(e) => onCustomerNameChange(e.target.value)}
-            placeholder="Kundenname …"
-            className="border border-white/20 bg-white/10 text-white placeholder-white/40 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-hi-teal focus:border-hi-teal min-w-0 flex-1 transition-colors"
-          />
+        {/* Customer + Consultant inputs */}
+        <div className="flex items-center gap-4 flex-1 ml-4">
+          <div className="flex items-center gap-2 max-w-xs">
+            <label className="text-hi-light text-xs whitespace-nowrap font-medium uppercase tracking-wider">
+              Kunde
+            </label>
+            <input
+              type="text"
+              value={state.customerName}
+              onChange={(e) => onCustomerNameChange(e.target.value)}
+              placeholder="Kundenname …"
+              className="border border-white/20 bg-white/10 text-white placeholder-white/40 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-hi-teal focus:border-hi-teal min-w-0 flex-1 transition-colors"
+            />
+          </div>
+          <div className="flex items-center gap-2 max-w-xs">
+            <label className="text-hi-light text-xs whitespace-nowrap font-medium uppercase tracking-wider">
+              Berater
+            </label>
+            <input
+              type="text"
+              value={consultantName}
+              onChange={(e) => handleConsultantChange(e.target.value)}
+              placeholder="Ihr Name …"
+              className="border border-white/20 bg-white/10 text-white placeholder-white/40 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-hi-teal focus:border-hi-teal min-w-0 flex-1 transition-colors"
+            />
+          </div>
         </div>
 
         {/* Action buttons */}
