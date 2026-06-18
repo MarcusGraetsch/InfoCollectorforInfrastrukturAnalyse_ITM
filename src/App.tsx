@@ -18,6 +18,7 @@ import { CloudReadinessWizard } from './components/CloudReadinessWizard';
 import { OffenePunkte } from './components/OffenePunkte';
 import type { RowClassification } from './utils/importAnalyzer';
 import type { CloudFields } from './types';
+import { syncBidirectionalLinks } from './utils/bidirectional';
 
 function App() {
   const [state, setState] = useState<AppState>(loadState);
@@ -53,13 +54,43 @@ function App() {
   const handleSave = (item: Record<string, unknown>) => {
     updateState((prev) => {
       const arr = prev[activeCategory] as unknown as Record<string, unknown>[];
-      if (editId) {
-        return { ...prev, [activeCategory]: arr.map((i) => (i['id'] === editId ? item : i)) };
-      }
-      return { ...prev, [activeCategory]: [...arr, item] };
+      const base = editId
+        ? { ...prev, [activeCategory]: arr.map((i) => (i['id'] === editId ? item : i)) }
+        : { ...prev, [activeCategory]: [...arr, item] };
+      return syncBidirectionalLinks(base, activeCategory, item);
     });
     setView('list');
     setEditId(null);
+  };
+
+  const handleBatchCloudUpdate = (updates: { category: CategoryKey; id: string; field: string; value: string }[]) => {
+    updateState((prev) => {
+      let next = { ...prev };
+      for (const { category, id, field, value } of updates) {
+        const arr = next[category] as unknown as Record<string, unknown>[];
+        next = { ...next, [category]: arr.map(item => item['id'] === id ? { ...item, [field]: value } : item) };
+      }
+      return next;
+    });
+  };
+
+  const handleApplyLinks = (links: { sourceCategory: CategoryKey; sourceId: string; sourceField: string; targetIds: string[] }[]) => {
+    updateState((prev) => {
+      let next = { ...prev };
+      for (const { sourceCategory, sourceId, sourceField, targetIds } of links) {
+        const arr = next[sourceCategory] as unknown as Record<string, unknown>[];
+        const updatedArr = arr.map(item => {
+          if (item['id'] !== sourceId) return item;
+          const current = (item[sourceField] as string[] | undefined) ?? [];
+          const merged = [...new Set([...current, ...targetIds])];
+          const updatedItem = { ...item, [sourceField]: merged };
+          next = syncBidirectionalLinks({ ...next, [sourceCategory]: arr.map(i => i['id'] === sourceId ? updatedItem : i) }, sourceCategory, updatedItem);
+          return updatedItem;
+        });
+        next = { ...next, [sourceCategory]: updatedArr };
+      }
+      return next;
+    });
   };
   const handleCancel = () => { setView('list'); setEditId(null); };
 
@@ -187,7 +218,12 @@ function App() {
 
         {mode === 'offene-punkte' && (
           <div className="h-full overflow-y-auto">
-            <OffenePunkte state={state} onEditItem={id => setCloudWizardTargetId(id)} />
+            <OffenePunkte
+              state={state}
+              onEditItem={id => setCloudWizardTargetId(id)}
+              onBatchCloudUpdate={handleBatchCloudUpdate}
+              onApplyLinks={handleApplyLinks}
+            />
           </div>
         )}
 

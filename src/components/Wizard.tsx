@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { AppState, CategoryKey, Quelldokument } from '../types';
 import { CATEGORIES } from '../categories';
 import { generateId } from '../store';
+import { syncBidirectionalLinks } from '../utils/bidirectional';
 import { CategoryList } from './CategoryList';
 import { CategoryForm } from './CategoryForm';
 import { HelpPanel } from './HelpPanel';
@@ -84,7 +85,7 @@ export const Wizard: React.FC<Props> = ({ state, updateState, onImport, onGoToDa
       const arr = prev[category] as unknown as Record<string, unknown>[];
       const idx = arr.findIndex((i) => i['id'] === item['id']);
       const next = idx >= 0 ? arr.map((i) => (i['id'] === item['id'] ? item : i)) : [...arr, item];
-      return { ...prev, [category]: next };
+      return syncBidirectionalLinks({ ...prev, [category]: next }, category, item);
     });
     setShowForm(false);
     setEditId(null);
