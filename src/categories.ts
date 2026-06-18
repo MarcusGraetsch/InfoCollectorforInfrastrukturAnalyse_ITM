@@ -67,17 +67,18 @@ export const CLOUD_FIELDS: FieldDef[] = [
   },
   {
     key: 'datensouveraenitaet',
-    label: 'Datensouveränität',
+    label: 'Datensouveränität / Schutzmodell',
     type: 'select',
     options: [
       'Keine spezielle Anforderung',
       'EU / DSGVO',
       'Deutschland',
       'Streng souverän (C5 / Gaia-X)',
+      'Confidential Computing (TEE / Enclave)',
     ],
     group: 'cloud',
     tooltip:
-      'Rechtliche/regulatorische Anforderung an den Speicherort der Daten. Treiber für souveräne Cloud-Lösungen (C5-Testat, Gaia-X, DE-Rechenzentrum).',
+      'Rechtliche/regulatorische Anforderung an den Speicherort und den Schutz der Daten. "Confidential Computing" schützt Daten auch während der Verarbeitung im RAM via Trusted Execution Environment (TEE) — relevant für höchsten Schutzbedarf auch in Public Clouds.',
   },
   {
     key: 'bereitstellung',
@@ -164,6 +165,18 @@ export const CLOUD_FIELDS: FieldDef[] = [
       'IONOS Managed Databases',
       'IONOS Load Balancer',
       'IONOS Private Cloud (DCD)',
+      // ── VMware Tanzu ──
+      'VMware Tanzu Kubernetes Grid (TKG)',
+      'VMware Tanzu Application Platform (TAP)',
+      'VMware Tanzu Mission Control (TMC)',
+      'VMware Tanzu Service Mesh',
+      // ── Confidential Computing ──
+      'Confidential Computing — enclaive.io (TEE)',
+      'Confidential Computing — Intel SGX (Enclave)',
+      'Confidential Computing — AMD SEV (Secure VM)',
+      'Confidential Computing — Azure Confidential VMs',
+      'Confidential Computing — AWS Nitro Enclaves',
+      'Confidential Computing — GCP Confidential VMs',
     ],
   },
   {
@@ -242,6 +255,10 @@ export const CLOUD_FIELDS: FieldDef[] = [
       'Vendor-Lock-in vermeiden — Kubernetes bevorzugt',
       'Souveräne Cloud erforderlich (STACKIT / IONOS)',
       'Datenschutz: nur DE/EU-Rechenzentrum',
+      'Confidential Computing prüfen (enclaive.io)',
+      'TEE erforderlich — Daten auch im RAM geschützt',
+      'VMware Tanzu Migration (TKG → TAP)',
+      'Tanzu Mission Control für Multi-Cluster-Management',
     ],
   },
 ];
@@ -336,7 +353,7 @@ export const CATEGORIES: CategoryDef[] = [
         // Container / K8s
         'Docker Host (Linux)', 'Podman Host (RHEL/Fedora)',
         'Kubernetes Node (generisch)', 'k3s Node (Leichtgewicht-K8s)', 'K3s / RKE2 (Rancher)',
-        'OpenShift Node (Red Hat)', 'Talos Linux (K8s-OS)',
+        'OpenShift Node (Red Hat)', 'VMware Tanzu Kubernetes Grid Node (TKG)', 'Talos Linux (K8s-OS)',
         // Azure VM-Typen
         'Azure VM — General Purpose (B/D-Serie)', 'Azure VM — Compute Optimized (F-Serie)',
         'Azure VM — Memory Optimized (E/M-Serie)', 'Azure VM — AKS Node Pool',
