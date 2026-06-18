@@ -15,7 +15,7 @@ export interface BaseItem {
  * Cloud-Readiness-Workshops. Werden bei Anwendungen und IT-Systemen erfasst.
  */
 export interface CloudFields {
-  schutzbedarf?: 'Normal' | 'Hoch' | 'Sehr hoch' | '';
+  schutzbedarf?: 'Normal' | 'Hoch' | 'Sehr hoch' | 'Unklar' | '';
   datensouveraenitaet?: string;
   bereitstellung?: string;
   cloudDienst?: string;

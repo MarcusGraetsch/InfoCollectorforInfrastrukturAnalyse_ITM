@@ -45,7 +45,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const CATEGORY_KEYS = Object.keys(CATEGORY_LABELS) as CategoryKey[];
 
-const SCHUTZBEDARF_OPTS = ['Normal', 'Hoch', 'Sehr hoch'];
+const SCHUTZBEDARF_OPTS = ['Normal', 'Hoch', 'Sehr hoch', 'Unklar'];
 const BEREITSTELLUNG_OPTS = [
   'On-Premises (physisch)',
   'On-Premises (virtualisiert)',
@@ -178,14 +178,14 @@ export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose, 
         category: i.category,
         categoryLabel: CATEGORY_LABELS[i.category] ?? i.category,
         fields: {
-          schutzbedarf: i.schutzbedarf,
-          datensouveraenitaet: i.datensouveraenitaet,
-          bereitstellung: i.bereitstellung,
+          schutzbedarf: i.schutzbedarf || 'Unklar',
+          datensouveraenitaet: i.datensouveraenitaet || 'Unklar',
+          bereitstellung: i.bereitstellung || 'Unklar',
           cloudDienst: i.cloudDienst,
-          lizenzCloudfaehig: i.lizenzCloudfaehig,
-          migrationskomplexitaet: i.migrationskomplexitaet,
-          lebenszyklus: i.lebenszyklus,
-          internetfaehig: i.internetfaehig,
+          lizenzCloudfaehig: i.lizenzCloudfaehig || 'Unklar',
+          migrationskomplexitaet: i.migrationskomplexitaet || 'Unklar',
+          lebenszyklus: i.lebenszyklus || 'Unklar',
+          internetfaehig: i.internetfaehig || 'Unklar',
           cloudEignung: i.cloudEignung,
           cloudNotiz: i.cloudNotiz,
         },
@@ -342,7 +342,7 @@ export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose, 
                   label={o}
                   active={fields.schutzbedarf === o}
                   onClick={() => set('schutzbedarf', o)}
-                  color={o === 'Normal' ? 'green' : o === 'Hoch' ? 'amber' : 'red'}
+                  color={o === 'Normal' ? 'green' : o === 'Hoch' ? 'amber' : o === 'Sehr hoch' ? 'red' : 'gray'}
                 />
               ))}
             </div>
