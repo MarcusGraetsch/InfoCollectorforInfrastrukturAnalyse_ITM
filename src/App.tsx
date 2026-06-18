@@ -12,9 +12,9 @@ import { exportToExcel, exportWorkshopPackage } from './utils/export';
 import { exportToJSON, importFromJSON } from './utils/exportJSON';
 import { exportConsultantReport } from './utils/exportReport';
 import { importFromExcelWithMapping, importClassifiedRows } from './utils/import';
-import type { RowClassification } from './utils/importAnalyzer';
 import { ImportWizard } from './components/ImportWizard';
 import { EmailTemplate } from './components/EmailTemplate';
+import type { RowClassification } from './utils/importAnalyzer';
 
 function App() {
   const [state, setState] = useState<AppState>(loadState);
@@ -99,11 +99,17 @@ function App() {
   };
 
   const handleImportRowsConfirm = (rows: RowClassification[]) => {
-    const newState = importClassifiedRows(rows, state);
-    setState(newState);
-    saveState(newState);
-    setImportFile(null);
-    alert(`${rows.length} Einträge importiert!`);
+    if (!importFile) return;
+    try {
+      const newState = importClassifiedRows(rows, state);
+      setState(newState);
+      saveState(newState);
+      setImportFile(null);
+      alert(`Import erfolgreich! ${rows.length} Einträge importiert.`);
+    } catch (err) {
+      alert('Import fehlgeschlagen: ' + String(err));
+      setImportFile(null);
+    }
   };
 
   const categoryDef = CATEGORY_MAP[activeCategory];
