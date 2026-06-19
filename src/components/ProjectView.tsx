@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import type { AppState, Anwendung, Liefergegenstand, Meeting, MeetingTOP, Stakeholder, TCODaten } from '../types';
+import type { AppState, Anwendung, Liefergegenstand, Meeting, MeetingTOP, NIS2Assessment, Stakeholder, TCODaten } from '../types';
 import { ProjectTracker } from './ProjectTracker';
 import { StakeholderRegister } from './StakeholderRegister';
 import { MeetingProtokolle } from './MeetingProtokolle';
@@ -13,11 +13,13 @@ import { TCOModell } from './TCOModell';
 import { SecurityGovernanceArchitektur } from './SecurityGovernanceArchitektur';
 import { ZielarchitekturBetrieb } from './ZielarchitekturBetrieb';
 import { VollstaendigkeitsCockpit } from './VollstaendigkeitsCockpit';
+import { NIS2Check } from './NIS2Check';
 import { countItemsWithOpenFields } from '../cloudFields';
 
 type SubTab =
   | 'liefergegenstaende' | 'cockpit' | 'stakeholder' | 'meetings' | 'tops'
   | 'fragenliste' | 'landkarte' | 'lizenz' | 'tco' | 'security' | 'zielarchitektur'
+  | 'nis2'
   | 'bericht' | 'executive';
 
 interface Props {
@@ -27,6 +29,7 @@ interface Props {
   onUpdateMeetings: (meetings: Meeting[]) => void;
   onUpdateAnwendung: (id: string, changes: Partial<Anwendung>) => void;
   onUpdateTCO: (tco: TCODaten) => void;
+  onUpdateNIS2: (a: NIS2Assessment) => void;
   onOpenCloudWizard: (id: string) => void;
 }
 
@@ -64,6 +67,13 @@ const GROUPS = [
     ],
   },
   {
+    label: 'Compliance & Regulatorik',
+    tabs: [
+      { key: 'nis2' as SubTab, label: 'NIS2-Check',
+        icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg> },
+    ],
+  },
+  {
     label: 'Berichte',
     tabs: [
       { key: 'bericht' as SubTab, label: 'Infra-Bericht (LG 2/3)',
@@ -74,7 +84,7 @@ const GROUPS = [
   },
 ];
 
-export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeholder, onUpdateMeetings, onUpdateAnwendung, onUpdateTCO, onOpenCloudWizard }) => {
+export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeholder, onUpdateMeetings, onUpdateAnwendung, onUpdateTCO, onUpdateNIS2, onOpenCloudWizard }) => {
   const [subTab, setSubTab] = useState<SubTab>('liefergegenstaende');
 
   const lgStats = {
@@ -160,6 +170,7 @@ export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeh
         {subTab === 'tco'                && <TCOModell state={state} onUpdate={onUpdateTCO} />}
         {subTab === 'security'           && <SecurityGovernanceArchitektur state={state} onOpenCloudWizard={onOpenCloudWizard} />}
         {subTab === 'zielarchitektur'    && <ZielarchitekturBetrieb state={state} onOpenCloudWizard={onOpenCloudWizard} />}
+        {subTab === 'nis2'               && <NIS2Check state={state} assessment={state.nis2Assessment ?? { sektor: '', mitarbeiter: '', umsatzMio: '', kritis: 'Unklar', einstufung: 'Unklar', massnahmen: {}, notizen: '', erstelltAm: '' }} onUpdate={onUpdateNIS2} />}
         {subTab === 'bericht'            && <InfrastrukturBericht state={state} />}
         {subTab === 'executive'          && <ExecutiveSummary state={state} />}
       </div>

@@ -11,7 +11,7 @@ Dieses Dokument ist als **Arbeitsanweisung** formuliert: Jede Session kann einen
 ## Umsetzungs-Status (Checkliste)
 
 - [x] **Block 1** — Vollständigkeits-Cockpit *(erledigt 2026-06-19)*
-- [ ] **Block 2** — NIS2-/BSIG-Readiness-Check
+- [x] **Block 2** — NIS2-/BSIG-Readiness-Check *(erledigt 2026-06-19)*
 - [ ] **Block 3** — EU-Cloud-Souveränitäts-Bewertung (SEAL/Gaia-X)
 - [ ] **Block 4** — CIA-Triade & Schutzbedarfsvererbung
 - [ ] **Block 5** — EU AI Act Inventar & Shadow-AI
@@ -90,7 +90,9 @@ interface Props { state: AppState; onNavigate: (tab: string) => void; }
 
 ---
 
-## BLOCK 2 — NIS2-/BSIG-Betroffenheits- & Readiness-Check
+## BLOCK 2 — NIS2-/BSIG-Betroffenheits- & Readiness-Check ✅ ERLEDIGT
+
+> **Status:** Umgesetzt am 2026-06-19. Dateien: `src/compliance/nis2.ts` (Sektoren Anhang I/II, 10 Mindestmaßnahmen, Einstufungs- & Gap-Logik), `src/components/NIS2Check.tsx` (5-Schritt-Stepper, Gap-Ampel, Druckbericht). Eingebunden als SubTab `'nis2'` in neuer Gruppe „Compliance & Regulatorik" in `ProjectView.tsx`. Datenmodell `NIS2Assessment` in `types.ts` (optional), Migration + Default in `store.ts`, Handler `onUpdateNIS2` in `App.tsx`. Abweichung: Maßnahme „Bewertung der Wirksamkeit" statt „physische Sicherheit" aufgenommen (näher am Art.-21-Wortlaut); MFA-Maßnahme deckt gesicherte Kommunikation mit ab.
 
 **Ziel:** In 5 Minuten klären: Ist der Kunde von NIS2 betroffen? Welche Maßnahmen fehlen? Direkt ausfüllbar im Erstgespräch.
 

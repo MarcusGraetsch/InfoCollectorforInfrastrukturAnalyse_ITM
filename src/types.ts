@@ -255,10 +255,25 @@ export interface TCODaten {
   notizen: string;
 }
 
+export type NIS2Einstufung = 'Besonders wichtig' | 'Wichtig' | 'Nicht betroffen' | 'Unklar';
+export type NIS2MassnahmeStatus = 'Vorhanden' | 'Teilweise' | 'Fehlend' | 'N/A';
+
+export interface NIS2Assessment {
+  sektor: string;
+  mitarbeiter: string;       // '<50' | '50-249' | '≥250' | ''
+  umsatzMio: string;         // '<10' | '10-49' | '≥50' | ''
+  kritis: string;            // 'Ja' | 'Nein' | 'Unklar'
+  einstufung: NIS2Einstufung;
+  massnahmen: Record<string, NIS2MassnahmeStatus>;
+  notizen: string;
+  erstelltAm: string;
+}
+
 export interface AppState {
   customerName: string;
   lastUpdated: string;
   cloudStrategy: CloudStrategyMeta;
+  nis2Assessment?: NIS2Assessment;
   quelldokumente: Quelldokument[];
   tcoData: TCODaten;
   liefergegenstaende: Liefergegenstand[];

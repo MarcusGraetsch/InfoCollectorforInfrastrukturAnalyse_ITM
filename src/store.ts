@@ -77,6 +77,10 @@ export function createDefaultState(): AppState {
       zeithorizont: '',
       notizen: '',
     },
+    nis2Assessment: {
+      sektor: '', mitarbeiter: '', umsatzMio: '', kritis: 'Unklar',
+      einstufung: 'Unklar', massnahmen: {}, notizen: '', erstelltAm: '',
+    },
     quelldokumente: [],
     tcoData: { ...DEFAULT_TCO, istkostenOnPrem: { ...DEFAULT_TCO.istkostenOnPrem }, zielkostenCloud: { ...DEFAULT_TCO.zielkostenCloud } },
     liefergegenstaende: DEFAULT_LIEFERGEGENSTAENDE.map(lg => ({ ...lg, anhaenge: [] })),
@@ -141,6 +145,16 @@ export function mergeWithDefault(partial: Partial<AppState> | null | undefined):
   }
   if (!Array.isArray(merged.meetings)) {
     merged.meetings = [];
+  }
+
+  // nis2Assessment: optionales Compliance-Modul (Block 2)
+  if (!merged.nis2Assessment || typeof merged.nis2Assessment !== 'object') {
+    merged.nis2Assessment = {
+      sektor: '', mitarbeiter: '', umsatzMio: '', kritis: 'Unklar',
+      einstufung: 'Unklar', massnahmen: {}, notizen: '', erstelltAm: '',
+    };
+  } else if (!merged.nis2Assessment.massnahmen || typeof merged.nis2Assessment.massnahmen !== 'object') {
+    merged.nis2Assessment.massnahmen = {};
   }
 
   // Jede Kategorie/Array-Property als Array erzwingen
