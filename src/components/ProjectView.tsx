@@ -15,12 +15,13 @@ import { ZielarchitekturBetrieb } from './ZielarchitekturBetrieb';
 import { VollstaendigkeitsCockpit } from './VollstaendigkeitsCockpit';
 import { NIS2Check } from './NIS2Check';
 import { EuAiActInventar } from './EuAiActInventar';
+import { SouveraenitaetsBewertung } from './SouveraenitaetsBewertung';
 import { countItemsWithOpenFields } from '../cloudFields';
 
 type SubTab =
   | 'liefergegenstaende' | 'cockpit' | 'stakeholder' | 'meetings' | 'tops'
   | 'fragenliste' | 'landkarte' | 'lizenz' | 'tco' | 'security' | 'zielarchitektur'
-  | 'nis2' | 'euaiact'
+  | 'nis2' | 'euaiact' | 'souveraenitaet'
   | 'bericht' | 'executive';
 
 interface Props {
@@ -74,6 +75,8 @@ const GROUPS = [
         icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg> },
       { key: 'euaiact' as SubTab, label: 'EU AI Act',
         icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg> },
+      { key: 'souveraenitaet' as SubTab, label: 'Cloud-Souveränität',
+        icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" /></svg> },
     ],
   },
   {
@@ -175,6 +178,7 @@ export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeh
         {subTab === 'zielarchitektur'    && <ZielarchitekturBetrieb state={state} onOpenCloudWizard={onOpenCloudWizard} />}
         {subTab === 'nis2'               && <NIS2Check state={state} assessment={state.nis2Assessment ?? { sektor: '', mitarbeiter: '', umsatzMio: '', kritis: 'Unklar', einstufung: 'Unklar', massnahmen: {}, notizen: '', erstelltAm: '' }} onUpdate={onUpdateNIS2} />}
         {subTab === 'euaiact'            && <EuAiActInventar state={state} onUpdateAnwendung={onUpdateAnwendung} />}
+        {subTab === 'souveraenitaet'     && <SouveraenitaetsBewertung state={state} />}
         {subTab === 'bericht'            && <InfrastrukturBericht state={state} />}
         {subTab === 'executive'          && <ExecutiveSummary state={state} />}
       </div>
