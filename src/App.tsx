@@ -17,6 +17,7 @@ import { EmailTemplate } from './components/EmailTemplate';
 import { CloudReadinessWizard } from './components/CloudReadinessWizard';
 import { OffenePunkte } from './components/OffenePunkte';
 import { ProjectView } from './components/ProjectView';
+import { AIAssistantSettings } from './components/AIAssistantSettings';
 import type { Liefergegenstand, Meeting, Stakeholder, Anwendung, TCODaten } from './types';
 import type { RowClassification } from './utils/importAnalyzer';
 import type { CloudFields } from './types';
@@ -31,6 +32,7 @@ function App() {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [showEmailTemplate, setShowEmailTemplate] = useState(false);
   const [cloudWizardTargetId, setCloudWizardTargetId] = useState<string | null>(null);
+  const [showAISettings, setShowAISettings] = useState(false);
 
   const updateState = useCallback((updater: (prev: AppState) => AppState) => {
     setState((prev) => {
@@ -193,6 +195,7 @@ function App() {
 
   return (
     <div className="h-screen flex flex-col bg-hi-gray">
+      {showAISettings && <AIAssistantSettings onClose={() => setShowAISettings(false)} />}
       <AppHeader
         state={state}
         mode={mode}
@@ -203,6 +206,7 @@ function App() {
         onExportWorkshop={handleExportWorkshop}
         onExportJSON={handleExportJSON}
         onExportReport={handleExportReport}
+        onAISettings={() => setShowAISettings(true)}
         onClearData={() => {
           clearState();           // entfernt Installations-ID + Daten-Key
           setState(createDefaultState()); // frisches Default-Objekt setzen

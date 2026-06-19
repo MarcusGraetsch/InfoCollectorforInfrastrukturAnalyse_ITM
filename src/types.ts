@@ -307,6 +307,15 @@ export interface NIS2Assessment {
   erstelltAm: string;
 }
 
+// Block 10 — KI-Anreicherungs-Assistent (separate localStorage, never in AppState)
+export interface AIConfig {
+  enabled: boolean;
+  provider: 'openai' | 'custom';
+  endpoint?: string;
+  model?: string;
+  // API key is stored in localStorage as 'it-sa-ai-config' and NEVER exported
+}
+
 // Block 8 — DORA IKT-Drittparteien-Register
 export interface IKTDienstleister {
   id: string;
