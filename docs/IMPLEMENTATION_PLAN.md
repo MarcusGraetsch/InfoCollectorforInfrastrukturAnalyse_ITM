@@ -12,7 +12,7 @@ Dieses Dokument ist als **Arbeitsanweisung** formuliert: Jede Session kann einen
 
 - [x] **Block 1** — Vollständigkeits-Cockpit *(erledigt 2026-06-19)*
 - [x] **Block 2** — NIS2-/BSIG-Readiness-Check *(erledigt 2026-06-19)*
-- [ ] **Block 3** — EU-Cloud-Souveränitäts-Bewertung (SEAL/Gaia-X)
+- [x] **Block 3** — EU-Cloud-Souveränitäts-Bewertung (SEAL/Gaia-X) *(erledigt 2026-06-19)*
 - [ ] **Block 4** — CIA-Triade & Schutzbedarfsvererbung
 - [x] **Block 5** — EU AI Act Inventar & Shadow-AI *(erledigt 2026-06-19)*
 - [ ] **Block 6** — FinOps: Szenarien & AI-Kosten

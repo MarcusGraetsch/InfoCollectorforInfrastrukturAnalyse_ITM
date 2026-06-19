@@ -157,6 +157,10 @@ export function mergeWithDefault(partial: Partial<AppState> | null | undefined):
     merged.nis2Assessment.massnahmen = {};
   }
 
+  // Block 4 Migration: schutzbedarf-String zu CIASchutzbedarf konvertieren
+  // (optional — alte String-Werte bleiben gültig dank Union-Typ)
+  // Keine aktive Migration nötig, da der Union-Typ beide Formen akzeptiert.
+
   // Jede Kategorie/Array-Property als Array erzwingen
   const arrayKeys: (keyof AppState)[] = [
     'quelldokumente', 'liefergegenstaende', 'stakeholder', 'meetings', 'geschaeftsprozesse', 'daten', 'anwendungen', 'datentraeger',

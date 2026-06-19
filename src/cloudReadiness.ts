@@ -1,4 +1,5 @@
-import type { AppState, CategoryKey, CloudFields } from './types';
+import type { AppState, CategoryKey, CloudFields, SchutzbedarfNiveau } from './types';
+import { getEffektiverSchutzbedarf } from './schutzbedarfsVererbung';
 
 export type ReadinessLevel = 'Hoch' | 'Mittel' | 'Niedrig' | 'Unbewertet';
 
@@ -47,9 +48,11 @@ function clamp(n: number): number {
  * Ausgerichtet auf souveräne/BSI-konforme UND provider-neutrale Cloud.
  */
 export function assess(item: CloudFields, category: CategoryKey): ReadinessResult {
+  const effSchutzbedarf: SchutzbedarfNiveau = getEffektiverSchutzbedarf(item);
+
   const filled =
     item.bereitstellung ||
-    item.schutzbedarf ||
+    effSchutzbedarf ||
     item.lizenzCloudfaehig ||
     item.migrationskomplexitaet ||
     item.lebenszyklus ||
@@ -128,10 +131,10 @@ export function assess(item: CloudFields, category: CategoryKey): ReadinessResul
       break;
   }
 
-  if (item.schutzbedarf === 'Sehr hoch') {
+  if (effSchutzbedarf === 'Sehr hoch') {
     score -= 10;
     b.push('Sehr hoher Schutzbedarf – erhöhte Anforderungen an den Anbieter.');
-  } else if (item.schutzbedarf === 'Hoch') {
+  } else if (effSchutzbedarf === 'Hoch') {
     score -= 5;
   }
 
@@ -152,7 +155,7 @@ export function assess(item: CloudFields, category: CategoryKey): ReadinessResul
   const souveraen =
     item.datensouveraenitaet === 'Deutschland' ||
     item.datensouveraenitaet === 'Streng souverän (C5 / Gaia-X)' ||
-    (item.schutzbedarf === 'Sehr hoch' &&
+(effSchutzbedarf === 'Sehr hoch' &&
       item.datensouveraenitaet !== 'Keine spezielle Anforderung' &&
       !!item.datensouveraenitaet);
 
@@ -279,8 +282,8 @@ export function assessSovereignty(item: CloudFields): SovereignResult {
 
   const isS1Base =
     item.datensouveraenitaet === 'Deutschland' ||
-    item.schutzbedarf === 'Hoch' ||
-    item.schutzbedarf === 'Sehr hoch';
+    getEffektiverSchutzbedarf(item) === 'Hoch' ||
+    getEffektiverSchutzbedarf(item) === 'Sehr hoch';
 
   const hasOwnKeys =
     item.verschluesselungshoheit === 'Eigene Schlüssel (BYOK)' ||
@@ -317,8 +320,8 @@ export function assessSovereignty(item: CloudFields): SovereignResult {
   if (isS1Base) {
     if (item.datensouveraenitaet === 'Deutschland') hinweise.push('Datenspeicherort Deutschland gefordert.');
     if (item.datensouveraenitaet === 'EU / DSGVO') hinweise.push('DSGVO-konforme EU-Cloud ausreichend.');
-    if (item.schutzbedarf === 'Hoch') hinweise.push('Hoher Schutzbedarf erfordert BSI-konforme Maßnahmen.');
-    if (item.schutzbedarf === 'Sehr hoch') hinweise.push('Sehr hoher Schutzbedarf — strengste Sicherheitsmaßnahmen.');
+    if (getEffektiverSchutzbedarf(item) === 'Hoch') hinweise.push('Hoher Schutzbedarf erfordert BSI-konforme Maßnahmen.');
+    if (getEffektiverSchutzbedarf(item) === 'Sehr hoch') hinweise.push('Sehr hoher Schutzbedarf — strengste Sicherheitsmaßnahmen.');
     return {
       level: 'S1',
       label: 'S1 – Standard-Souveränität',

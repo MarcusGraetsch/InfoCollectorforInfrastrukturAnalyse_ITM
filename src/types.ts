@@ -10,12 +10,23 @@ export interface BaseItem {
   tags: string;
 }
 
+// Block 4 — CIA-Triade & Schutzbedarfsvererbung
+export type SchutzbedarfNiveau = 'Normal' | 'Hoch' | 'Sehr hoch' | 'Unklar' | '';
+
+export interface CIASchutzbedarf {
+  vertraulichkeit: SchutzbedarfNiveau;
+  integritaet: SchutzbedarfNiveau;
+  verfuegbarkeit: SchutzbedarfNiveau;
+  begruendung?: string;
+  vererbt?: boolean;
+}
+
 /**
  * Zusätzliche cloud-relevante Attribute zur Vorbereitung des
  * Cloud-Readiness-Workshops. Werden bei Anwendungen und IT-Systemen erfasst.
  */
 export interface CloudFields {
-  schutzbedarf?: 'Normal' | 'Hoch' | 'Sehr hoch' | 'Unklar' | '';
+  schutzbedarf?: CIASchutzbedarf | SchutzbedarfNiveau;
   datensouveraenitaet?: string;
   bereitstellung?: string;
   cloudDienst?: string;
