@@ -216,7 +216,7 @@ npx serve -s dist -l $AppPort
 #  Health Check
 # ============================================================
 Write-Host ""
-Write-Step "Gesundheitsprüfung"
+Write-Step "Health Checks"
 Start-Sleep -Seconds 2
 
 $AppUrl = "http://127.0.0.1:${AppPort}"
