@@ -352,7 +352,7 @@ fi
 
 # ---- Health Check ----
 echo ""
-step "Gesundheitsprüfung"
+step "Health Check"
 sleep 2
 MAX_TRIES=10
 for i in $(seq 1 $MAX_TRIES); do
