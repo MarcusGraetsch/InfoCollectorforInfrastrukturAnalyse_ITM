@@ -38,6 +38,7 @@ export const LizenzKostenAnalyse: React.FC<Props> = ({ state, onUpdateAnwendung 
   const [editId, setEditId] = useState<string | null>(null);
   const [editFields, setEditFields] = useState<Partial<Anwendung>>({});
   const [showRenewalEmail, setShowRenewalEmail] = useState(false);
+  const [infoBannerDismissed, setInfoBannerDismissed] = useState(false);
 
   const anwendungen = state.anwendungen;
 
@@ -108,18 +109,18 @@ export const LizenzKostenAnalyse: React.FC<Props> = ({ state, onUpdateAnwendung 
           <p className="text-sm text-gray-500">Lizenzmodelle, Vertragsstrukturen und Betriebskosten aller Anwendungen</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-        {stats.auslaufend > 0 && (
           <button
-            onClick={() => setShowRenewalEmail(true)}
-            className="flex items-center gap-2 px-3 py-2 bg-amber-50 text-amber-700 border border-amber-300 rounded-lg text-sm font-medium hover:bg-amber-100 transition-colors"
+            onClick={() => stats.auslaufend > 0 && setShowRenewalEmail(true)}
+            disabled={stats.auslaufend === 0}
+            title={stats.auslaufend === 0 ? 'Keine Verträge mit Ablauf in <12 Monaten' : `${stats.auslaufend} auslaufende Verträge`}
+            className={`flex items-center gap-2 px-3 py-2 border rounded-lg text-sm font-medium transition-colors ${stats.auslaufend > 0 ? 'bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100 cursor-pointer' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             Verlängerungs-E-Mail
-            <span className="bg-amber-200 text-amber-800 text-xs px-1.5 py-0.5 rounded-full font-bold">{stats.auslaufend}</span>
+            {stats.auslaufend > 0 && <span className="bg-amber-200 text-amber-800 text-xs px-1.5 py-0.5 rounded-full font-bold">{stats.auslaufend}</span>}
           </button>
-        )}
         <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-hi-navy text-white rounded-lg text-sm font-medium hover:bg-hi-navy/90">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
           Drucken / PDF
@@ -133,6 +134,19 @@ export const LizenzKostenAnalyse: React.FC<Props> = ({ state, onUpdateAnwendung 
           anwendungen={anwendungen}
           onClose={() => setShowRenewalEmail(false)}
         />
+      )}
+
+      {/* Info Banner */}
+      {!infoBannerDismissed && (
+        <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+          <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <p className="text-sm text-blue-800 flex-1">
+            <strong>Bearbeitung:</strong> Klicken Sie das <span className="inline-flex items-center bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-xs font-mono mx-1">✎</span>-Symbol am rechten Zeilenende um Lizenzfelder zu bearbeiten. Anbieter, Lizenzmodell, Jahreskosten und Vertragsende können direkt in der Tabelle erfasst werden.
+          </p>
+          <button onClick={() => setInfoBannerDismissed(true)} className="text-blue-400 hover:text-blue-600 flex-shrink-0">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
       )}
 
       {/* KPIs */}
@@ -178,7 +192,7 @@ export const LizenzKostenAnalyse: React.FC<Props> = ({ state, onUpdateAnwendung 
                 <th className="px-3 py-2.5 text-left font-medium">Jahreskosten</th>
                 <th className="px-3 py-2.5 text-left font-medium">Vertragsende</th>
                 <th className="px-3 py-2.5 text-left font-medium w-24">Risiko</th>
-                <th className="px-3 py-2.5 w-8"></th>
+                <th className="px-3 py-2.5 text-left font-medium w-20">Bearbeiten</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -229,8 +243,9 @@ export const LizenzKostenAnalyse: React.FC<Props> = ({ state, onUpdateAnwendung 
                         </td>
                         <td className="px-3 py-2"><span className={`text-xs px-2 py-0.5 rounded-full font-medium ${RISIKO_COLORS[a.risiko]}`}>{a.risiko}</span></td>
                         <td className="px-2 py-2">
-                          <button onClick={() => startEdit(a)} className="text-gray-400 hover:text-hi-navy" title="Bearbeiten">
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                          <button onClick={() => startEdit(a)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-hi-navy bg-gray-100 hover:bg-hi-navy hover:text-white transition-colors text-xs font-medium" title="Bearbeiten">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                            ✎
                           </button>
                         </td>
                       </>
