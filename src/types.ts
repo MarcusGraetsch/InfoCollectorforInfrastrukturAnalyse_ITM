@@ -151,6 +151,19 @@ export interface Gebaeude extends BaseItem {
   benutzer: string;
 }
 
+export type LiefergegenstandStatus = 'Offen' | 'In Arbeit' | 'Abgenommen';
+
+export interface Liefergegenstand {
+  id: number;
+  phase: string;
+  titel: string;
+  beschreibung: string;
+  aufwandAuftraggeber: string;
+  status: LiefergegenstandStatus;
+  faelligAm: string;
+  notizen: string;
+}
+
 /** Vom Kunden bereits gelieferte Unterlagen (Phase A der Erhebung). */
 export interface Quelldokument {
   id: string;
@@ -175,6 +188,7 @@ export interface AppState {
   lastUpdated: string;
   cloudStrategy: CloudStrategyMeta;
   quelldokumente: Quelldokument[];
+  liefergegenstaende: Liefergegenstand[];
   geschaeftsprozesse: Geschaeftsprozess[];
   daten: Datum[];
   anwendungen: Anwendung[];

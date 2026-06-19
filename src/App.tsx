@@ -16,6 +16,8 @@ import { ImportWizard } from './components/ImportWizard';
 import { EmailTemplate } from './components/EmailTemplate';
 import { CloudReadinessWizard } from './components/CloudReadinessWizard';
 import { OffenePunkte } from './components/OffenePunkte';
+import { ProjectTracker } from './components/ProjectTracker';
+import type { Liefergegenstand } from './types';
 import type { RowClassification } from './utils/importAnalyzer';
 import type { CloudFields } from './types';
 import { syncBidirectionalLinks } from './utils/bidirectional';
@@ -227,6 +229,20 @@ function App() {
               onEditItem={id => setCloudWizardTargetId(id)}
               onBatchCloudUpdate={handleBatchCloudUpdate}
               onApplyLinks={handleApplyLinks}
+            />
+          </div>
+        )}
+
+        {mode === 'projekt' && (
+          <div className="h-full overflow-y-auto bg-hi-gray">
+            <ProjectTracker
+              state={state}
+              onUpdateLG={(id, changes) => updateState(prev => ({
+                ...prev,
+                liefergegenstaende: prev.liefergegenstaende.map(lg =>
+                  lg.id === id ? { ...lg, ...changes } as Liefergegenstand : lg
+                ),
+              }))}
             />
           </div>
         )}
