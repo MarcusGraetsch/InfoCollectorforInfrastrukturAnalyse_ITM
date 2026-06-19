@@ -102,6 +102,7 @@ const GROUPS = [
 
 export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeholder, onUpdateMeetings, onUpdateAnwendung, onUpdateTCO, onUpdateNIS2, onUpdateIKT, onOpenCloudWizard, onRestore }) => {
   const [subTab, setSubTab] = useState<SubTab>('liefergegenstaende');
+  const [activeGroup, setActiveGroup] = useState<string>(GROUPS[0].label);
 
   const lgStats = {
     abgenommen: state.liefergegenstaende.filter(l => l.status === 'Abgenommen').length,
@@ -138,39 +139,86 @@ export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeh
     return null;
   };
 
+  const currentGroup = GROUPS.find(g => g.label === activeGroup) ?? GROUPS[0];
+
+  const handleTabKeyDown = (e: React.KeyboardEvent<HTMLDivElement>, tabs: typeof currentGroup.tabs) => {
+    const currentIdx = tabs.findIndex(t => t.key === subTab);
+    if (e.key === 'ArrowRight') {
+      const next = tabs[(currentIdx + 1) % tabs.length];
+      setSubTab(next.key);
+    } else if (e.key === 'ArrowLeft') {
+      const prev = tabs[(currentIdx - 1 + tabs.length) % tabs.length];
+      setSubTab(prev.key);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col">
-      <div className="bg-white border-b border-gray-200 px-4 pt-3 pb-0 flex-shrink-0">
-        <div className="flex flex-wrap gap-x-6 gap-y-0">
+      {/* Primary nav: group selector */}
+      <div className="bg-hi-navy px-4 pt-2 pb-0 flex-shrink-0">
+        <div className="flex gap-1 overflow-x-auto">
           {GROUPS.map(group => (
-            <div key={group.label}>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 px-1 mb-1">{group.label}</p>
-              <div className="flex gap-0.5 flex-wrap">
-                {group.tabs.map(t => {
-                  const b = badge(t.key);
-                  return (
-                    <button
-                      key={t.key}
-                      onClick={() => setSubTab(t.key)}
-                      className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-t-lg border-b-2 transition-colors whitespace-nowrap ${
-                        subTab === t.key
-                          ? 'border-hi-accent text-hi-accent bg-hi-accent/5'
-                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      {t.icon}
-                      {t.label}
-                      {b !== null && (
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold leading-none ${subTab === t.key ? 'bg-hi-accent/20 text-hi-accent' : 'bg-gray-100 text-gray-500'}`}>
-                          {b}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <button
+              key={group.label}
+              onClick={() => {
+                setActiveGroup(group.label);
+                // Auto-select first tab in group if current tab not in this group
+                if (!group.tabs.some(t => t.key === subTab)) {
+                  setSubTab(group.tabs[0].key);
+                }
+              }}
+              aria-selected={activeGroup === group.label}
+              className={`flex-shrink-0 px-4 py-2 text-xs font-semibold rounded-t-lg whitespace-nowrap transition-colors ${
+                activeGroup === group.label
+                  ? 'bg-white text-hi-navy'
+                  : 'text-white/70 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              {group.label}
+              {group.tabs.some(t => t.key === subTab) && activeGroup !== group.label && (
+                <span className="ml-1.5 w-1.5 h-1.5 bg-hi-accent rounded-full inline-block" />
+              )}
+            </button>
           ))}
+        </div>
+      </div>
+      {/* Secondary nav: subtabs of active group */}
+      <div className="bg-white border-b border-gray-200 px-4 pt-0 pb-0 flex-shrink-0">
+        <div
+          role="tablist"
+          aria-label={currentGroup.label}
+          className="flex gap-0.5 overflow-x-auto"
+          onKeyDown={e => handleTabKeyDown(e, currentGroup.tabs)}
+        >
+          {currentGroup.tabs.map((t, idx) => {
+            const b = badge(t.key);
+            const isActive = subTab === t.key;
+            return (
+              <button
+                key={t.key}
+                role="tab"
+                id={`tab-${t.key}`}
+                aria-selected={isActive}
+                aria-controls={`tabpanel-${t.key}`}
+                tabIndex={isActive ? 0 : -1}
+                onClick={() => setSubTab(t.key)}
+                data-tab-idx={idx}
+                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+                  isActive
+                    ? 'border-hi-accent text-hi-accent bg-hi-accent/5'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                {t.icon}
+                {t.label}
+                {b !== null && (
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold leading-none ${isActive ? 'bg-hi-accent/20 text-hi-accent' : 'bg-gray-100 text-gray-500'}`}>
+                    {b}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 

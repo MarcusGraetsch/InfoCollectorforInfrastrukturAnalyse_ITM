@@ -64,6 +64,12 @@ export const Wizard: React.FC<Props> = ({ state, updateState, onImport, onGoToDa
   const [showForm, setShowForm] = useState(false);
   const importRef = React.useRef<HTMLInputElement>(null);
   const [showEmail, setShowEmail] = useState(false);
+  const [showTipp, setShowTipp] = useState(() => localStorage.getItem('it-sa-wizard-tipp-dismissed') !== '1');
+
+  const dismissTipp = () => {
+    localStorage.setItem('it-sa-wizard-tipp-dismissed', '1');
+    setShowTipp(false);
+  };
 
   const step = STEPS[stepIdx];
   const progress = Math.round(((stepIdx + 1) / STEPS.length) * 100);
@@ -160,6 +166,27 @@ export const Wizard: React.FC<Props> = ({ state, updateState, onImport, onGoToDa
                   für den späteren Cloud-Readiness-Workshop.
                 </p>
               </div>
+
+              {showTipp && (
+                <div className="bg-teal-50 border border-teal-200 rounded-lg p-4 flex items-start gap-3 text-sm text-gray-700">
+                  <div className="flex-1">
+                    <p className="font-semibold text-teal-800 mb-1">Was erwartet Sie?</p>
+                    <ul className="list-disc list-inside space-y-1 text-teal-900">
+                      <li>Alle Daten bleiben lokal im Browser – kein Server, kein Login.</li>
+                      <li>Sie erfassen Anwendungen, Server, Netz, Clients, Schutzbedarf und mehr.</li>
+                      <li>Am Ende erhalten Sie ein automatisches Cloud-Readiness-Scoring.</li>
+                      <li>Export als Excel, JSON oder druckbarer Bericht jederzeit möglich.</li>
+                    </ul>
+                  </div>
+                  <button
+                    onClick={dismissTipp}
+                    aria-label="Hinweis schließen"
+                    className="text-teal-600 hover:text-teal-900 text-lg leading-none mt-0.5 shrink-0"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-gray-700">
                 <p className="font-semibold text-blue-800 mb-1">So läuft die Erhebung ab:</p>
