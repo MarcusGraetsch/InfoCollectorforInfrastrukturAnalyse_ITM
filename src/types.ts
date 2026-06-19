@@ -26,6 +26,11 @@ export interface CloudFields {
   internetfaehig?: string;
   cloudEignung?: string;
   cloudNotiz?: string;
+  // Block 3 — EU-Cloud-Souveränitäts-Bewertung
+  cloudAnbieterJurisdiktion?: 'EU' | 'USA' | 'Gemischt' | 'Unklar';
+  verschluesselungshoheit?: 'Anbieter' | 'Eigene Schlüssel (BYOK)' | 'Hardware-Schlüssel (HYOK)' | 'Unklar';
+  portabilitaetsreife?: 'Hoch (Standard-Formate)' | 'Mittel' | 'Niedrig (proprietär)' | 'Unklar';
+  gaixZertifiziert?: 'Ja' | 'Nein' | 'Geplant' | 'Unklar';
 }
 
 export interface Geschaeftsprozess extends BaseItem {

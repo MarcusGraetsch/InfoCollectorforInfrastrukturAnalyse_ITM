@@ -482,6 +482,67 @@ export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose, 
             </div>
           </Field>
 
+          {/* Block 3 — EU-Cloud-Souveränitäts-Felder */}
+          <div className="rounded-xl border border-purple-100 bg-purple-50 p-4 space-y-4">
+            <p className="text-xs font-bold text-purple-800 uppercase tracking-wide">EU-Cloud-Souveränität</p>
+
+            <Field label="Cloud-Anbieter Jurisdiktion">
+              <div className="flex gap-2 flex-wrap">
+                {(['EU', 'USA', 'Gemischt', 'Unklar'] as const).map(o => (
+                  <QuickButton
+                    key={o}
+                    label={o}
+                    active={fields.cloudAnbieterJurisdiktion === o}
+                    onClick={() => setFields(prev => ({ ...prev, cloudAnbieterJurisdiktion: prev.cloudAnbieterJurisdiktion === o ? undefined : o }))}
+                    color={o === 'EU' ? 'green' : o === 'USA' ? 'red' : o === 'Gemischt' ? 'amber' : 'gray'}
+                  />
+                ))}
+              </div>
+            </Field>
+
+            <Field label="Verschlüsselungshoheit">
+              <div className="flex gap-2 flex-wrap">
+                {(['Anbieter', 'Eigene Schlüssel (BYOK)', 'Hardware-Schlüssel (HYOK)', 'Unklar'] as const).map(o => (
+                  <QuickButton
+                    key={o}
+                    label={o}
+                    active={fields.verschluesselungshoheit === o}
+                    onClick={() => setFields(prev => ({ ...prev, verschluesselungshoheit: prev.verschluesselungshoheit === o ? undefined : o }))}
+                    color={o === 'Anbieter' ? 'amber' : o === 'Eigene Schlüssel (BYOK)' ? 'green' : o === 'Hardware-Schlüssel (HYOK)' ? 'purple' : 'gray'}
+                  />
+                ))}
+              </div>
+            </Field>
+
+            <Field label="Portabilitätsreife">
+              <div className="flex gap-2 flex-wrap">
+                {(['Hoch (Standard-Formate)', 'Mittel', 'Niedrig (proprietär)', 'Unklar'] as const).map(o => (
+                  <QuickButton
+                    key={o}
+                    label={o}
+                    active={fields.portabilitaetsreife === o}
+                    onClick={() => setFields(prev => ({ ...prev, portabilitaetsreife: prev.portabilitaetsreife === o ? undefined : o }))}
+                    color={o === 'Hoch (Standard-Formate)' ? 'green' : o === 'Mittel' ? 'amber' : o === 'Niedrig (proprietär)' ? 'red' : 'gray'}
+                  />
+                ))}
+              </div>
+            </Field>
+
+            <Field label="Gaia-X / BSI C5 zertifiziert">
+              <div className="flex gap-2 flex-wrap">
+                {(['Ja', 'Nein', 'Geplant', 'Unklar'] as const).map(o => (
+                  <QuickButton
+                    key={o}
+                    label={o}
+                    active={fields.gaixZertifiziert === o}
+                    onClick={() => setFields(prev => ({ ...prev, gaixZertifiziert: prev.gaixZertifiziert === o ? undefined : o }))}
+                    color={o === 'Ja' ? 'green' : o === 'Nein' ? 'red' : o === 'Geplant' ? 'amber' : 'gray'}
+                  />
+                ))}
+              </div>
+            </Field>
+          </div>
+
           {fields.cloudNotiz && (
             <Field label="Bisherige Notizen">
               <div className="text-xs text-hi-slate bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 whitespace-pre-wrap max-h-28 overflow-y-auto">

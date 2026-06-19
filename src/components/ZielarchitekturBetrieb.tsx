@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import type { AppState } from '../types';
+import { assessSovereignty } from '../cloudReadiness';
 
 interface Props {
   state: AppState;
@@ -20,6 +21,8 @@ interface SystemEmpfehlung {
   rpo: string;
   besonderheit: string;
   schutzbedarf: string;
+  sovereignLevel: string;
+  sovereignLabel: string;
 }
 
 function deriveDeployment(item: { bereitstellung?: string; cloudEignung?: string }): string {
@@ -77,6 +80,7 @@ function buildSystemEmpfehlungen(state: AppState): SystemEmpfehlung[] {
       else if (item.cloudEignung?.includes('Repurchase'))  besonderheit = 'Datenmigration + User-Schulung erforderlich';
       else if (item.cloudEignung?.includes('Retain'))      besonderheit = 'Hybrid-Connectivity (VPN/ExpressRoute)';
 
+      const sovereign = assessSovereignty(item as import('../types').CloudFields);
       result.push({
         id: item.id,
         categoryKey: cat.key,
@@ -91,6 +95,8 @@ function buildSystemEmpfehlungen(state: AppState): SystemEmpfehlung[] {
         rpo: deriveRPO(item.schutzbedarf, item.cloudEignung),
         besonderheit,
         schutzbedarf: item.schutzbedarf || '–',
+        sovereignLevel: sovereign.level,
+        sovereignLabel: sovereign.label,
       });
     }
   }
@@ -246,6 +252,7 @@ export const ZielarchitekturBetrieb: React.FC<Props> = ({ state, onOpenCloudWiza
                     RPO
                   </Tooltip>
                 </th>
+                <th className="px-3 py-2.5 text-left font-medium w-24">Souveränität</th>
                 <th className="px-3 py-2.5 text-left font-medium">
                   <Tooltip text="Automatisch abgeleiteter Hinweis: Bei 'Sehr hoch' → Confidential Computing (verschlüsselte Ausführungsumgebung) prüfen. Bei 'Refactor' → erheblicher Umbauaufwand. Bei 'Repurchase' → SaaS-Ablösung mit Datenmigration. Bei 'Retain' → Hybrid-Anbindung via VPN oder ExpressRoute nötig.">
                     Besonderheit
@@ -276,6 +283,14 @@ export const ZielarchitekturBetrieb: React.FC<Props> = ({ state, onOpenCloudWiza
                   <td className="px-3 py-2.5 text-gray-600">{s.backupStrategie}</td>
                   <td className="px-3 py-2.5 text-center text-gray-700 font-mono">{s.rto}</td>
                   <td className="px-3 py-2.5 text-center text-gray-700 font-mono">{s.rpo}</td>
+                  <td className="px-3 py-2.5">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      s.sovereignLevel === 'S3' ? 'bg-red-100 text-red-800' :
+                      s.sovereignLevel === 'S2' ? 'bg-purple-100 text-purple-800' :
+                      s.sovereignLevel === 'S1' ? 'bg-blue-100 text-blue-800' :
+                      'bg-gray-100 text-gray-500'
+                    }`}>{s.sovereignLevel}</span>
+                  </td>
                   <td className="px-3 py-2.5 text-gray-500 italic">{s.besonderheit || <span className="not-italic text-gray-300">–</span>}</td>
                 </tr>
               ))}
