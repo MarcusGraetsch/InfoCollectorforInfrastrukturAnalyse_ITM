@@ -54,6 +54,10 @@ export interface Anwendung extends BaseItem, CloudFields {
   anwendungen: string[];
   itSysteme: string[];
   netzverbindungen: string[];
+  lizenzAnbieter?: string;
+  lizenzmodell?: string;
+  lizenzkosten?: string;
+  vertragsende?: string;
 }
 
 export interface Datentraeger extends BaseItem {
@@ -188,6 +192,14 @@ export interface Meeting {
 
 export type LiefergegenstandStatus = 'Offen' | 'In Arbeit' | 'Abgenommen';
 
+export interface LGAnhang {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  addedAt: string;
+}
+
 export interface Liefergegenstand {
   id: number;
   phase: string;
@@ -197,6 +209,7 @@ export interface Liefergegenstand {
   status: LiefergegenstandStatus;
   faelligAm: string;
   notizen: string;
+  anhaenge: LGAnhang[];
 }
 
 /** Vom Kunden bereits gelieferte Unterlagen (Phase A der Erhebung). */
@@ -218,11 +231,36 @@ export interface CloudStrategyMeta {
   notizen: string;
 }
 
+export interface TCOIstkostenBlock {
+  hardware: string;
+  lizenzen: string;
+  personalBetrieb: string;
+  wartung: string;
+  raumEnergie: string;
+  sonstiges: string;
+}
+
+export interface TCOZielkostenBlock {
+  cloudInfrastruktur: string;
+  lizenzenSaaS: string;
+  personalCloud: string;
+  migration: string;
+  sonstiges: string;
+}
+
+export interface TCODaten {
+  zeithorizont: string;
+  istkostenOnPrem: TCOIstkostenBlock;
+  zielkostenCloud: TCOZielkostenBlock;
+  notizen: string;
+}
+
 export interface AppState {
   customerName: string;
   lastUpdated: string;
   cloudStrategy: CloudStrategyMeta;
   quelldokumente: Quelldokument[];
+  tcoData: TCODaten;
   liefergegenstaende: Liefergegenstand[];
   stakeholder: Stakeholder[];
   meetings: Meeting[];
@@ -242,5 +280,5 @@ export interface AppState {
 
 export type CategoryKey = keyof Omit<
   AppState,
-  'customerName' | 'lastUpdated' | 'cloudStrategy' | 'quelldokumente'
+  'customerName' | 'lastUpdated' | 'cloudStrategy' | 'quelldokumente' | 'tcoData'
 >;

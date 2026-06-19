@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import type { AppState, Liefergegenstand, Meeting, MeetingTOP, Stakeholder } from '../types';
+import type { AppState, Anwendung, Liefergegenstand, Meeting, MeetingTOP, Stakeholder, TCODaten } from '../types';
 import { ProjectTracker } from './ProjectTracker';
 import { StakeholderRegister } from './StakeholderRegister';
 import { MeetingProtokolle } from './MeetingProtokolle';
@@ -7,94 +7,70 @@ import { InfrastrukturBericht } from './InfrastrukturBericht';
 import { InterviewFragenliste } from './InterviewFragenliste';
 import { ExecutiveSummary } from './ExecutiveSummary';
 import { TOPsUebersicht } from './TOPsUebersicht';
+import { InfrastrukturLandkarte } from './InfrastrukturLandkarte';
+import { LizenzKostenAnalyse } from './LizenzKostenAnalyse';
+import { TCOModell } from './TCOModell';
+import { SecurityGovernanceArchitektur } from './SecurityGovernanceArchitektur';
+import { ZielarchitekturBetrieb } from './ZielarchitekturBetrieb';
 import { countItemsWithOpenFields } from '../cloudFields';
 
-type SubTab = 'liefergegenstaende' | 'stakeholder' | 'meetings' | 'tops' | 'fragenliste' | 'bericht' | 'executive';
+type SubTab =
+  | 'liefergegenstaende' | 'stakeholder' | 'meetings' | 'tops'
+  | 'fragenliste' | 'landkarte' | 'lizenz' | 'tco' | 'security' | 'zielarchitektur'
+  | 'bericht' | 'executive';
 
 interface Props {
   state: AppState;
   onUpdateLG: (id: number, changes: Partial<Liefergegenstand>) => void;
   onUpdateStakeholder: (stakeholder: Stakeholder[]) => void;
   onUpdateMeetings: (meetings: Meeting[]) => void;
+  onUpdateAnwendung: (id: string, changes: Partial<Anwendung>) => void;
+  onUpdateTCO: (tco: TCODaten) => void;
 }
 
 const GROUPS = [
   {
     label: 'Projektsteuerung',
     tabs: [
-      {
-        key: 'liefergegenstaende' as SubTab,
-        label: 'Liefergegenstände',
-        icon: (
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        ),
-      },
-      {
-        key: 'stakeholder' as SubTab,
-        label: 'Stakeholder',
-        icon: (
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-        ),
-      },
-      {
-        key: 'meetings' as SubTab,
-        label: 'Protokolle',
-        icon: (
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-        ),
-      },
-      {
-        key: 'tops' as SubTab,
-        label: 'Aktionspunkte',
-        icon: (
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-          </svg>
-        ),
-      },
+      { key: 'liefergegenstaende' as SubTab, label: 'Liefergegenstände',
+        icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
+      { key: 'stakeholder' as SubTab, label: 'Stakeholder',
+        icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg> },
+      { key: 'meetings' as SubTab, label: 'Protokolle',
+        icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> },
+      { key: 'tops' as SubTab, label: 'Aktionspunkte',
+        icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg> },
     ],
   },
   {
-    label: 'Liefergegenstände',
+    label: 'Analyse & Strategie',
     tabs: [
-      {
-        key: 'fragenliste' as SubTab,
-        label: 'Fragenliste (LG 4)',
-        icon: (
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        ),
-      },
-      {
-        key: 'bericht' as SubTab,
-        label: 'Infra-Bericht (LG 2/3)',
-        icon: (
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-          </svg>
-        ),
-      },
-      {
-        key: 'executive' as SubTab,
-        label: 'Executive Summary (LG 14)',
-        icon: (
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-          </svg>
-        ),
-      },
+      { key: 'fragenliste' as SubTab, label: 'Fragenliste (LG 4)',
+        icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
+      { key: 'landkarte' as SubTab, label: 'Landkarte (LG 3)',
+        icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg> },
+      { key: 'lizenz' as SubTab, label: 'Lizenz & Kosten (LG 5)',
+        icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" /></svg> },
+      { key: 'tco' as SubTab, label: 'TCO-Modell (LG 6)',
+        icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg> },
+      { key: 'security' as SubTab, label: 'Security & Gov. (LG 9)',
+        icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg> },
+      { key: 'zielarchitektur' as SubTab, label: 'Zielarchitektur (LG 10)',
+        icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg> },
+    ],
+  },
+  {
+    label: 'Berichte',
+    tabs: [
+      { key: 'bericht' as SubTab, label: 'Infra-Bericht (LG 2/3)',
+        icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg> },
+      { key: 'executive' as SubTab, label: 'Executive Summary (LG 14)',
+        icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg> },
     ],
   },
 ];
 
-export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeholder, onUpdateMeetings }) => {
+export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeholder, onUpdateMeetings, onUpdateAnwendung, onUpdateTCO }) => {
   const [subTab, setSubTab] = useState<SubTab>('liefergegenstaende');
 
   const lgStats = {
@@ -124,18 +100,22 @@ export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeh
     if (key === 'meetings' && state.meetings.length > 0) return `${state.meetings.length}`;
     if (key === 'tops' && offeneTOPs > 0) return `${offeneTOPs}`;
     if (key === 'fragenliste' && offeneFelder > 0) return `${offeneFelder}`;
+    if (key === 'lizenz' && state.anwendungen.length > 0) return `${state.anwendungen.length}`;
+    if (key === 'landkarte') {
+      const total = (['anwendungen','server','clients','netzkomponenten'] as const).reduce((n, k) => n + state[k].length, 0);
+      return total > 0 ? `${total}` : null;
+    }
     return null;
   };
 
   return (
     <div className="h-full flex flex-col">
-      {/* Sub-Navigation — zweizeilig gruppiert */}
       <div className="bg-white border-b border-gray-200 px-4 pt-3 pb-0 flex-shrink-0">
         <div className="flex flex-wrap gap-x-6 gap-y-0">
           {GROUPS.map(group => (
             <div key={group.label}>
               <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 px-1 mb-1">{group.label}</p>
-              <div className="flex gap-0.5">
+              <div className="flex gap-0.5 flex-wrap">
                 {group.tabs.map(t => {
                   const b = badge(t.key);
                   return (
@@ -151,9 +131,7 @@ export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeh
                       {t.icon}
                       {t.label}
                       {b !== null && (
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold leading-none ${
-                          subTab === t.key ? 'bg-hi-accent/20 text-hi-accent' : 'bg-gray-100 text-gray-500'
-                        }`}>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold leading-none ${subTab === t.key ? 'bg-hi-accent/20 text-hi-accent' : 'bg-gray-100 text-gray-500'}`}>
                           {b}
                         </span>
                       )}
@@ -166,13 +144,17 @@ export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeh
         </div>
       </div>
 
-      {/* Content */}
       <div className="flex-1 overflow-y-auto bg-hi-gray">
         {subTab === 'liefergegenstaende' && <ProjectTracker state={state} onUpdateLG={onUpdateLG} />}
         {subTab === 'stakeholder'        && <StakeholderRegister state={state} onUpdate={onUpdateStakeholder} />}
         {subTab === 'meetings'           && <MeetingProtokolle state={state} onUpdate={onUpdateMeetings} />}
         {subTab === 'tops'               && <TOPsUebersicht state={state} onUpdateTOP={handleUpdateTOP} />}
         {subTab === 'fragenliste'        && <InterviewFragenliste state={state} />}
+        {subTab === 'landkarte'          && <InfrastrukturLandkarte state={state} />}
+        {subTab === 'lizenz'             && <LizenzKostenAnalyse state={state} onUpdateAnwendung={onUpdateAnwendung} />}
+        {subTab === 'tco'                && <TCOModell state={state} onUpdate={onUpdateTCO} />}
+        {subTab === 'security'           && <SecurityGovernanceArchitektur state={state} />}
+        {subTab === 'zielarchitektur'    && <ZielarchitekturBetrieb state={state} />}
         {subTab === 'bericht'            && <InfrastrukturBericht state={state} />}
         {subTab === 'executive'          && <ExecutiveSummary state={state} />}
       </div>

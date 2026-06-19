@@ -17,7 +17,7 @@ import { EmailTemplate } from './components/EmailTemplate';
 import { CloudReadinessWizard } from './components/CloudReadinessWizard';
 import { OffenePunkte } from './components/OffenePunkte';
 import { ProjectView } from './components/ProjectView';
-import type { Liefergegenstand, Meeting, Stakeholder } from './types';
+import type { Liefergegenstand, Meeting, Stakeholder, Anwendung, TCODaten } from './types';
 import type { RowClassification } from './utils/importAnalyzer';
 import type { CloudFields } from './types';
 import { syncBidirectionalLinks } from './utils/bidirectional';
@@ -245,6 +245,13 @@ function App() {
               }))}
               onUpdateStakeholder={stakeholder => updateState(prev => ({ ...prev, stakeholder } as AppState & { stakeholder: Stakeholder[] }))}
               onUpdateMeetings={meetings => updateState(prev => ({ ...prev, meetings } as AppState & { meetings: Meeting[] }))}
+              onUpdateAnwendung={(id, changes) => updateState(prev => ({
+                ...prev,
+                anwendungen: prev.anwendungen.map(a =>
+                  a.id === id ? { ...a, ...changes } as Anwendung : a
+                ),
+              }))}
+              onUpdateTCO={(tco: TCODaten) => updateState(prev => ({ ...prev, tcoData: tco }))}
             />
           </div>
         )}
