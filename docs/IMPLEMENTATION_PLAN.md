@@ -14,7 +14,7 @@ Dieses Dokument ist als **Arbeitsanweisung** formuliert: Jede Session kann einen
 - [x] **Block 2** — NIS2-/BSIG-Readiness-Check *(erledigt 2026-06-19)*
 - [ ] **Block 3** — EU-Cloud-Souveränitäts-Bewertung (SEAL/Gaia-X)
 - [ ] **Block 4** — CIA-Triade & Schutzbedarfsvererbung
-- [ ] **Block 5** — EU AI Act Inventar & Shadow-AI
+- [x] **Block 5** — EU AI Act Inventar & Shadow-AI *(erledigt 2026-06-19)*
 - [ ] **Block 6** — FinOps: Szenarien & AI-Kosten
 - [ ] **Block 7** — EnEfG / CO₂ Nachhaltigkeitsmodul
 - [ ] **Block 8** — DORA IKT-Drittparteien-Register
@@ -317,7 +317,9 @@ export function berechneVererbung(state: AppState): AppState
 
 ---
 
-## BLOCK 5 — EU AI Act Inventar & Shadow-AI-Discovery
+## BLOCK 5 — EU AI Act Inventar & Shadow-AI-Discovery ✅ ERLEDIGT
+
+> **Status:** Umgesetzt am 2026-06-19. Dateien: `src/compliance/euAiAct.ts` (Shadow-AI-Heuristik, Risikoklassen-Erklärungen, Inventar-Summary), `src/components/EuAiActInventar.tsx` (Shadow-AI-Banner, KPIs, Inline-Klassifizierung, CSV-Register-Export). `Anwendung` in `types.ts` um optionale AI-Felder erweitert. Eingebunden als SubTab `'euaiact'` (Gruppe „Compliance & Regulatorik"). Abweichung: Register-Export als CSV (abhängigkeitsfrei, import-tauglich) statt Excel; Klassifizierung erfolgt inline in der Tabelle statt in separatem Editor.
 
 **Ziel:** Alle KI-Systeme im Anwendungsbestand identifizieren, risikoklassifizieren (Art. 6/7 EU AI Act) und ein EU-AI-Act-konformes Register exportieren.
 

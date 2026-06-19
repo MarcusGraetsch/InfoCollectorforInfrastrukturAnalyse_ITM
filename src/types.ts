@@ -58,6 +58,14 @@ export interface Anwendung extends BaseItem, CloudFields {
   lizenzmodell?: string;
   lizenzkosten?: string;
   vertragsende?: string;
+  // EU AI Act (Block 5) — alle optional
+  istKISystem?: boolean;
+  aiRisikoklasse?: 'Verboten' | 'Hoch' | 'Begrenzt' | 'Minimal' | 'Kein KI' | 'Unklar';
+  aiRolle?: 'Anbieter' | 'Betreiber' | 'Beides' | 'Unklar';
+  aiTrainingsdaten?: 'Interne Daten' | 'Öffentliche Daten' | 'Drittanbieter' | 'Unklar';
+  aiMenschlicheAufsicht?: 'Vollständig' | 'Teilweise' | 'Keine' | 'Unklar';
+  aiLoggingVorhanden?: 'Ja' | 'Nein' | 'Teilweise' | 'Unklar';
+  aiNotizen?: string;
 }
 
 export interface Datentraeger extends BaseItem {
