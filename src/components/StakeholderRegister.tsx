@@ -19,6 +19,7 @@ const LG_LABELS: Record<number, string> = {
 export const StakeholderRegister: React.FC<Props> = ({ state, onUpdate }) => {
   const [editId, setEditId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
   const [newSh, setNewSh] = useState<Omit<Stakeholder, 'id'>>({
     name: '', rolle: '', bereich: '', email: '', telefon: '', lgIds: [], notizen: '',
   });
@@ -50,23 +51,87 @@ export const StakeholderRegister: React.FC<Props> = ({ state, onUpdate }) => {
     onUpdate(stakeholder.filter(s => s.id !== id));
   };
 
+  // LGs ohne zugewiesenen Stakeholder
+  const uncoveredLGs = lgs.filter(lg => !stakeholder.some(s => s.lgIds.includes(lg.id)));
+  // Stakeholder ohne E-Mail
+  const missingEmail = stakeholder.filter(s => s.name.trim() && !s.email.trim());
+
+  const handlePrint = () => {
+    const rows = stakeholder.filter(s => s.name.trim()).map(s =>
+      `<tr>
+        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb">${s.name}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb">${s.rolle}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb">${s.bereich}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb">${s.email}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb">${s.telefon}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb">${s.lgIds.map(id => `LG ${id}`).join(', ')}</td>
+      </tr>`
+    ).join('');
+    const win = window.open('', '_blank');
+    if (!win) return;
+    win.document.write(`<!DOCTYPE html><html><head><title>Stakeholder – ${state.customerName}</title>
+      <style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h1{font-size:18px;margin-bottom:4px}
+      p{color:#6b7280;font-size:13px;margin-bottom:16px}table{border-collapse:collapse;width:100%}
+      th{background:#1e3a5f;color:#fff;padding:8px 10px;text-align:left;font-size:12px}
+      td{font-size:12px;color:#374151}tr:nth-child(even) td{background:#f9fafb}</style></head>
+      <body><h1>Stakeholder-Register</h1><p>${state.customerName} · Stand: ${new Date().toLocaleDateString('de-DE')}</p>
+      <table><thead><tr><th>Name</th><th>Rolle</th><th>Bereich</th><th>E-Mail</th><th>Telefon</th><th>Zuständig</th></tr></thead>
+      <tbody>${rows}</tbody></table></body></html>`);
+    win.document.close();
+    win.print();
+  };
+
   return (
     <div className="p-6 space-y-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h2 className="text-2xl font-bold text-hi-navy mb-1">Stakeholder-Register</h2>
           <p className="text-sm text-gray-500">Ansprechpartner auf Kundenseite mit Zuständigkeiten je Liefergegenstand</p>
         </div>
-        <button
-          onClick={() => setShowAdd(!showAdd)}
-          className="flex items-center gap-2 px-4 py-2 bg-hi-accent text-white rounded-lg text-sm font-medium hover:bg-hi-accent/90 transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          Person hinzufügen
-        </button>
+        <div className="flex gap-2 flex-wrap">
+          {(uncoveredLGs.length > 0 || missingEmail.length > 0) && (
+            <button
+              onClick={() => setShowEmailModal(true)}
+              className="flex items-center gap-2 px-3 py-2 bg-amber-50 text-amber-700 border border-amber-300 rounded-lg text-sm font-medium hover:bg-amber-100 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              E-Mail: fehlende Kontakte
+              <span className="bg-amber-200 text-amber-800 text-xs px-1.5 py-0.5 rounded-full font-bold">
+                {uncoveredLGs.length + missingEmail.length}
+              </span>
+            </button>
+          )}
+          <button
+            onClick={handlePrint}
+            className="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            Drucken / PDF
+          </button>
+          <button
+            onClick={() => setShowAdd(!showAdd)}
+            className="flex items-center gap-2 px-4 py-2 bg-hi-accent text-white rounded-lg text-sm font-medium hover:bg-hi-accent/90 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Person hinzufügen
+          </button>
+        </div>
       </div>
+
+      {showEmailModal && (
+        <StakeholderEmailModal
+          customerName={state.customerName}
+          uncoveredLGs={uncoveredLGs}
+          missingEmail={missingEmail}
+          onClose={() => setShowEmailModal(false)}
+        />
+      )}
 
       {showAdd && (
         <AddForm
@@ -230,6 +295,89 @@ const Field: React.FC<FieldProps> = ({ label, value, onChange, placeholder, type
     />
   </div>
 );
+
+interface EmailModalProps {
+  customerName: string;
+  uncoveredLGs: import('../types').Liefergegenstand[];
+  missingEmail: import('../types').Stakeholder[];
+  onClose: () => void;
+}
+
+const StakeholderEmailModal: React.FC<EmailModalProps> = ({ customerName, uncoveredLGs, missingEmail, onClose }) => {
+  const lgList = uncoveredLGs.map(lg => `  - LG ${lg.id}: ${lg.titel}`).join('\n');
+  const emailList = missingEmail.map(s => `  - ${s.name} (${s.rolle})`).join('\n');
+
+  const emailText = `Betreff: Ansprechpartner Infrastruktur-Analyse – ${customerName || 'Ihr Unternehmen'}
+
+Guten Tag,
+
+im Rahmen unserer gemeinsamen Infrastrukturanalyse benötigen wir noch Ansprechpartner für die folgenden Liefergegenstände:
+
+${lgList || '  (alle abgedeckt)'}
+
+${missingEmail.length > 0 ? `Außerdem fehlt uns noch die E-Mail-Adresse der folgenden Personen:\n${emailList}\n\n` : ''}Könnten Sie uns bitte die zuständigen Ansprechpartner (Name, Rolle, E-Mail, Telefon) mitteilen?
+
+Mit freundlichen Grüßen`;
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(emailText).then(() => alert('E-Mail-Text kopiert!'));
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100">
+          <h3 className="text-lg font-bold text-hi-navy">E-Mail: Fehlende Stakeholder anfragen</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div className="p-6 space-y-4">
+          {uncoveredLGs.length > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <p className="text-xs font-semibold text-amber-800 mb-1">LGs ohne Ansprechpartner ({uncoveredLGs.length})</p>
+              <div className="flex flex-wrap gap-1">
+                {uncoveredLGs.map(lg => (
+                  <span key={lg.id} className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">LG {lg.id}: {lg.titel}</span>
+                ))}
+              </div>
+            </div>
+          )}
+          {missingEmail.length > 0 && (
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+              <p className="text-xs font-semibold text-orange-800 mb-1">Stakeholder ohne E-Mail ({missingEmail.length})</p>
+              <div className="flex flex-wrap gap-1">
+                {missingEmail.map(s => (
+                  <span key={s.id} className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">{s.name}</span>
+                ))}
+              </div>
+            </div>
+          )}
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Entwurf (bearbeitbar)</label>
+            <textarea
+              defaultValue={emailText}
+              rows={14}
+              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 font-mono focus:ring-2 focus:ring-hi-accent outline-none resize-none"
+            />
+          </div>
+          <div className="flex gap-3 justify-end">
+            <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Schließen</button>
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-2 px-4 py-2 bg-hi-navy text-white rounded-lg text-sm font-medium hover:bg-hi-navy/90"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              Text kopieren
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 interface AddFormProps {
   value: Omit<Stakeholder, 'id'>;

@@ -37,6 +37,7 @@ export const LizenzKostenAnalyse: React.FC<Props> = ({ state, onUpdateAnwendung 
   const [filterRisiko, setFilterRisiko] = useState<string>('Alle');
   const [editId, setEditId] = useState<string | null>(null);
   const [editFields, setEditFields] = useState<Partial<Anwendung>>({});
+  const [showRenewalEmail, setShowRenewalEmail] = useState(false);
 
   const anwendungen = state.anwendungen;
 
@@ -106,11 +107,33 @@ export const LizenzKostenAnalyse: React.FC<Props> = ({ state, onUpdateAnwendung 
           <h2 className="text-2xl font-bold text-hi-navy mb-1">Lizenz- und Kostenanalyse (LG 5)</h2>
           <p className="text-sm text-gray-500">Lizenzmodelle, Vertragsstrukturen und Betriebskosten aller Anwendungen</p>
         </div>
+        <div className="flex gap-2 flex-wrap">
+        {stats.auslaufend > 0 && (
+          <button
+            onClick={() => setShowRenewalEmail(true)}
+            className="flex items-center gap-2 px-3 py-2 bg-amber-50 text-amber-700 border border-amber-300 rounded-lg text-sm font-medium hover:bg-amber-100 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Verlängerungs-E-Mail
+            <span className="bg-amber-200 text-amber-800 text-xs px-1.5 py-0.5 rounded-full font-bold">{stats.auslaufend}</span>
+          </button>
+        )}
         <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-hi-navy text-white rounded-lg text-sm font-medium hover:bg-hi-navy/90">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
           Drucken / PDF
         </button>
+        </div>
       </div>
+
+      {showRenewalEmail && (
+        <RenewalEmailModal
+          customerName={state.customerName}
+          anwendungen={anwendungen}
+          onClose={() => setShowRenewalEmail(false)}
+        />
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -224,6 +247,100 @@ export const LizenzKostenAnalyse: React.FC<Props> = ({ state, onUpdateAnwendung 
         Risikoampel: Nicht cloudfähige Lizenz + Vertragsende &lt; 6 Monate + Hohe Migrationskomplexität = Hoch.
         Felder können direkt in der Tabelle bearbeitet werden (Stift-Icon).
       </p>
+    </div>
+  );
+};
+
+interface RenewalEmailProps {
+  customerName: string;
+  anwendungen: Anwendung[];
+  onClose: () => void;
+}
+
+const RenewalEmailModal: React.FC<RenewalEmailProps> = ({ customerName, anwendungen, onClose }) => {
+  const heute = new Date();
+  const auslaufend = anwendungen
+    .filter(a => {
+      if (!a.vertragsende) return false;
+      const monate = (new Date(a.vertragsende).getTime() - heute.getTime()) / (1000 * 60 * 60 * 24 * 30);
+      return monate < 12;
+    })
+    .sort((a, b) => (a.vertragsende ?? '').localeCompare(b.vertragsende ?? ''));
+
+  const listLines = auslaufend.map(a => {
+    const monate = Math.round((new Date(a.vertragsende!).getTime() - heute.getTime()) / (1000 * 60 * 60 * 24 * 30));
+    const datum = new Date(a.vertragsende!).toLocaleDateString('de-DE');
+    return `  - ${a.name}${a.lizenzAnbieter ? ` (${a.lizenzAnbieter})` : ''}: Vertragsende ${datum} (in ca. ${monate} Monat${monate !== 1 ? 'en' : ''})`;
+  }).join('\n');
+
+  const emailText = `Betreff: Lizenzverträge mit Handlungsbedarf – ${customerName || 'Ihr Unternehmen'}
+
+Guten Tag,
+
+im Rahmen unserer Lizenz- und Kostenanalyse haben wir folgende Anwendungen identifiziert, deren Verträge in den nächsten 12 Monaten auslaufen:
+
+${listLines}
+
+Wir empfehlen, frühzeitig mit den jeweiligen Anbietern in Verhandlungen zu treten — insbesondere dann, wenn im Zuge der Cloud-Migration eine Umstellung des Lizenzmodells geplant ist (z.B. von Perpetual auf Subscription oder SaaS).
+
+Bitte prüfen Sie für diese Verträge:
+  1. Verlängerung zu aktuellen Konditionen (Kosten, Laufzeit)
+  2. Migration auf Cloud-natives Modell vor Vertragsende
+  3. Ablösung durch alternative Lösung
+
+Wir stehen für eine Abstimmung der nächsten Schritte gern zur Verfügung.
+
+Mit freundlichen Grüßen`;
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(emailText).then(() => alert('E-Mail-Text kopiert!'));
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100">
+          <div>
+            <h3 className="text-lg font-bold text-hi-navy">Verlängerungs-E-Mail</h3>
+            <p className="text-xs text-gray-500 mt-0.5">{auslaufend.length} Vertrag{auslaufend.length !== 1 ? 'e' : ''} mit Ablauf in &lt;12 Monaten</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {auslaufend.map(a => {
+              const monate = Math.round((new Date(a.vertragsende!).getTime() - heute.getTime()) / (1000 * 60 * 60 * 24 * 30));
+              return (
+                <span key={a.id} className={`text-xs px-2 py-1 rounded-full border font-medium ${monate < 3 ? 'bg-red-100 text-red-700 border-red-200' : 'bg-amber-100 text-amber-700 border-amber-200'}`}>
+                  {a.name} · {monate}M
+                </span>
+              );
+            })}
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Entwurf (bearbeitbar)</label>
+            <textarea
+              defaultValue={emailText}
+              rows={16}
+              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 font-mono focus:ring-2 focus:ring-hi-accent outline-none resize-none"
+            />
+          </div>
+          <div className="flex gap-3 justify-end">
+            <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Schließen</button>
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-2 px-4 py-2 bg-hi-navy text-white rounded-lg text-sm font-medium hover:bg-hi-navy/90"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              Text kopieren
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
