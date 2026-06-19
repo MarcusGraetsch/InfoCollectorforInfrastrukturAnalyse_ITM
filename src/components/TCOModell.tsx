@@ -36,6 +36,50 @@ export const TCOModell: React.FC<Props> = ({ state, onUpdate }) => {
   const jahre = Math.max(1, parseInt(tco.zeithorizont) || 5);
   const [showRichtwerte, setShowRichtwerte] = useState(false);
   const [showLogik, setShowLogik] = useState(false);
+  const [showSchätzPreview, setShowSchätzPreview] = useState(false);
+  const [schätzWerte, setSchätzWerte] = useState<null | { lizenzen: number; hardware: number; raumEnergie: number; wartung: number; cloudInfrastruktur: number; lizenzenSaaS: number; }>(null);
+
+  const berechneSchätzung = () => {
+    const anwendungen = state.anwendungen ?? [];
+    const server = state.server ?? [];
+    const serverCount = server.length;
+    const lizenzSumme = anwendungen.reduce((s, a) => {
+      return s + (parseFloat((a.lizenzkosten || '0').replace(/[^0-9.,]/g, '').replace(',', '.')) || 0);
+    }, 0);
+    const saasLizenzen = anwendungen
+      .filter(a => a.bereitstellung?.toLowerCase().includes('saas') || a.lizenzmodell?.toLowerCase().includes('saas') || a.lizenzmodell?.toLowerCase().includes('subscription'))
+      .reduce((s, a) => s + (parseFloat((a.lizenzkosten || '0').replace(/[^0-9.,]/g, '').replace(',', '.')) || 0), 0);
+    setSchätzWerte({
+      lizenzen: Math.round(lizenzSumme),
+      hardware: Math.round(serverCount * 15000),
+      raumEnergie: Math.round(serverCount * 3500),
+      wartung: Math.round(serverCount * 2500),
+      cloudInfrastruktur: Math.round(serverCount * 6000),
+      lizenzenSaaS: Math.round(saasLizenzen),
+    });
+    setShowSchätzPreview(true);
+  };
+
+  const übernehmeSchätzung = () => {
+    if (!schätzWerte) return;
+    const updated = {
+      ...tco,
+      istkostenOnPrem: {
+        ...tco.istkostenOnPrem,
+        lizenzen: schätzWerte.lizenzen > 0 ? `${schätzWerte.lizenzen} €` : tco.istkostenOnPrem.lizenzen,
+        hardware: schätzWerte.hardware > 0 ? `${schätzWerte.hardware} €` : tco.istkostenOnPrem.hardware,
+        raumEnergie: schätzWerte.raumEnergie > 0 ? `${schätzWerte.raumEnergie} €` : tco.istkostenOnPrem.raumEnergie,
+        wartung: schätzWerte.wartung > 0 ? `${schätzWerte.wartung} €` : tco.istkostenOnPrem.wartung,
+      },
+      zielkostenCloud: {
+        ...tco.zielkostenCloud,
+        cloudInfrastruktur: schätzWerte.cloudInfrastruktur > 0 ? `${schätzWerte.cloudInfrastruktur} €` : tco.zielkostenCloud.cloudInfrastruktur,
+        lizenzenSaaS: schätzWerte.lizenzenSaaS > 0 ? `${schätzWerte.lizenzenSaaS} €` : tco.zielkostenCloud.lizenzenSaaS,
+      },
+    };
+    onUpdate(updated);
+    setShowSchätzPreview(false);
+  };
 
   const set = (path: string, val: string) => {
     const parts = path.split('.');
@@ -107,6 +151,10 @@ export const TCOModell: React.FC<Props> = ({ state, onUpdate }) => {
           <p className="text-sm text-gray-500">Vergleich On-Premises vs. Cloud über mehrere Jahre</p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <button onClick={berechneSchätzung} className="flex items-center gap-1.5 px-3 py-2 text-xs bg-teal-50 text-teal-700 border border-teal-200 rounded-lg hover:bg-teal-100">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+            Aus Infrastrukturdaten schätzen
+          </button>
           <button onClick={() => setShowLogik(s => !s)} className="flex items-center gap-1.5 px-3 py-2 text-xs bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100">
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
             Berechnung
@@ -121,6 +169,50 @@ export const TCOModell: React.FC<Props> = ({ state, onUpdate }) => {
           </button>
         </div>
       </div>
+
+      {showSchätzPreview && schätzWerte && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowSchätzPreview(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100">
+              <div>
+                <h3 className="text-lg font-bold text-hi-navy">Schätzung aus Infrastrukturdaten</h3>
+                <p className="text-xs text-gray-500 mt-0.5">{state.server?.length ?? 0} Server · {state.anwendungen?.length ?? 0} Anwendungen</p>
+              </div>
+              <button onClick={() => setShowSchätzPreview(false)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-xs text-gray-500">Basierend auf erfassten Servern (×Richtwerte) und Lizenzkosten aus Anwendungen. Nur Felder mit Wert &gt; 0 werden überschrieben.</p>
+              <div className="space-y-2 text-sm">
+                <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Ist-Kosten On-Prem</p>
+                {([['Lizenzen / Software', schätzWerte.lizenzen, 'Σ Lizenzkosten Anwendungen'],['Hardware / Abschreibung', schätzWerte.hardware, `${state.server?.length ?? 0} Server × 15.000 €`],['Raum / Energie / Kühlung', schätzWerte.raumEnergie, `${state.server?.length ?? 0} Server × 3.500 €`],['Wartung / Support', schätzWerte.wartung, `${state.server?.length ?? 0} Server × 2.500 €`]] as [string,number,string][]).map(([l,v,h]) => (
+                  <div key={l} className="flex items-center justify-between gap-2">
+                    <span className="text-gray-600 flex-1">{l}</span>
+                    <span className="text-xs text-gray-400">{h}</span>
+                    <span className="font-mono font-medium text-hi-navy w-28 text-right">{v > 0 ? `${v.toLocaleString('de-DE')} €` : '–'}</span>
+                  </div>
+                ))}
+                <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide pt-2">Ziel-Kosten Cloud</p>
+                {([['Cloud-Infrastruktur (IaaS)', schätzWerte.cloudInfrastruktur, `${state.server?.length ?? 0} Server × 6.000 €/J.`],['Lizenzen / SaaS', schätzWerte.lizenzenSaaS, 'SaaS-Anwendungen']] as [string,number,string][]).map(([l,v,h]) => (
+                  <div key={l} className="flex items-center justify-between gap-2">
+                    <span className="text-gray-600 flex-1">{l}</span>
+                    <span className="text-xs text-gray-400">{h}</span>
+                    <span className="font-mono font-medium text-blue-700 w-28 text-right">{v > 0 ? `${v.toLocaleString('de-DE')} €` : '–'}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">Diese Werte sind grobe Schätzungen auf Basis von Richtwerten. Bitte mit echten Kostendaten des Kunden abgleichen!</p>
+              <div className="flex gap-3 justify-end">
+                <button onClick={() => setShowSchätzPreview(false)} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Abbrechen</button>
+                <button onClick={übernehmeSchätzung} className="flex items-center gap-2 px-4 py-2 bg-hi-navy text-white rounded-lg text-sm font-medium hover:bg-hi-navy/90">
+                  Werte übernehmen
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showLogik && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2 text-sm text-amber-900">
@@ -147,34 +239,34 @@ export const TCOModell: React.FC<Props> = ({ state, onUpdate }) => {
               <div>
                 <p className="font-semibold mb-1">Hardware / Abschreibung (On-Prem)</p>
                 <p>Standard-Server (2-Socket): 8.000–25.000 € Anschaffung, Abschreibung über 4–5 Jahre → 1.600–5.000 €/Jahr. Storage (SAN, 10 TB): 20.000–60.000 €, Abschreibung 5 J.</p>
-                <p className="text-blue-600 mt-1">Quelle: Dell/HPE Listenpreise; Gartner IT Key Metrics Data</p>
+                <p className="text-blue-600 mt-1">Quelle: <a href="https://www.dell.com/de-de/shop/servers-storage-and-networking/sc/servers" target="_blank" rel="noopener noreferrer" className="underline">Dell Server-Preise</a> · <a href="https://www.gartner.com/en/information-technology/insights/it-key-metrics-data" target="_blank" rel="noopener noreferrer" className="underline">Gartner IT Key Metrics</a></p>
               </div>
               <div>
                 <p className="font-semibold mb-1">Personal Betrieb (On-Prem)</p>
                 <p>1 Linux-Admin in DE: ~65.000–85.000 €/Jahr Fully Loaded Cost (Gehalt + NK). Cloud-Admin (nach Training): ähnlich, aber 30–40% weniger Routinearbeit.</p>
-                <p className="text-blue-600 mt-1">Quelle: Bitkom Gehaltsstudie; Stepstone IT-Gehaltsreport</p>
+                <p className="text-blue-600 mt-1">Quelle: <a href="https://www.bitkom.org/Themen/Digitale-Transformation-Unternehmen/Jobs-Karriere" target="_blank" rel="noopener noreferrer" className="underline">Bitkom Gehaltsstudie</a> · <a href="https://www.stepstone.de/e-recruiting/wissen/gehalt-ratgeber/" target="_blank" rel="noopener noreferrer" className="underline">Stepstone IT-Gehaltsreport</a></p>
               </div>
               <div>
                 <p className="font-semibold mb-1">Raum / Energie / Kühlung</p>
                 <p>Typisches RZ: 1–3 kW/Server. Stromkosten DE: ~0,20–0,30 €/kWh × PUE 1,5 = ~0,30–0,45 €/kWh effektiv. Server 1,5 kW → ~3.000–5.000 €/Jahr.</p>
-                <p className="text-blue-600 mt-1">Quelle: Uptime Institute PUE Studie; DENA RZ-Studie</p>
+                <p className="text-blue-600 mt-1">Quelle: <a href="https://uptimeinstitute.com/resources/research-and-reports/uptime-institute-global-data-center-survey-results-2023" target="_blank" rel="noopener noreferrer" className="underline">Uptime Institute PUE Survey</a> · <a href="https://www.dena.de/themen-projekte/projekte/energieeffizienz/rechenzentren/" target="_blank" rel="noopener noreferrer" className="underline">DENA RZ-Studie</a></p>
               </div>
             </div>
             <div className="space-y-3">
               <div>
                 <p className="font-semibold mb-1">Cloud-Infrastruktur (IaaS)</p>
                 <p>Azure D4s v5 (4 vCPU, 16 GB): ~130–180 €/Monat (Pay-as-you-go) bzw. ~80–120 €/Monat (1-Jahr-Reserved). AWS m6i.xlarge: ähnlich.</p>
-                <p className="text-blue-600 mt-1">Quelle: azure.microsoft.com/pricing · aws.amazon.com/pricing · cloud.google.com/pricing</p>
+                <p className="text-blue-600 mt-1">Quelle: <a href="https://azure.microsoft.com/de-de/pricing/calculator/" target="_blank" rel="noopener noreferrer" className="underline">Azure-Preisrechner</a> · <a href="https://calculator.aws/" target="_blank" rel="noopener noreferrer" className="underline">AWS-Preisrechner</a> · <a href="https://cloud.google.com/products/calculator" target="_blank" rel="noopener noreferrer" className="underline">GCP-Preisrechner</a></p>
               </div>
               <div>
                 <p className="font-semibold mb-1">Migrationskosten (einmalig)</p>
                 <p>Rehost (Lift&Shift): 5–15% der Jahres-IT-Kosten. Replatform: 15–30%. Refactor: 40–80%+. Consultant-Tagessatz ~1.500–2.500 €.</p>
-                <p className="text-blue-600 mt-1">Quelle: McKinsey Cloud Migration Report; Gartner Cloud TCO Studies</p>
+                <p className="text-blue-600 mt-1">Quelle: <a href="https://www.mckinsey.com/capabilities/mckinsey-digital/our-insights/cloud-migration" target="_blank" rel="noopener noreferrer" className="underline">McKinsey Cloud Migration Report</a> · <a href="https://www.gartner.com/en/information-technology/insights/it-key-metrics-data" target="_blank" rel="noopener noreferrer" className="underline">Gartner Cloud TCO Studies</a></p>
               </div>
               <div>
                 <p className="font-semibold mb-1">Typische Einsparungsbandbreite</p>
                 <p>Rehost: 15–30% Kosteneinsparung nach 3 Jahren. Replatform/Refactor: 30–50% nach 5 Jahren. Aber: Hidden Costs (Egress, Support, Training) einkalkulieren!</p>
-                <p className="text-blue-600 mt-1">Quelle: Flexera State of the Cloud 2024; AWS Economics Center</p>
+                <p className="text-blue-600 mt-1">Quelle: <a href="https://info.flexera.com/CM-RESEARCH-State-of-the-Cloud-Report" target="_blank" rel="noopener noreferrer" className="underline">Flexera State of the Cloud 2024</a> · <a href="https://aws.amazon.com/economics/" target="_blank" rel="noopener noreferrer" className="underline">AWS Economics Center</a></p>
               </div>
             </div>
           </div>
