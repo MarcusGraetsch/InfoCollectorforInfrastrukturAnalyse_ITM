@@ -8,6 +8,23 @@ Dieses Dokument ist als **Arbeitsanweisung** formuliert: Jede Session kann einen
 
 ---
 
+## Umsetzungs-Status (Checkliste)
+
+- [x] **Block 1** — Vollständigkeits-Cockpit *(erledigt 2026-06-19)*
+- [ ] **Block 2** — NIS2-/BSIG-Readiness-Check
+- [ ] **Block 3** — EU-Cloud-Souveränitäts-Bewertung (SEAL/Gaia-X)
+- [ ] **Block 4** — CIA-Triade & Schutzbedarfsvererbung
+- [ ] **Block 5** — EU AI Act Inventar & Shadow-AI
+- [ ] **Block 6** — FinOps: Szenarien & AI-Kosten
+- [ ] **Block 7** — EnEfG / CO₂ Nachhaltigkeitsmodul
+- [ ] **Block 8** — DORA IKT-Drittparteien-Register
+- [ ] **Block 9** — SAM-Compliance
+- [ ] **Block 10** — Optionaler KI-Anreicherungs-Assistent
+- [ ] **Block 11** — Snapshot-Versionierung & Delta
+- [ ] **Block 12** — Reifegradmodell & Maturity-Assessment
+
+---
+
 ## Leseanleitung
 
 Jeder Block folgt diesem Schema:
@@ -21,7 +38,9 @@ Jeder Block folgt diesem Schema:
 
 ---
 
-## BLOCK 1 — Vollständigkeits-Cockpit (Quick Win)
+## BLOCK 1 — Vollständigkeits-Cockpit (Quick Win) ✅ ERLEDIGT
+
+> **Status:** Umgesetzt am 2026-06-19. Dateien: `src/completeness.ts`, `src/components/VollstaendigkeitsCockpit.tsx`, eingebunden als SubTab `'cockpit'` in `ProjectView.tsx` (Gruppe „Projektsteuerung", Label „Fortschritt"). Abweichung vom Plan: Fokus auf `ASSESSABLE_CATEGORIES` (dort wo `Unklar`-Semantik trägt) statt zusätzlich Geschäftsprozesse/Stakeholder; Fortschritt wird feldgenau (erfasste vs. relevante Felder) statt rein eintragsbezogen berechnet.
 
 **Ziel:** Berater sieht auf einem Blick, welche Kategorien vollständig erfasst sind und wo noch `Unklar`-Felder offen sind. Ersetzt die bisherige rein gefühlsmäßige Einschätzung des Erfassungsfortschritts.
 
