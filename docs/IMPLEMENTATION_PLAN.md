@@ -16,7 +16,7 @@ Dieses Dokument ist als **Arbeitsanweisung** formuliert: Jede Session kann einen
 - [x] **Block 4** — CIA-Triade & Schutzbedarfsvererbung *(erledigt 2026-06-19)*
 - [x] **Block 5** — EU AI Act Inventar & Shadow-AI *(erledigt 2026-06-19)*
 - [x] **Block 6** — FinOps: Szenarien & AI-Kosten *(erledigt 2026-06-19)*
-- [ ] **Block 7** — EnEfG / CO₂ Nachhaltigkeitsmodul
+- [x] **Block 7** — EnEfG / CO₂ Nachhaltigkeitsmodul *(erledigt 2026-06-19)*
 - [ ] **Block 8** — DORA IKT-Drittparteien-Register
 - [ ] **Block 9** — SAM-Compliance
 - [ ] **Block 10** — Optionaler KI-Anreicherungs-Assistent
