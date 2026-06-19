@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { AppState, TCODaten } from '../types';
 
 interface Props {
@@ -34,6 +34,8 @@ const CostField: React.FC<FieldProps> = ({ label, value, placeholder, onChange }
 export const TCOModell: React.FC<Props> = ({ state, onUpdate }) => {
   const tco = state.tcoData;
   const jahre = Math.max(1, parseInt(tco.zeithorizont) || 5);
+  const [showRichtwerte, setShowRichtwerte] = useState(false);
+  const [showLogik, setShowLogik] = useState(false);
 
   const set = (path: string, val: string) => {
     const parts = path.split('.');
@@ -104,11 +106,86 @@ export const TCOModell: React.FC<Props> = ({ state, onUpdate }) => {
           <h2 className="text-2xl font-bold text-hi-navy mb-1">TCO-Modell & Wirtschaftlichkeitsanalyse (LG 6)</h2>
           <p className="text-sm text-gray-500">Vergleich On-Premises vs. Cloud über mehrere Jahre</p>
         </div>
-        <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-hi-navy text-white rounded-lg text-sm font-medium hover:bg-hi-navy/90 flex-shrink-0">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-          Drucken / PDF
-        </button>
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={() => setShowLogik(s => !s)} className="flex items-center gap-1.5 px-3 py-2 text-xs bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+            Berechnung
+          </button>
+          <button onClick={() => setShowRichtwerte(s => !s)} className="flex items-center gap-1.5 px-3 py-2 text-xs bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            Richtwerte & Quellen
+          </button>
+          <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-hi-navy text-white rounded-lg text-sm font-medium hover:bg-hi-navy/90 flex-shrink-0">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+            Drucken / PDF
+          </button>
+        </div>
       </div>
+
+      {showLogik && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2 text-sm text-amber-900">
+          <p className="font-semibold">So funktioniert die Berechnung:</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div className="space-y-1">
+              <p><strong>Ist-Kosten (On-Prem):</strong> Alle Felder links werden pro Jahr summiert → Jahresgesamt × Zeithorizont = On-Prem-Gesamtkosten.</p>
+              <p><strong>Ziel-Kosten (Cloud):</strong> Laufende Kosten × Zeithorizont + einmalige Migrationskosten = Cloud-Gesamtinvestition.</p>
+            </div>
+            <div className="space-y-1">
+              <p><strong>Einsparung:</strong> On-Prem-Gesamt minus Cloud-Gesamt. Positiv = Cloud günstiger; negativ = Cloud teurer.</p>
+              <p><strong>Break-Even:</strong> Migrationskosten ÷ (Ist-Jahreskosten − Cloud-Jahreskosten) = Amortisationsdauer in Jahren.</p>
+            </div>
+          </div>
+          <p className="text-xs text-amber-700 mt-1">Die Werte werden hier manuell eingegeben. Quelle: IT-Abteilung + aktuelle Angebote der Cloud-Anbieter. Lizenzkosten können aus dem Tab "Lizenz & Kosten (LG 5)" übertragen werden.</p>
+        </div>
+      )}
+
+      {showRichtwerte && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-4">
+          <p className="text-sm font-semibold text-blue-900">Richtwerte & Quellen für die Kostenschätzung</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-blue-900">
+            <div className="space-y-3">
+              <div>
+                <p className="font-semibold mb-1">Hardware / Abschreibung (On-Prem)</p>
+                <p>Standard-Server (2-Socket): 8.000–25.000 € Anschaffung, Abschreibung über 4–5 Jahre → 1.600–5.000 €/Jahr. Storage (SAN, 10 TB): 20.000–60.000 €, Abschreibung 5 J.</p>
+                <p className="text-blue-600 mt-1">Quelle: Dell/HPE Listenpreise; Gartner IT Key Metrics Data</p>
+              </div>
+              <div>
+                <p className="font-semibold mb-1">Personal Betrieb (On-Prem)</p>
+                <p>1 Linux-Admin in DE: ~65.000–85.000 €/Jahr Fully Loaded Cost (Gehalt + NK). Cloud-Admin (nach Training): ähnlich, aber 30–40% weniger Routinearbeit.</p>
+                <p className="text-blue-600 mt-1">Quelle: Bitkom Gehaltsstudie; Stepstone IT-Gehaltsreport</p>
+              </div>
+              <div>
+                <p className="font-semibold mb-1">Raum / Energie / Kühlung</p>
+                <p>Typisches RZ: 1–3 kW/Server. Stromkosten DE: ~0,20–0,30 €/kWh × PUE 1,5 = ~0,30–0,45 €/kWh effektiv. Server 1,5 kW → ~3.000–5.000 €/Jahr.</p>
+                <p className="text-blue-600 mt-1">Quelle: Uptime Institute PUE Studie; DENA RZ-Studie</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <p className="font-semibold mb-1">Cloud-Infrastruktur (IaaS)</p>
+                <p>Azure D4s v5 (4 vCPU, 16 GB): ~130–180 €/Monat (Pay-as-you-go) bzw. ~80–120 €/Monat (1-Jahr-Reserved). AWS m6i.xlarge: ähnlich.</p>
+                <p className="text-blue-600 mt-1">Quelle: azure.microsoft.com/pricing · aws.amazon.com/pricing · cloud.google.com/pricing</p>
+              </div>
+              <div>
+                <p className="font-semibold mb-1">Migrationskosten (einmalig)</p>
+                <p>Rehost (Lift&Shift): 5–15% der Jahres-IT-Kosten. Replatform: 15–30%. Refactor: 40–80%+. Consultant-Tagessatz ~1.500–2.500 €.</p>
+                <p className="text-blue-600 mt-1">Quelle: McKinsey Cloud Migration Report; Gartner Cloud TCO Studies</p>
+              </div>
+              <div>
+                <p className="font-semibold mb-1">Typische Einsparungsbandbreite</p>
+                <p>Rehost: 15–30% Kosteneinsparung nach 3 Jahren. Replatform/Refactor: 30–50% nach 5 Jahren. Aber: Hidden Costs (Egress, Support, Training) einkalkulieren!</p>
+                <p className="text-blue-600 mt-1">Quelle: Flexera State of the Cloud 2024; AWS Economics Center</p>
+              </div>
+            </div>
+          </div>
+          <p className="text-xs text-blue-700 border-t border-blue-200 pt-2 mt-2">
+            ⚠️ Diese Werte sind Orientierungsgrößen. Für das Projekt sollten aktuelle Angebote der Cloud-Anbieter und konkrete Hardware-/Personalkosten des Kunden verwendet werden. Hyperscaler-Preisrechner:
+            <a href="https://azure.microsoft.com/de-de/pricing/calculator/" target="_blank" rel="noopener noreferrer" className="underline ml-1">Azure</a> ·
+            <a href="https://calculator.aws/pricing/2/metaindex.json" target="_blank" rel="noopener noreferrer" className="underline ml-1">AWS</a> ·
+            <a href="https://cloud.google.com/products/calculator" target="_blank" rel="noopener noreferrer" className="underline ml-1">GCP</a>
+          </p>
+        </div>
+      )}
 
       {/* Zeithorizont */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
