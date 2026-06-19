@@ -21,7 +21,7 @@ Dieses Dokument ist als **Arbeitsanweisung** formuliert: Jede Session kann einen
 - [x] **Block 9** — SAM-Compliance *(erledigt 2026-06-19)*
 - [x] **Block 10** — Optionaler KI-Anreicherungs-Assistent
 - [x] **Block 11** — Snapshot-Versionierung & Delta
-- [ ] **Block 12** — Reifegradmodell & Maturity-Assessment
+- [x] **Block 12** — Reifegradmodell & Maturity-Assessment
 
 ---
 
