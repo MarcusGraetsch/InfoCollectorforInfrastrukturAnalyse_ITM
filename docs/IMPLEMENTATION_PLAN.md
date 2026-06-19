@@ -19,7 +19,7 @@ Dieses Dokument ist als **Arbeitsanweisung** formuliert: Jede Session kann einen
 - [x] **Block 7** — EnEfG / CO₂ Nachhaltigkeitsmodul *(erledigt 2026-06-19)*
 - [x] **Block 8** — DORA IKT-Drittparteien-Register *(erledigt 2026-06-19)*
 - [x] **Block 9** — SAM-Compliance *(erledigt 2026-06-19)*
-- [ ] **Block 10** — Optionaler KI-Anreicherungs-Assistent
+- [x] **Block 10** — Optionaler KI-Anreicherungs-Assistent
 - [ ] **Block 11** — Snapshot-Versionierung & Delta
 - [ ] **Block 12** — Reifegradmodell & Maturity-Assessment
 
