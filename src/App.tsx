@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import type { AppState, CategoryKey } from './types';
-import { loadState, saveState, defaultState, clearState, generateId } from './store';
+import { loadState, saveState, createDefaultState, clearState, generateId } from './store';
 import { CATEGORIES, CATEGORY_MAP } from './categories';
 import { AppHeader } from './components/AppHeader';
 import type { AppMode } from './components/AppHeader';
@@ -16,6 +16,8 @@ import { ImportWizard } from './components/ImportWizard';
 import { EmailTemplate } from './components/EmailTemplate';
 import { CloudReadinessWizard } from './components/CloudReadinessWizard';
 import { OffenePunkte } from './components/OffenePunkte';
+import { ProjectView } from './components/ProjectView';
+import type { Liefergegenstand, Meeting, Stakeholder } from './types';
 import type { RowClassification } from './utils/importAnalyzer';
 import type { CloudFields } from './types';
 import { syncBidirectionalLinks } from './utils/bidirectional';
@@ -76,20 +78,24 @@ function App() {
 
   const handleApplyLinks = (links: { sourceCategory: CategoryKey; sourceId: string; sourceField: string; targetIds: string[] }[]) => {
     updateState((prev) => {
-      let next = { ...prev };
-      for (const { sourceCategory, sourceId, sourceField, targetIds } of links) {
-        const arr = next[sourceCategory] as unknown as Record<string, unknown>[];
-        const updatedArr = arr.map(item => {
-          if (item['id'] !== sourceId) return item;
-          const current = (item[sourceField] as string[] | undefined) ?? [];
-          const merged = [...new Set([...current, ...targetIds])];
-          const updatedItem = { ...item, [sourceField]: merged };
-          next = syncBidirectionalLinks({ ...next, [sourceCategory]: arr.map(i => i['id'] === sourceId ? updatedItem : i) }, sourceCategory, updatedItem);
-          return updatedItem;
-        });
-        next = { ...next, [sourceCategory]: updatedArr };
-      }
-      return next;
+      // Rein akkumulativ: jeder Link wird nacheinander auf den jeweils
+      // aktuellsten Zustand angewandt — keine Seiteneffekte in .map.
+      return links.reduce<AppState>((acc, { sourceCategory, sourceId, sourceField, targetIds }) => {
+        const arr = acc[sourceCategory] as unknown as Record<string, unknown>[];
+        const sourceItem = arr.find(i => i['id'] === sourceId);
+        if (!sourceItem) return acc;
+
+        const current = (sourceItem[sourceField] as string[] | undefined) ?? [];
+        const merged = [...new Set([...current, ...targetIds])];
+        const updatedItem = { ...sourceItem, [sourceField]: merged };
+
+        const withSource: AppState = {
+          ...acc,
+          [sourceCategory]: arr.map(i => (i['id'] === sourceId ? updatedItem : i)),
+        };
+        // Gegen-Links in den Ziel-Kategorien synchronisieren
+        return syncBidirectionalLinks(withSource, sourceCategory, updatedItem);
+      }, prev);
     });
   };
   const handleCancel = () => { setView('list'); setEditId(null); };
@@ -199,7 +205,7 @@ function App() {
         onExportReport={handleExportReport}
         onClearData={() => {
           clearState();           // entfernt Installations-ID + Daten-Key
-          setState(defaultState); // React-State zurücksetzen
+          setState(createDefaultState()); // frisches Default-Objekt setzen
           setMode('wizard');
           // Nächster saveState-Aufruf generiert neue ID → neuer Key → sauber
         }}
@@ -223,6 +229,22 @@ function App() {
               onEditItem={id => setCloudWizardTargetId(id)}
               onBatchCloudUpdate={handleBatchCloudUpdate}
               onApplyLinks={handleApplyLinks}
+            />
+          </div>
+        )}
+
+        {mode === 'projekt' && (
+          <div className="h-full overflow-hidden flex flex-col">
+            <ProjectView
+              state={state}
+              onUpdateLG={(id, changes) => updateState(prev => ({
+                ...prev,
+                liefergegenstaende: prev.liefergegenstaende.map(lg =>
+                  lg.id === id ? { ...lg, ...changes } as Liefergegenstand : lg
+                ),
+              }))}
+              onUpdateStakeholder={stakeholder => updateState(prev => ({ ...prev, stakeholder } as AppState & { stakeholder: Stakeholder[] }))}
+              onUpdateMeetings={meetings => updateState(prev => ({ ...prev, meetings } as AppState & { meetings: Meeting[] }))}
             />
           </div>
         )}

@@ -1,6 +1,9 @@
 import type { AppState } from '../types';
+import { mergeWithDefault } from '../store';
 
 const BACKUP_VERSION = '1.0';
+/** Höchste Major-Version, die diese App-Version lesen kann. */
+const SUPPORTED_MAJOR = 1;
 
 interface BackupFile {
   version: string;
@@ -40,5 +43,16 @@ export function importFromJSON(json: string): AppState {
   if (!backup.state || typeof backup.state !== 'object') {
     throw new Error('Backup enthält keinen gültigen Zustand');
   }
-  return backup.state;
+
+  // Version prüfen: neuere Major-Versionen können nicht zuverlässig gelesen werden
+  const major = parseInt(String(backup.version).split('.')[0], 10);
+  if (!isNaN(major) && major > SUPPORTED_MAJOR) {
+    throw new Error(
+      `Dieses Backup (Version ${backup.version}) wurde mit einer neueren App-Version erstellt ` +
+      `und kann hier nicht sicher importiert werden. Bitte aktualisieren Sie die Anwendung.`
+    );
+  }
+
+  // Tiefer Merge mit Default → fehlende/partielle Strukturen werden aufgefüllt
+  return mergeWithDefault(backup.state);
 }

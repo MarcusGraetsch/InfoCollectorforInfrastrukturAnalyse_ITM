@@ -3,6 +3,7 @@ import type { AppState, CategoryKey } from '../types';
 import type { CloudFields } from '../types';
 import { assessAll } from '../cloudReadiness';
 import { assess } from '../cloudReadiness';
+import { OPEN_CLOUD_KEYS, CLOUD_FIELD_OPTIONS, CLOUD_EIGNUNG_OPTIONS, isOpenField } from '../cloudFields';
 
 interface ItemToReview {
   id: string;
@@ -19,13 +20,8 @@ interface EditableMeta {
   category: CategoryKey;
 }
 
-const OPEN_CLOUD_KEYS: (keyof CloudFields)[] = [
-  'schutzbedarf', 'bereitstellung', 'lizenzCloudfaehig',
-  'migrationskomplexitaet', 'lebenszyklus', 'internetfaehig', 'datensouveraenitaet',
-];
-
 function hasOpenFields(item: CloudFields): boolean {
-  return OPEN_CLOUD_KEYS.some(k => !item[k] || item[k] === 'Unklar');
+  return OPEN_CLOUD_KEYS.some(k => isOpenField(item[k]));
 }
 
 interface Props {
@@ -45,39 +41,14 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const CATEGORY_KEYS = Object.keys(CATEGORY_LABELS) as CategoryKey[];
 
-const SCHUTZBEDARF_OPTS = ['Normal', 'Hoch', 'Sehr hoch', 'Unklar'];
-const BEREITSTELLUNG_OPTS = [
-  'On-Premises (physisch)',
-  'On-Premises (virtualisiert)',
-  'Hybrid',
-  'Private Cloud',
-  'SaaS / Public Cloud',
-  'Container (Docker/Podman)',
-  'Kubernetes (On-Prem)',
-  'Managed Kubernetes (Cloud)',
-  'Unklar',
-];
-const LIZENZ_OPTS = ['Ja', 'Nein', 'Unklar'];
-const KOMPL_OPTS = ['Niedrig', 'Mittel', 'Hoch', 'Unklar'];
-const LEBENSZYKLUS_OPTS = ['Aktuell', 'Wartung läuft aus', 'End-of-Life', 'Unklar'];
-const INTERNET_OPTS = ['Ja', 'Nein', 'Eingeschränkt', 'Unklar'];
-const EIGNUNG_OPTS = [
-  'Rehost (Lift & Shift)',
-  'Replatform (leichte Anpassung)',
-  'Recontainerize (→ Kubernetes)',
-  'Repurchase (SaaS-Alternative)',
-  'Refactor / Re-Architect',
-  'Retain (Behalten)',
-  'Retire (Abschalten)',
-];
-const SOUV_OPTS = [
-  'Keine spezielle Anforderung',
-  'EU / DSGVO',
-  'Deutschland',
-  'Streng souverän (C5 / Gaia-X)',
-  'Confidential Computing (TEE / Enclave)',
-  'Unklar',
-];
+const SCHUTZBEDARF_OPTS = CLOUD_FIELD_OPTIONS.schutzbedarf;
+const BEREITSTELLUNG_OPTS = CLOUD_FIELD_OPTIONS.bereitstellung;
+const LIZENZ_OPTS = CLOUD_FIELD_OPTIONS.lizenzCloudfaehig;
+const KOMPL_OPTS = CLOUD_FIELD_OPTIONS.migrationskomplexitaet;
+const LEBENSZYKLUS_OPTS = CLOUD_FIELD_OPTIONS.lebenszyklus;
+const INTERNET_OPTS = CLOUD_FIELD_OPTIONS.internetfaehig;
+const SOUV_OPTS = CLOUD_FIELD_OPTIONS.datensouveraenitaet;
+const EIGNUNG_OPTS = CLOUD_EIGNUNG_OPTIONS;
 
 function QuickButton({
   label,

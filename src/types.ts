@@ -151,6 +151,54 @@ export interface Gebaeude extends BaseItem {
   benutzer: string;
 }
 
+export interface Stakeholder {
+  id: string;
+  name: string;
+  rolle: string;
+  bereich: string;
+  email: string;
+  telefon: string;
+  lgIds: number[];
+  notizen: string;
+}
+
+export type MeetingTyp = 'Jour Fixe' | 'Lenkungsausschuss' | 'Workshop' | 'Sonstiges';
+
+export interface MeetingTOP {
+  id: string;
+  titel: string;
+  ergebnis: string;
+  verantwortlich: string;
+  faelligAm: string;
+  status: 'Offen' | 'Erledigt';
+}
+
+export interface Meeting {
+  id: string;
+  typ: MeetingTyp;
+  datum: string;
+  beginn: string;
+  ende: string;
+  ort: string;
+  teilnehmer: string;
+  tops: MeetingTOP[];
+  naechsteMeeting: string;
+  protokolliert: boolean;
+}
+
+export type LiefergegenstandStatus = 'Offen' | 'In Arbeit' | 'Abgenommen';
+
+export interface Liefergegenstand {
+  id: number;
+  phase: string;
+  titel: string;
+  beschreibung: string;
+  aufwandAuftraggeber: string;
+  status: LiefergegenstandStatus;
+  faelligAm: string;
+  notizen: string;
+}
+
 /** Vom Kunden bereits gelieferte Unterlagen (Phase A der Erhebung). */
 export interface Quelldokument {
   id: string;
@@ -175,6 +223,9 @@ export interface AppState {
   lastUpdated: string;
   cloudStrategy: CloudStrategyMeta;
   quelldokumente: Quelldokument[];
+  liefergegenstaende: Liefergegenstand[];
+  stakeholder: Stakeholder[];
+  meetings: Meeting[];
   geschaeftsprozesse: Geschaeftsprozess[];
   daten: Datum[];
   anwendungen: Anwendung[];
