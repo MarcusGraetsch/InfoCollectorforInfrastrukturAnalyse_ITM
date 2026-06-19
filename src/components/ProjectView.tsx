@@ -3,8 +3,9 @@ import type { AppState, Liefergegenstand, Meeting, Stakeholder } from '../types'
 import { ProjectTracker } from './ProjectTracker';
 import { StakeholderRegister } from './StakeholderRegister';
 import { MeetingProtokolle } from './MeetingProtokolle';
+import { InfrastrukturBericht } from './InfrastrukturBericht';
 
-type SubTab = 'liefergegenstaende' | 'stakeholder' | 'meetings';
+type SubTab = 'liefergegenstaende' | 'stakeholder' | 'meetings' | 'bericht';
 
 interface Props {
   state: AppState;
@@ -38,6 +39,15 @@ const TABS: { key: SubTab; label: string; icon: React.ReactNode }[] = [
     icon: (
       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+    ),
+  },
+  {
+    key: 'bericht',
+    label: 'Bericht LG 2/3',
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
       </svg>
     ),
   },
@@ -104,6 +114,9 @@ export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeh
         )}
         {subTab === 'meetings' && (
           <MeetingProtokolle state={state} onUpdate={onUpdateMeetings} />
+        )}
+        {subTab === 'bericht' && (
+          <InfrastrukturBericht state={state} />
         )}
       </div>
     </div>
