@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import type { AppState, CategoryKey } from './types';
-import { loadState, saveState, createDefaultState, clearState, generateId } from './store';
+import { loadState, saveState, createDefaultState, clearState, generateId, mergeWithDefault } from './store';
+import { isEncrypted, decryptData, encryptData } from './crypto';
 import { CATEGORIES, CATEGORY_MAP } from './categories';
 import { AppHeader } from './components/AppHeader';
 import type { AppMode } from './components/AppHeader';
@@ -23,8 +24,69 @@ import type { RowClassification } from './utils/importAnalyzer';
 import type { CloudFields } from './types';
 import { syncBidirectionalLinks } from './utils/bidirectional';
 
+function UnlockScreen({ onUnlocked }: { onUnlocked: (state: AppState, password: string) => void }) {
+  const [pw, setPw] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const id = localStorage.getItem('it-strukturanalyse-install-id');
+  const dataKey = id ? `it-strukturanalyse-data-${id}` : null;
+
+  const handleUnlock = async () => {
+    if (!dataKey) { setError('Kein Datenschlüssel gefunden.'); return; }
+    const raw = localStorage.getItem(dataKey);
+    if (!raw) { setError('Keine verschlüsselten Daten gefunden.'); return; }
+    setBusy(true);
+    setError(null);
+    try {
+      const plaintext = await decryptData(raw, pw);
+      const parsed = JSON.parse(plaintext) as AppState;
+      onUnlocked(mergeWithDefault(parsed), pw);
+    } catch {
+      setError('Falsches Passwort oder beschädigte Daten.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-hi-gray">
+      <div className="bg-white rounded-2xl shadow-lg p-8 max-w-sm w-full space-y-5">
+        <div className="text-center">
+          <div className="text-4xl mb-2">🔒</div>
+          <h1 className="text-xl font-bold text-hi-navy">IT-Strukturanalyse</h1>
+          <p className="text-sm text-hi-slate mt-1">Daten sind verschlüsselt. Bitte Passwort eingeben.</p>
+        </div>
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-3 text-sm">{error}</div>
+        )}
+        <input
+          type="password"
+          value={pw}
+          onChange={(e) => setPw(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') void handleUnlock(); }}
+          placeholder="Passwort"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-hi-navy"
+          autoFocus
+          autoComplete="current-password"
+        />
+        <button
+          onClick={() => void handleUnlock()}
+          disabled={busy || !pw}
+          className="w-full py-2 bg-hi-navy text-white rounded-lg text-sm font-medium hover:bg-hi-navy/90 disabled:opacity-50"
+        >
+          {busy ? 'Entschlüsseln…' : 'Entsperren'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const SESSION_PW_KEY = 'it-sa-session-pw';
+
 function App() {
-  const [state, setState] = useState<AppState>(loadState);
+  const [locked, setLocked] = useState(() => isEncrypted());
+  const [state, setState] = useState<AppState>(() => locked ? createDefaultState() : loadState());
   const [mode, setMode] = useState<AppMode>('wizard');
   const [activeCategory, setActiveCategory] = useState<CategoryKey>('geschaeftsprozesse');
   const [view, setView] = useState<'list' | 'form'>('list');
@@ -38,6 +100,22 @@ function App() {
     setState((prev) => {
       const next = updater(prev);
       saveState(next);
+      // If encryption is active, re-encrypt after writing plaintext
+      if (isEncrypted()) {
+        const sessionPw = sessionStorage.getItem(SESSION_PW_KEY);
+        if (sessionPw) {
+          const id = localStorage.getItem('it-strukturanalyse-install-id');
+          if (id) {
+            const key = `it-strukturanalyse-data-${id}`;
+            const plain = localStorage.getItem(key);
+            if (plain) {
+              encryptData(plain, sessionPw).then((cipher) => {
+                localStorage.setItem(key, cipher);
+              }).catch(console.error);
+            }
+          }
+        }
+      }
       return next;
     });
   }, []);
@@ -193,6 +271,18 @@ function App() {
 
   const categoryDef = CATEGORY_MAP[activeCategory];
 
+  if (locked) {
+    return (
+      <UnlockScreen
+        onUnlocked={(decryptedState, password) => {
+          sessionStorage.setItem(SESSION_PW_KEY, password);
+          setState(decryptedState);
+          setLocked(false);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="h-screen flex flex-col bg-hi-gray">
       {showAISettings && <AIAssistantSettings onClose={() => setShowAISettings(false)} />}
@@ -260,6 +350,9 @@ function App() {
               onUpdateIKT={(d) => updateState(prev => ({ ...prev, iktDienstleister: d }))}
               onOpenCloudWizard={id => setCloudWizardTargetId(id)}
               onRestore={(s) => updateState(() => s)}
+              onReload={() => {
+                setState(loadState());
+              }}
             />
           </div>
         )}

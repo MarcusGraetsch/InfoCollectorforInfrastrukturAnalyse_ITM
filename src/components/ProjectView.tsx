@@ -20,12 +20,13 @@ import { NachhaltigkeitsModul } from './NachhaltigkeitsModul';
 import { VersionControl } from './VersionControl';
 import { DORARegister } from './DORARegister';
 import { countItemsWithOpenFields } from '../cloudFields';
+import { EncryptionSettings } from './EncryptionSettings';
 
 type SubTab =
   | 'liefergegenstaende' | 'cockpit' | 'stakeholder' | 'meetings' | 'tops'
   | 'fragenliste' | 'landkarte' | 'lizenz' | 'tco' | 'security' | 'zielarchitektur'
   | 'nis2' | 'euaiact' | 'souveraenitaet' | 'nachhaltigkeit' | 'dora'
-  | 'bericht' | 'executive' | 'snapshots';
+  | 'bericht' | 'executive' | 'snapshots' | 'einstellungen';
 
 interface Props {
   state: AppState;
@@ -38,6 +39,7 @@ interface Props {
   onUpdateIKT: (d: import('../types').IKTDienstleister[]) => void;
   onOpenCloudWizard: (id: string) => void;
   onRestore: (state: AppState) => void;
+  onReload: () => void;
 }
 
 const GROUPS = [
@@ -98,9 +100,16 @@ const GROUPS = [
         icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg> },
     ],
   },
+  {
+    label: 'Einstellungen',
+    tabs: [
+      { key: 'einstellungen' as SubTab, label: 'Datenverschlüsselung',
+        icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg> },
+    ],
+  },
 ];
 
-export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeholder, onUpdateMeetings, onUpdateAnwendung, onUpdateTCO, onUpdateNIS2, onUpdateIKT, onOpenCloudWizard, onRestore }) => {
+export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeholder, onUpdateMeetings, onUpdateAnwendung, onUpdateTCO, onUpdateNIS2, onUpdateIKT, onOpenCloudWizard, onRestore, onReload }) => {
   const [subTab, setSubTab] = useState<SubTab>('liefergegenstaende');
   const [activeGroup, setActiveGroup] = useState<string>(GROUPS[0].label);
 
@@ -242,6 +251,7 @@ export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeh
         {subTab === 'snapshots'            && <VersionControl state={state} onRestore={onRestore} />}
         {subTab === 'bericht'            && <InfrastrukturBericht state={state} />}
         {subTab === 'executive'          && <ExecutiveSummary state={state} />}
+        {subTab === 'einstellungen'      && <EncryptionSettings onReload={onReload} />}
       </div>
     </div>
   );

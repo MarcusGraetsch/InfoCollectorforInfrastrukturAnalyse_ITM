@@ -1,5 +1,7 @@
 # Verbesserungsplan — IT Strukturanalyse
 
+> **Status: Alle 4 Phasen implementiert und committed (2026-06-19)**
+
 **Bezug:** `docs/EXPERT_REVIEW.md` (Finding-IDs SEC-/ARCH-/UX-)
 **Ziel:** Überführung der Review-Befunde in eine priorisierte, nachvollziehbare Roadmap unter strikter Einhaltung der Designprinzipien (kein Backend, kein Login, offline-fähig, druckbar, keine Breaking Changes am JSON-Format ohne Migration).
 
@@ -16,7 +18,7 @@
 
 ---
 
-## Phase 1 — Quick Wins & kritische Security
+## Phase 1 — Quick Wins & kritische Security ✅ DONE
 
 ### P1.1 — Zentrale, sichere Print-Utility (ARCH-06, Enabler für SEC-01/UX-04)
 - **Dateien (neu):** `src/utils/printHtml.ts` — exportiert `esc(value)` (aus `exportReport.ts` extrahiert) und `openPrintWindow(title, bodyHtml, opts)` mit einheitlichem Print-Stylesheet + HiSolutions-Header/Fußzeile.
@@ -60,7 +62,7 @@
 
 ---
 
-## Phase 2 — Härtung & Qualität
+## Phase 2 — Härtung & Qualität ✅ DONE
 
 ### P2.1 — ARCH-01: Test-Setup + Minimal-CI
 - **Dateien (neu):** `vitest.config.ts`, `src/**/*.test.ts`, `.github/workflows/ci.yml`; `package.json` (Scripts/Dev-Deps).
@@ -93,7 +95,7 @@
 
 ---
 
-## Phase 3 — UX/Politur
+## Phase 3 — UX/Politur ✅ DONE
 
 ### P3.1 — UX-04: Einheitliche Print-Deliverables (Branding)
 - **Dateien:** `src/utils/printHtml.ts` (aus P1.1 erweitern).
@@ -123,7 +125,7 @@
 
 ---
 
-## Phase 4 — Optional / Strategisch
+## Phase 4 — Optional / Strategisch ✅ DONE
 
 ### P4.1 — ARCH-05: Lazy-Loading schwerer Tabs
 - **Dateien:** `ProjectView.tsx` (`React.lazy`+`Suspense` für Landkarte/Mermaid, Berichte); Bundle-Analyse.
