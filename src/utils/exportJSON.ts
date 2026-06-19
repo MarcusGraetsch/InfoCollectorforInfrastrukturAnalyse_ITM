@@ -1,6 +1,39 @@
 import type { AppState } from '../types';
 import { mergeWithDefault } from '../store';
 
+/**
+ * Leichtgewichtige Laufzeit-Validierung des importierten AppState.
+ * Verhindert, dass manipulierte Backups mit falschen Typen in die App gelangen.
+ */
+export function validateImport(data: unknown): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  if (typeof data !== 'object' || data === null) {
+    errors.push('Kein gültiges JSON-Objekt');
+    return { valid: false, errors };
+  }
+  const d = data as Record<string, unknown>;
+  // Required top-level arrays
+  const arrayFields = [
+    'anwendungen', 'server', 'clients', 'geschaeftsprozesse', 'meetings',
+    'liefergegenstaende', 'stakeholder', 'daten', 'datentraeger',
+    'netzkomponenten', 'netzverbindungen', 'icsSysteme', 'iotSysteme',
+    'raeume', 'gebaeude', 'quelldokumente',
+  ];
+  for (const f of arrayFields) {
+    if (d[f] !== undefined && !Array.isArray(d[f])) {
+      errors.push(`Feld "${f}" muss ein Array sein, ist aber ${typeof d[f]}`);
+    }
+  }
+  // Required string fields
+  const stringFields = ['customerName', 'lastUpdated'];
+  for (const f of stringFields) {
+    if (d[f] !== undefined && typeof d[f] !== 'string') {
+      errors.push(`Feld "${f}" muss ein String sein`);
+    }
+  }
+  return { valid: errors.length === 0, errors };
+}
+
 const BACKUP_VERSION = '1.0';
 /** Höchste Major-Version, die diese App-Version lesen kann. */
 const SUPPORTED_MAJOR = 1;
@@ -51,6 +84,12 @@ export function importFromJSON(json: string): AppState {
       `Dieses Backup (Version ${backup.version}) wurde mit einer neueren App-Version erstellt ` +
       `und kann hier nicht sicher importiert werden. Bitte aktualisieren Sie die Anwendung.`
     );
+  }
+
+  // Laufzeit-Schema-Validierung
+  const validation = validateImport(backup.state);
+  if (!validation.valid) {
+    throw new Error(`Backup-Validierung fehlgeschlagen:\n${validation.errors.join('\n')}`);
   }
 
   // Tiefer Merge mit Default → fehlende/partielle Strukturen werden aufgefüllt
