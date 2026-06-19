@@ -1,8 +1,79 @@
 import React, { useState, useEffect } from 'react';
 import type { CategoryDef, FieldDef } from '../categories';
-import type { AppState, CategoryKey } from '../types';
+import type { AppState, CategoryKey, CIASchutzbedarf, SchutzbedarfNiveau } from '../types';
 import { generateId, generateKuerzel } from '../store';
 import { MultiSelect } from './MultiSelect';
+
+const SCHUTZBEDARF_OPTS: SchutzbedarfNiveau[] = ['Normal', 'Hoch', 'Sehr hoch', 'Unklar'];
+
+function CIATripletEditor({
+  value,
+  onChange,
+}: {
+  value: CIASchutzbedarf | SchutzbedarfNiveau | undefined;
+  onChange: (v: CIASchutzbedarf) => void;
+}) {
+  const current: CIASchutzbedarf = (value && typeof value === 'object')
+    ? value as CIASchutzbedarf
+    : {
+        vertraulichkeit: (value as SchutzbedarfNiveau) || '',
+        integritaet: (value as SchutzbedarfNiveau) || '',
+        verfuegbarkeit: (value as SchutzbedarfNiveau) || '',
+      };
+
+  const btnClass = (opt: SchutzbedarfNiveau, active: boolean) => {
+    const base = 'px-2.5 py-1 text-xs font-semibold rounded border transition-all ';
+    if (!active) return base + 'bg-white border-gray-200 text-gray-500 hover:border-blue-300';
+    if (opt === 'Sehr hoch') return base + 'bg-red-500 text-white border-red-500';
+    if (opt === 'Hoch') return base + 'bg-amber-500 text-white border-amber-500';
+    if (opt === 'Normal') return base + 'bg-emerald-500 text-white border-emerald-500';
+    return base + 'bg-gray-400 text-white border-gray-400';
+  };
+
+  const update = (dim: keyof Pick<CIASchutzbedarf, 'vertraulichkeit' | 'integritaet' | 'verfuegbarkeit'>, val: SchutzbedarfNiveau) => {
+    onChange({ ...current, [dim]: current[dim] === val ? '' : val });
+  };
+
+  return (
+    <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-3 space-y-2.5">
+      <p className="text-[10px] font-bold text-indigo-700 uppercase tracking-wide">CIA-Triade (BSI IT-Grundschutz)</p>
+      {([
+        { key: 'vertraulichkeit', label: 'Vertraulichkeit' },
+        { key: 'integritaet', label: 'Integrität' },
+        { key: 'verfuegbarkeit', label: 'Verfügbarkeit' },
+      ] as const).map(({ key, label }) => (
+        <div key={key} className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-indigo-800 w-28 font-medium">{label}</span>
+          <div className="flex gap-1.5 flex-wrap">
+            {SCHUTZBEDARF_OPTS.map(opt => (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => update(key, opt)}
+                className={btnClass(opt, current[key] === opt)}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+      {current.vererbt && (
+        <p className="text-[10px] text-indigo-600 italic">Vererbt von abhängigen Anwendungen (Maximumprinzip)</p>
+      )}
+      <div>
+        <label className="block text-[10px] text-indigo-700 mb-0.5">Begründung (optional)</label>
+        <input
+          type="text"
+          value={current.begruendung || ''}
+          onChange={e => onChange({ ...current, begruendung: e.target.value })}
+          placeholder="z.B. personenbezogene Daten, Betriebsdaten, ..."
+          className="w-full text-xs border border-indigo-200 rounded px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
+        />
+      </div>
+    </div>
+  );
+}
 
 interface Props {
   categoryDef: CategoryDef;
@@ -50,7 +121,20 @@ export const CategoryForm: React.FC<Props> = ({ categoryDef, state, editId, onSa
     onSave(form);
   };
 
-  const renderField = (field: FieldDef) => (
+  const renderField = (field: FieldDef) => {
+    // Block 4 — CIA triplet for schutzbedarf fields
+    if (field.key === 'schutzbedarf' && field.group === 'cloud') {
+      return (
+        <div key={field.key}>
+          <label className="block text-sm font-semibold text-hi-navy mb-1.5">{field.label}</label>
+          <CIATripletEditor
+            value={form[field.key] as CIASchutzbedarf | SchutzbedarfNiveau | undefined}
+            onChange={val => handleChange(field.key, val)}
+          />
+        </div>
+      );
+    }
+    return (
     <div key={field.key}>
       <label className="block text-sm font-semibold text-hi-navy mb-1.5 group relative">
         {field.label}
@@ -135,6 +219,7 @@ export const CategoryForm: React.FC<Props> = ({ categoryDef, state, editId, onSa
       )}
     </div>
   );
+  };
 
   const basisFields = categoryDef.fields.filter((f) => f.group !== 'cloud');
   const cloudFields = categoryDef.fields.filter((f) => f.group === 'cloud');

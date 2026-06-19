@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import type { AppState } from '../types';
+import { getEffektiverSchutzbedarf } from '../schutzbedarfsVererbung';
 import { assessAll } from '../cloudReadiness';
 
 interface Props { state: AppState; onOpenCloudWizard: (id: string) => void }
@@ -43,8 +44,8 @@ function buildEmpfehlungen(state: AppState): Empfehlung[] {
   const alleSys = [...state.anwendungen, ...state.server];
 
   const anzahlSysteme = alle.length;
-  const hochSchutzItems = alleSys.filter(s => s.schutzbedarf === 'Hoch' || s.schutzbedarf === 'Sehr hoch');
-  const sehrHochItems   = alleSys.filter(s => s.schutzbedarf === 'Sehr hoch');
+  const hochSchutzItems = alleSys.filter(s => { const e = getEffektiverSchutzbedarf(s); return e === 'Hoch' || e === 'Sehr hoch'; });
+  const sehrHochItems   = alleSys.filter(s => getEffektiverSchutzbedarf(s) === 'Sehr hoch');
   const bsiC5Items      = alleSys.filter(s => s.datensouveraenitaet === 'Streng souverän (C5 / Gaia-X)' || s.datensouveraenitaet === 'Confidential Computing (TEE / Enclave)');
   const dsgvoItems      = alleSys.filter(s => s.datensouveraenitaet === 'EU / DSGVO' || s.datensouveraenitaet === 'Deutschland');
   const keinCloudItems  = alleSys.filter(s => s.lizenzCloudfaehig === 'Nein');

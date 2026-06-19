@@ -4,6 +4,7 @@ import type { CloudFields } from '../types';
 import { assessAll } from '../cloudReadiness';
 import { assess } from '../cloudReadiness';
 import { OPEN_CLOUD_KEYS, CLOUD_FIELD_OPTIONS, CLOUD_EIGNUNG_OPTIONS, isOpenField } from '../cloudFields';
+import { getEffektiverSchutzbedarf } from '../schutzbedarfsVererbung';
 
 interface ItemToReview {
   id: string;
@@ -152,7 +153,7 @@ export const CloudReadinessWizard: React.FC<Props> = ({ state, onSave, onClose, 
         category: i.category,
         categoryLabel: CATEGORY_LABELS[i.category] ?? i.category,
         fields: {
-          schutzbedarf: i.schutzbedarf || 'Unklar',
+          schutzbedarf: getEffektiverSchutzbedarf(i) || 'Unklar',
           datensouveraenitaet: i.datensouveraenitaet || 'Unklar',
           bereitstellung: i.bereitstellung || 'Unklar',
           cloudDienst: i.cloudDienst,

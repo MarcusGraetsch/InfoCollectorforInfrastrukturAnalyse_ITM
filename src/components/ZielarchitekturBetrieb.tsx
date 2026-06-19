@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import type { AppState } from '../types';
 import { assessSovereignty } from '../cloudReadiness';
+import { getEffektiverSchutzbedarf } from '../schutzbedarfsVererbung';
 
 interface Props {
   state: AppState;
@@ -71,16 +72,17 @@ function buildSystemEmpfehlungen(state: AppState): SystemEmpfehlung[] {
   ];
 
   for (const cat of cats) {
-    const items = state[cat.key] as { id: string; kuerzel: string; name: string; cloudEignung?: string; bereitstellung?: string; schutzbedarf?: string }[];
+    const items = state[cat.key] as import('../types').CloudFields[]  & { id: string; kuerzel: string; name: string; cloudEignung?: string; bereitstellung?: string }[];
     for (const item of items) {
       const deployment = deriveDeployment(item);
+      const effSb = getEffektiverSchutzbedarf(item);
       let besonderheit = '';
-      if (item.schutzbedarf === 'Sehr hoch') besonderheit = 'Confidential Computing prüfen';
+      if (effSb === 'Sehr hoch') besonderheit = 'Confidential Computing prüfen';
       else if (item.cloudEignung?.includes('Refactor'))    besonderheit = 'Erheblicher Entwicklungsaufwand';
       else if (item.cloudEignung?.includes('Repurchase'))  besonderheit = 'Datenmigration + User-Schulung erforderlich';
       else if (item.cloudEignung?.includes('Retain'))      besonderheit = 'Hybrid-Connectivity (VPN/ExpressRoute)';
 
-      const sovereign = assessSovereignty(item as import('../types').CloudFields);
+      const sovereign = assessSovereignty(item);
       result.push({
         id: item.id,
         categoryKey: cat.key,
@@ -90,11 +92,11 @@ function buildSystemEmpfehlungen(state: AppState): SystemEmpfehlung[] {
         cloudEignung: item.cloudEignung || '–',
         bereitstellung: item.bereitstellung || '–',
         deploymentZiel: deployment,
-        backupStrategie: deriveBackup(item.schutzbedarf, item.cloudEignung, item.bereitstellung),
-        rto: deriveRTO(item.schutzbedarf, item.cloudEignung),
-        rpo: deriveRPO(item.schutzbedarf, item.cloudEignung),
+        backupStrategie: deriveBackup(effSb, item.cloudEignung, item.bereitstellung),
+        rto: deriveRTO(effSb, item.cloudEignung),
+        rpo: deriveRPO(effSb, item.cloudEignung),
         besonderheit,
-        schutzbedarf: item.schutzbedarf || '–',
+        schutzbedarf: effSb || '–',
         sovereignLevel: sovereign.level,
         sovereignLabel: sovereign.label,
       });

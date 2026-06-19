@@ -1,5 +1,6 @@
 import type * as XLSX from 'xlsx';
 import type { AppState } from '../types';
+import { getEffektiverSchutzbedarf } from '../schutzbedarfsVererbung';
 import { CATEGORIES } from '../categories';
 import { assessAll, summarize } from '../cloudReadiness';
 
@@ -89,7 +90,7 @@ export async function exportWorkshopPackage(state: AppState): Promise<void> {
     i.kuerzel,
     i.name,
     i.categoryLabel,
-    i.schutzbedarf ?? '',
+    getEffektiverSchutzbedarf(i) || '',
     i.datensouveraenitaet ?? '',
     i.bereitstellung ?? '',
     i.lebenszyklus ?? '',
