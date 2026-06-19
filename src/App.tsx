@@ -259,6 +259,7 @@ function App() {
               onUpdateNIS2={(a) => updateState(prev => ({ ...prev, nis2Assessment: a }))}
               onUpdateIKT={(d) => updateState(prev => ({ ...prev, iktDienstleister: d }))}
               onOpenCloudWizard={id => setCloudWizardTargetId(id)}
+              onRestore={(s) => updateState(() => s)}
             />
           </div>
         )}

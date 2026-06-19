@@ -361,3 +361,11 @@ export type CategoryKey = keyof Omit<
   AppState,
   'customerName' | 'lastUpdated' | 'cloudStrategy' | 'quelldokumente' | 'tcoData'
 >;
+
+// Block 11 — Snapshot-Versionierung
+export interface Snapshot {
+  id: string;
+  label: string;
+  createdAt: string; // ISO timestamp
+  state: AppState;
+}
