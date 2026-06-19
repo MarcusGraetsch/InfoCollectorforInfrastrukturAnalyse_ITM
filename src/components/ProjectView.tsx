@@ -26,6 +26,7 @@ interface Props {
   onUpdateMeetings: (meetings: Meeting[]) => void;
   onUpdateAnwendung: (id: string, changes: Partial<Anwendung>) => void;
   onUpdateTCO: (tco: TCODaten) => void;
+  onOpenCloudWizard: (id: string) => void;
 }
 
 const GROUPS = [
@@ -70,7 +71,7 @@ const GROUPS = [
   },
 ];
 
-export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeholder, onUpdateMeetings, onUpdateAnwendung, onUpdateTCO }) => {
+export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeholder, onUpdateMeetings, onUpdateAnwendung, onUpdateTCO, onOpenCloudWizard }) => {
   const [subTab, setSubTab] = useState<SubTab>('liefergegenstaende');
 
   const lgStats = {
@@ -153,8 +154,8 @@ export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeh
         {subTab === 'landkarte'          && <InfrastrukturLandkarte state={state} />}
         {subTab === 'lizenz'             && <LizenzKostenAnalyse state={state} onUpdateAnwendung={onUpdateAnwendung} />}
         {subTab === 'tco'                && <TCOModell state={state} onUpdate={onUpdateTCO} />}
-        {subTab === 'security'           && <SecurityGovernanceArchitektur state={state} />}
-        {subTab === 'zielarchitektur'    && <ZielarchitekturBetrieb state={state} />}
+        {subTab === 'security'           && <SecurityGovernanceArchitektur state={state} onOpenCloudWizard={onOpenCloudWizard} />}
+        {subTab === 'zielarchitektur'    && <ZielarchitekturBetrieb state={state} onOpenCloudWizard={onOpenCloudWizard} />}
         {subTab === 'bericht'            && <InfrastrukturBericht state={state} />}
         {subTab === 'executive'          && <ExecutiveSummary state={state} />}
       </div>
