@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import type { AppState } from '../types';
 import { ASSESSABLE_CATEGORIES } from '../cloudReadiness';
 import {
@@ -29,9 +29,29 @@ const THEME_COLORS: Record<CloudTheme, string> = {
   'Sicherheit & Compliance':   'bg-red-100 text-red-800',
 };
 
+const LS_ANSWERED = 'it-sa-fragen-answered';
+function loadAnswered(): Set<string> {
+  try { return new Set(JSON.parse(localStorage.getItem(LS_ANSWERED) ?? '[]')); } catch { return new Set(); }
+}
+
 export const InterviewFragenliste: React.FC<Props> = ({ state }) => {
   const [groupBy, setGroupBy] = useState<'thema' | 'kategorie'>('thema');
   const [filterThema, setFilterThema] = useState<string>('Alle');
+  const [hideAnswered, setHideAnswered] = useState(false);
+  const [answered, setAnswered] = useState<Set<string>>(loadAnswered);
+
+  useEffect(() => {
+    localStorage.setItem(LS_ANSWERED, JSON.stringify([...answered]));
+  }, [answered]);
+
+  const toggleAnswered = (key: string) => {
+    setAnswered(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   const fragen = useMemo<Frage[]>(() => {
     const out: Frage[] = [];
@@ -57,10 +77,11 @@ export const InterviewFragenliste: React.FC<Props> = ({ state }) => {
     return out;
   }, [state]);
 
-  const filtered = useMemo(() =>
-    filterThema === 'Alle' ? fragen : fragen.filter(f => f.thema === filterThema),
-    [fragen, filterThema]
-  );
+  const filtered = useMemo(() => {
+    let list = filterThema === 'Alle' ? fragen : fragen.filter(f => f.thema === filterThema);
+    if (hideAnswered) list = list.filter(f => !answered.has(`${f.kuerzel}-${f.feldKey}`));
+    return list;
+  }, [fragen, filterThema, hideAnswered, answered]);
 
   const grouped = useMemo(() => {
     if (groupBy === 'thema') {
@@ -118,7 +139,16 @@ export const InterviewFragenliste: React.FC<Props> = ({ state }) => {
           <div className="flex flex-wrap gap-3 items-center">
             <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm text-amber-800 font-medium">
               {fragen.length} offene {fragen.length === 1 ? 'Frage' : 'Fragen'} zu {new Set(fragen.map(f => f.system)).size} Systemen
+              {answered.size > 0 && <span className="ml-2 text-green-700 font-semibold">· {answered.size} beantwortet</span>}
             </div>
+            {answered.size > 0 && (
+              <button
+                onClick={() => setHideAnswered(h => !h)}
+                className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${hideAnswered ? 'bg-green-100 text-green-700 border-green-300' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'}`}
+              >
+                {hideAnswered ? '✓ Nur offene' : 'Beantwortete ausblenden'}
+              </button>
+            )}
             <div className="flex items-center gap-2 ml-auto">
               <label className="text-xs font-medium text-gray-600">Gruppieren nach:</label>
               <select
@@ -152,9 +182,18 @@ export const InterviewFragenliste: React.FC<Props> = ({ state }) => {
                   <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{group.items.length}</span>
                 </div>
                 <div className="space-y-2">
-                  {group.items.map((f) => (
-                    <FrageCard key={`${f.kuerzel}-${f.feldKey}`} frage={f} showThema={groupBy === 'kategorie'} />
-                  ))}
+                  {group.items.map((f) => {
+                    const aKey = `${f.kuerzel}-${f.feldKey}`;
+                    return (
+                      <FrageCard
+                        key={aKey}
+                        frage={f}
+                        showThema={groupBy === 'kategorie'}
+                        isAnswered={answered.has(aKey)}
+                        onToggleAnswered={() => toggleAnswered(aKey)}
+                      />
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -165,13 +204,13 @@ export const InterviewFragenliste: React.FC<Props> = ({ state }) => {
   );
 };
 
-const FrageCard: React.FC<{ frage: Frage; showThema: boolean }> = ({ frage, showThema }) => (
-  <div className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex gap-3 items-start hover:border-gray-300 transition-colors">
+const FrageCard: React.FC<{ frage: Frage; showThema: boolean; isAnswered: boolean; onToggleAnswered: () => void }> = ({ frage, showThema, isAnswered, onToggleAnswered }) => (
+  <div className={`bg-white border rounded-lg px-4 py-3 flex gap-3 items-start transition-all ${isAnswered ? 'border-green-200 bg-green-50/40 opacity-75' : 'border-gray-200 hover:border-gray-300'}`}>
     <span className="text-xs font-bold text-gray-300 w-6 text-right pt-0.5 flex-shrink-0">{frage.nr}</span>
     <div className="flex-1 min-w-0">
       <div className="flex flex-wrap gap-2 mb-1.5">
         <span className="text-xs font-mono text-gray-400">{frage.kuerzel}</span>
-        <span className="text-xs font-medium text-gray-700">{frage.system}</span>
+        <span className={`text-xs font-medium ${isAnswered ? 'line-through text-gray-400' : 'text-gray-700'}`}>{frage.system}</span>
         <span className="text-xs text-gray-400">·</span>
         <span className="text-xs text-gray-500">{frage.kategorie}</span>
         {showThema && (
@@ -180,8 +219,15 @@ const FrageCard: React.FC<{ frage: Frage; showThema: boolean }> = ({ frage, show
           </span>
         )}
       </div>
-      <p className="text-sm text-gray-800 leading-snug">{frage.frage}</p>
+      <p className={`text-sm leading-snug ${isAnswered ? 'line-through text-gray-400' : 'text-gray-800'}`}>{frage.frage}</p>
     </div>
+    <button
+      onClick={onToggleAnswered}
+      title={isAnswered ? 'Als offen markieren' : 'Als beantwortet markieren'}
+      className={`flex-shrink-0 text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${isAnswered ? 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200' : 'bg-gray-50 text-gray-500 border-gray-300 hover:border-green-300 hover:text-green-600'}`}
+    >
+      {isAnswered ? '✓ Geklärt' : 'Klären'}
+    </button>
     {!showThema && (
       <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${THEME_COLORS[frage.thema]}`}>
         {frage.thema.split(' & ')[0]}

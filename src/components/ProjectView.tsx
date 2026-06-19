@@ -145,7 +145,7 @@ export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeh
       </div>
 
       <div className="flex-1 overflow-y-auto bg-hi-gray">
-        {subTab === 'liefergegenstaende' && <ProjectTracker state={state} onUpdateLG={onUpdateLG} />}
+        {subTab === 'liefergegenstaende' && <ProjectTracker state={state} onUpdateLG={onUpdateLG} onNavigate={tab => setSubTab(tab as SubTab)} />}
         {subTab === 'stakeholder'        && <StakeholderRegister state={state} onUpdate={onUpdateStakeholder} />}
         {subTab === 'meetings'           && <MeetingProtokolle state={state} onUpdate={onUpdateMeetings} />}
         {subTab === 'tops'               && <TOPsUebersicht state={state} onUpdateTOP={handleUpdateTOP} />}

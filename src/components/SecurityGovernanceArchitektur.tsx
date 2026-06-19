@@ -1,6 +1,16 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import type { AppState } from '../types';
 import { assessAll } from '../cloudReadiness';
+
+type MassnahmeStatus = 'Offen' | 'Geplant' | 'Umgesetzt';
+const LS_KEY = 'it-sa-security-status';
+
+function loadStatus(): Record<string, MassnahmeStatus> {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) ?? '{}'); } catch { return {}; }
+}
+function saveStatus(s: Record<string, MassnahmeStatus>) {
+  localStorage.setItem(LS_KEY, JSON.stringify(s));
+}
 
 interface Props { state: AppState }
 
@@ -142,8 +152,26 @@ const PRIO_COLORS: Record<string, string> = {
 
 const BEREICHE_ORDER = ['Identität & Zugriff (IAM)', 'Netzwerk & Perimeter', 'Datenschutz & Compliance', 'Cloud Governance', 'Betrieb & Notfallmanagement', 'Entwicklung & DevSecOps'];
 
+const STATUS_CYCLE: MassnahmeStatus[] = ['Offen', 'Geplant', 'Umgesetzt'];
+const STATUS_STYLES: Record<MassnahmeStatus, string> = {
+  'Offen':     'bg-gray-100 text-gray-600 border-gray-300',
+  'Geplant':   'bg-amber-100 text-amber-700 border-amber-300',
+  'Umgesetzt': 'bg-green-100 text-green-700 border-green-300',
+};
+
 export const SecurityGovernanceArchitektur: React.FC<Props> = ({ state }) => {
   const empfehlungen = useMemo(() => buildEmpfehlungen(state), [state]);
+  const [statusMap, setStatusMap] = useState<Record<string, MassnahmeStatus>>(loadStatus);
+
+  useEffect(() => { saveStatus(statusMap); }, [statusMap]);
+
+  const toggleStatus = (titel: string) => {
+    setStatusMap(prev => {
+      const current = prev[titel] ?? 'Offen';
+      const next = STATUS_CYCLE[(STATUS_CYCLE.indexOf(current) + 1) % STATUS_CYCLE.length];
+      return { ...prev, [titel]: next };
+    });
+  };
 
   const grouped = useMemo(() => {
     return BEREICHE_ORDER.map(b => ({ bereich: b, items: empfehlungen.filter(e => e.bereich === b) })).filter(g => g.items.length > 0);
@@ -181,10 +209,20 @@ export const SecurityGovernanceArchitektur: React.FC<Props> = ({ state }) => {
         </button>
       </div>
 
-      <div className="flex gap-3 flex-wrap">
-        <span className="text-xs px-3 py-1.5 bg-red-100 text-red-800 border border-red-200 rounded-full font-medium">{pflicht} Pflicht-Maßnahmen</span>
-        <span className="text-xs px-3 py-1.5 bg-amber-100 text-amber-800 border border-amber-200 rounded-full font-medium">{empfohlen} Empfehlungen</span>
+      <div className="flex gap-3 flex-wrap items-center">
+        <span className="text-xs px-3 py-1.5 bg-red-100 text-red-800 border border-red-200 rounded-full font-medium">{pflicht} Pflicht</span>
+        <span className="text-xs px-3 py-1.5 bg-amber-100 text-amber-800 border border-amber-200 rounded-full font-medium">{empfohlen} Empfohlen</span>
         <span className="text-xs px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full font-medium">{empfehlungen.length - pflicht - empfohlen} Optional</span>
+        <span className="text-gray-300">|</span>
+        <span className="text-xs px-3 py-1.5 bg-gray-100 text-gray-600 border border-gray-300 rounded-full font-medium">
+          {empfehlungen.filter(e => (statusMap[e.titel] ?? 'Offen') === 'Offen').length} Offen
+        </span>
+        <span className="text-xs px-3 py-1.5 bg-amber-100 text-amber-700 border border-amber-300 rounded-full font-medium">
+          {empfehlungen.filter(e => statusMap[e.titel] === 'Geplant').length} Geplant
+        </span>
+        <span className="text-xs px-3 py-1.5 bg-green-100 text-green-700 border border-green-300 rounded-full font-medium">
+          {empfehlungen.filter(e => statusMap[e.titel] === 'Umgesetzt').length} Umgesetzt
+        </span>
       </div>
 
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-800">
@@ -196,17 +234,29 @@ export const SecurityGovernanceArchitektur: React.FC<Props> = ({ state }) => {
           <div key={group.bereich}>
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">{group.bereich}</h3>
             <div className="space-y-3">
-              {group.items.map((e, i) => (
-                <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-                  <div className="flex items-start gap-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full border font-medium flex-shrink-0 mt-0.5 ${PRIO_COLORS[e.prioritaet]}`}>{e.prioritaet}</span>
-                    <div>
-                      <h4 className="text-sm font-semibold text-gray-800 mb-1">{e.titel}</h4>
-                      <p className="text-sm text-gray-600 leading-relaxed">{e.beschreibung}</p>
+              {group.items.map((e, i) => {
+                const st = statusMap[e.titel] ?? 'Offen';
+                return (
+                  <div key={i} className={`bg-white border rounded-xl p-4 shadow-sm transition-all ${st === 'Umgesetzt' ? 'border-green-200 bg-green-50/30' : 'border-gray-200'}`}>
+                    <div className="flex items-start gap-3">
+                      <span className={`text-xs px-2 py-0.5 rounded-full border font-medium flex-shrink-0 mt-0.5 ${PRIO_COLORS[e.prioritaet]}`}>{e.prioritaet}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-3 mb-1">
+                          <h4 className={`text-sm font-semibold ${st === 'Umgesetzt' ? 'line-through text-gray-400' : 'text-gray-800'}`}>{e.titel}</h4>
+                          <button
+                            onClick={() => toggleStatus(e.titel)}
+                            title="Status klicken zum Wechseln: Offen → Geplant → Umgesetzt"
+                            className={`flex-shrink-0 text-xs px-2.5 py-1 rounded-full border font-medium transition-colors cursor-pointer hover:opacity-80 ${STATUS_STYLES[st]}`}
+                          >
+                            {st === 'Umgesetzt' && '✓ '}{st}
+                          </button>
+                        </div>
+                        <p className={`text-sm leading-relaxed ${st === 'Umgesetzt' ? 'text-gray-400' : 'text-gray-600'}`}>{e.beschreibung}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ))}

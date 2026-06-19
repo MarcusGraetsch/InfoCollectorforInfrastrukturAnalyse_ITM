@@ -3,9 +3,22 @@ import type { AppState, LGAnhang, Liefergegenstand, LiefergegenstandStatus } fro
 import { saveFile, loadFile, deleteFile, downloadBlob, formatBytes } from '../fileStore';
 import { generateId } from '../store';
 
+// LG IDs → zugehöriger Analyse-Tab
+const LG_TAB_MAP: Record<number, { tab: string; label: string }> = {
+  2:  { tab: 'bericht',         label: 'Infra-Bericht' },
+  3:  { tab: 'landkarte',       label: 'Infrastruktur-Landkarte' },
+  4:  { tab: 'fragenliste',     label: 'Interview-Fragenliste' },
+  5:  { tab: 'lizenz',          label: 'Lizenz & Kostenanalyse' },
+  6:  { tab: 'tco',             label: 'TCO-Modell' },
+  9:  { tab: 'security',        label: 'Security & Governance' },
+  10: { tab: 'zielarchitektur', label: 'Zielarchitektur' },
+  14: { tab: 'executive',       label: 'Executive Summary' },
+};
+
 interface Props {
   state: AppState;
   onUpdateLG: (id: number, changes: Partial<Liefergegenstand>) => void;
+  onNavigate?: (tab: string) => void;
 }
 
 const STATUS_COLORS: Record<LiefergegenstandStatus, string> = {
@@ -28,7 +41,7 @@ const PHASES = [
   'Projektgovernance & Change-Begleitung',
 ];
 
-export const ProjectTracker: React.FC<Props> = ({ state, onUpdateLG }) => {
+export const ProjectTracker: React.FC<Props> = ({ state, onUpdateLG, onNavigate }) => {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [filterPhase, setFilterPhase] = useState<string>('Alle');
   const [filterStatus, setFilterStatus] = useState<string>('Alle');
@@ -112,6 +125,7 @@ export const ProjectTracker: React.FC<Props> = ({ state, onUpdateLG }) => {
                   expanded={expandedId === lg.id}
                   onToggle={() => setExpandedId(expandedId === lg.id ? null : lg.id)}
                   onUpdate={changes => onUpdateLG(lg.id, changes)}
+                  onNavigate={onNavigate}
                 />
               ))}
             </div>
@@ -130,9 +144,10 @@ interface CardProps {
   expanded: boolean;
   onToggle: () => void;
   onUpdate: (changes: Partial<Liefergegenstand>) => void;
+  onNavigate?: (tab: string) => void;
 }
 
-const LGCard: React.FC<CardProps> = ({ lg, expanded, onToggle, onUpdate }) => {
+const LGCard: React.FC<CardProps> = ({ lg, expanded, onToggle, onUpdate, onNavigate }) => {
   const [editNotes, setEditNotes] = useState(lg.notizen);
   const [editDate,  setEditDate]  = useState(lg.faelligAm);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -193,8 +208,19 @@ const LGCard: React.FC<CardProps> = ({ lg, expanded, onToggle, onUpdate }) => {
       {expanded && (
         <div className="px-4 pb-4 border-t border-gray-100 pt-3 space-y-4">
           <p className="text-sm text-gray-600 leading-relaxed">{lg.beschreibung}</p>
-          <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+          <div className="flex flex-wrap gap-3 items-center text-xs text-gray-500">
             <span><span className="font-medium text-gray-700">Aufwand Kunde:</span> {lg.aufwandAuftraggeber}</span>
+            {onNavigate && LG_TAB_MAP[lg.id] && (
+              <button
+                onClick={() => onNavigate(LG_TAB_MAP[lg.id].tab)}
+                className="flex items-center gap-1 px-2.5 py-1 bg-hi-teal/10 text-hi-teal border border-hi-teal/30 rounded-lg hover:bg-hi-teal/20 transition-colors font-medium"
+              >
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+                → {LG_TAB_MAP[lg.id].label}
+              </button>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
