@@ -1,4 +1,17 @@
-import type { AppState, Liefergegenstand } from './types';
+import type { AppState, Liefergegenstand, Stakeholder } from './types';
+
+export const DEFAULT_STAKEHOLDER: Stakeholder[] = [
+  { id: 'sh-1',  name: '', rolle: 'Geschäftsführung',         bereich: 'Geschäftsführung',              email: '', telefon: '', lgIds: [1, 7, 14, 17, 19], notizen: 'Entscheidungs- und Eskalationsinstanz, Integration in Workshops' },
+  { id: 'sh-2',  name: '', rolle: 'Teamleitung Digitalisierung', bereich: 'Digitalisierung',             email: '', telefon: '', lgIds: [1, 8, 12, 16, 18, 19], notizen: 'Interne Projektleitung und Abstimmungsinstanz' },
+  { id: 'sh-3',  name: '', rolle: 'IT-Leitung',                bereich: 'IT-Abteilung',                 email: '', telefon: '', lgIds: [2, 3, 4, 5, 9, 10, 15, 17, 18], notizen: 'Technische Architektur, Betrieb, Lizenzmanagement' },
+  { id: 'sh-4',  name: '', rolle: 'IT-Mitarbeiter',            bereich: 'IT-Abteilung',                 email: '', telefon: '', lgIds: [2, 3, 4, 10], notizen: 'Technische Umsetzung, Systembetrieb' },
+  { id: 'sh-5',  name: '', rolle: 'Controlling / Buchhaltung', bereich: 'Controlling',                  email: '', telefon: '', lgIds: [6, 7], notizen: 'Kostenstrukturen, Business Case, Validierung von Kostendaten' },
+  { id: 'sh-6',  name: '', rolle: 'SAM / Lizenzmanagement',    bereich: 'Einkauf / IT',                 email: '', telefon: '', lgIds: [5, 6], notizen: 'Analyse bestehender Verträge und Lizenzmodelle' },
+  { id: 'sh-7',  name: '', rolle: 'Datenschutzbeauftragte:r',  bereich: 'Datenschutz',                  email: '', telefon: '', lgIds: [9, 10, 11], notizen: 'Compliance und rechtliche Bewertung' },
+  { id: 'sh-8',  name: '', rolle: 'Informationssicherheitsbeauftragte:r', bereich: 'IT-Sicherheit',     email: '', telefon: '', lgIds: [9, 10], notizen: 'Security Controls, IAM, regulatorische Implikationen' },
+  { id: 'sh-9',  name: '', rolle: 'Fachbereiche',              bereich: 'Fachabteilungen',              email: '', telefon: '', lgIds: [8, 12, 16], notizen: 'Spezifische Anforderungen an Anwendungen und Workflows' },
+  { id: 'sh-10', name: '', rolle: 'HR / Betriebsrat',          bereich: 'HR',                           email: '', telefon: '', lgIds: [16], notizen: 'Change-Begleitung, ggf. Betriebsrat einbinden' },
+];
 
 export const DEFAULT_LIEFERGEGENSTAENDE: Liefergegenstand[] = [
   { id: 1,  phase: 'Projekt-Kick-off',                              titel: 'Projekt-Kick-off-Workshop inkl. Dokumentation',           beschreibung: 'Kick-off-Ergebnisse, Ziele, Scope, Meilensteinplanung',                                                             aufwandAuftraggeber: '1 PT pro Teilnehmer, 1 PT PL zur Vorbereitung', status: 'Offen', faelligAm: '', notizen: '' },
@@ -58,6 +71,7 @@ export function createDefaultState(): AppState {
     },
     quelldokumente: [],
     liefergegenstaende: DEFAULT_LIEFERGEGENSTAENDE.map(lg => ({ ...lg })),
+    stakeholder: DEFAULT_STAKEHOLDER.map(s => ({ ...s })),
     geschaeftsprozesse: [],
     daten: [],
     anwendungen: [],
@@ -100,10 +114,13 @@ export function mergeWithDefault(partial: Partial<AppState> | null | undefined):
   if (!Array.isArray(merged.liefergegenstaende) || merged.liefergegenstaende.length === 0) {
     merged.liefergegenstaende = DEFAULT_LIEFERGEGENSTAENDE.map(lg => ({ ...lg }));
   }
+  if (!Array.isArray(merged.stakeholder) || merged.stakeholder.length === 0) {
+    merged.stakeholder = DEFAULT_STAKEHOLDER.map(s => ({ ...s }));
+  }
 
   // Jede Kategorie/Array-Property als Array erzwingen
   const arrayKeys: (keyof AppState)[] = [
-    'quelldokumente', 'liefergegenstaende', 'geschaeftsprozesse', 'daten', 'anwendungen', 'datentraeger',
+    'quelldokumente', 'liefergegenstaende', 'stakeholder', 'geschaeftsprozesse', 'daten', 'anwendungen', 'datentraeger',
     'server', 'netzkomponenten', 'netzverbindungen', 'clients', 'icsSysteme',
     'iotSysteme', 'raeume', 'gebaeude',
   ];

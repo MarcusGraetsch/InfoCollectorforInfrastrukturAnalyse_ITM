@@ -16,8 +16,8 @@ import { ImportWizard } from './components/ImportWizard';
 import { EmailTemplate } from './components/EmailTemplate';
 import { CloudReadinessWizard } from './components/CloudReadinessWizard';
 import { OffenePunkte } from './components/OffenePunkte';
-import { ProjectTracker } from './components/ProjectTracker';
-import type { Liefergegenstand } from './types';
+import { ProjectView } from './components/ProjectView';
+import type { Liefergegenstand, Stakeholder } from './types';
 import type { RowClassification } from './utils/importAnalyzer';
 import type { CloudFields } from './types';
 import { syncBidirectionalLinks } from './utils/bidirectional';
@@ -234,8 +234,8 @@ function App() {
         )}
 
         {mode === 'projekt' && (
-          <div className="h-full overflow-y-auto bg-hi-gray">
-            <ProjectTracker
+          <div className="h-full overflow-hidden flex flex-col">
+            <ProjectView
               state={state}
               onUpdateLG={(id, changes) => updateState(prev => ({
                 ...prev,
@@ -243,6 +243,7 @@ function App() {
                   lg.id === id ? { ...lg, ...changes } as Liefergegenstand : lg
                 ),
               }))}
+              onUpdateStakeholder={stakeholder => updateState(prev => ({ ...prev, stakeholder } as AppState & { stakeholder: Stakeholder[] }))}
             />
           </div>
         )}

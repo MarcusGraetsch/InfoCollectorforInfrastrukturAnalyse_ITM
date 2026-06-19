@@ -151,6 +151,17 @@ export interface Gebaeude extends BaseItem {
   benutzer: string;
 }
 
+export interface Stakeholder {
+  id: string;
+  name: string;
+  rolle: string;
+  bereich: string;
+  email: string;
+  telefon: string;
+  lgIds: number[];
+  notizen: string;
+}
+
 export type LiefergegenstandStatus = 'Offen' | 'In Arbeit' | 'Abgenommen';
 
 export interface Liefergegenstand {
@@ -189,6 +200,7 @@ export interface AppState {
   cloudStrategy: CloudStrategyMeta;
   quelldokumente: Quelldokument[];
   liefergegenstaende: Liefergegenstand[];
+  stakeholder: Stakeholder[];
   geschaeftsprozesse: Geschaeftsprozess[];
   daten: Datum[];
   anwendungen: Anwendung[];
