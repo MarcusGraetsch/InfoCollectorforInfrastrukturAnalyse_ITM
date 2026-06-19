@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import type { AppState, Liefergegenstand, Stakeholder } from '../types';
+import type { AppState, Liefergegenstand, Meeting, Stakeholder } from '../types';
 import { ProjectTracker } from './ProjectTracker';
 import { StakeholderRegister } from './StakeholderRegister';
+import { MeetingProtokolle } from './MeetingProtokolle';
 
-type SubTab = 'liefergegenstaende' | 'stakeholder';
+type SubTab = 'liefergegenstaende' | 'stakeholder' | 'meetings';
 
 interface Props {
   state: AppState;
   onUpdateLG: (id: number, changes: Partial<Liefergegenstand>) => void;
   onUpdateStakeholder: (stakeholder: Stakeholder[]) => void;
+  onUpdateMeetings: (meetings: Meeting[]) => void;
 }
 
 const TABS: { key: SubTab; label: string; icon: React.ReactNode }[] = [
@@ -30,9 +32,18 @@ const TABS: { key: SubTab; label: string; icon: React.ReactNode }[] = [
       </svg>
     ),
   },
+  {
+    key: 'meetings',
+    label: 'Protokolle',
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+    ),
+  },
 ];
 
-export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeholder }) => {
+export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeholder, onUpdateMeetings }) => {
   const [subTab, setSubTab] = useState<SubTab>('liefergegenstaende');
 
   const lgStats = {
@@ -71,6 +82,13 @@ export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeh
                   {state.stakeholder.filter(s => s.name.trim()).length}/{state.stakeholder.length}
                 </span>
               )}
+              {t.key === 'meetings' && state.meetings.length > 0 && (
+                <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
+                  subTab === t.key ? 'bg-hi-accent/20 text-hi-accent' : 'bg-gray-100 text-gray-500'
+                }`}>
+                  {state.meetings.length}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -83,6 +101,9 @@ export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeh
         )}
         {subTab === 'stakeholder' && (
           <StakeholderRegister state={state} onUpdate={onUpdateStakeholder} />
+        )}
+        {subTab === 'meetings' && (
+          <MeetingProtokolle state={state} onUpdate={onUpdateMeetings} />
         )}
       </div>
     </div>

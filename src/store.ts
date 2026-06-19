@@ -1,5 +1,6 @@
 import type { AppState, Liefergegenstand, Stakeholder } from './types';
 
+
 export const DEFAULT_STAKEHOLDER: Stakeholder[] = [
   { id: 'sh-1',  name: '', rolle: 'Geschäftsführung',         bereich: 'Geschäftsführung',              email: '', telefon: '', lgIds: [1, 7, 14, 17, 19], notizen: 'Entscheidungs- und Eskalationsinstanz, Integration in Workshops' },
   { id: 'sh-2',  name: '', rolle: 'Teamleitung Digitalisierung', bereich: 'Digitalisierung',             email: '', telefon: '', lgIds: [1, 8, 12, 16, 18, 19], notizen: 'Interne Projektleitung und Abstimmungsinstanz' },
@@ -72,6 +73,7 @@ export function createDefaultState(): AppState {
     quelldokumente: [],
     liefergegenstaende: DEFAULT_LIEFERGEGENSTAENDE.map(lg => ({ ...lg })),
     stakeholder: DEFAULT_STAKEHOLDER.map(s => ({ ...s })),
+    meetings: [],
     geschaeftsprozesse: [],
     daten: [],
     anwendungen: [],
@@ -117,10 +119,13 @@ export function mergeWithDefault(partial: Partial<AppState> | null | undefined):
   if (!Array.isArray(merged.stakeholder) || merged.stakeholder.length === 0) {
     merged.stakeholder = DEFAULT_STAKEHOLDER.map(s => ({ ...s }));
   }
+  if (!Array.isArray(merged.meetings)) {
+    merged.meetings = [];
+  }
 
   // Jede Kategorie/Array-Property als Array erzwingen
   const arrayKeys: (keyof AppState)[] = [
-    'quelldokumente', 'liefergegenstaende', 'stakeholder', 'geschaeftsprozesse', 'daten', 'anwendungen', 'datentraeger',
+    'quelldokumente', 'liefergegenstaende', 'stakeholder', 'meetings', 'geschaeftsprozesse', 'daten', 'anwendungen', 'datentraeger',
     'server', 'netzkomponenten', 'netzverbindungen', 'clients', 'icsSysteme',
     'iotSysteme', 'raeume', 'gebaeude',
   ];

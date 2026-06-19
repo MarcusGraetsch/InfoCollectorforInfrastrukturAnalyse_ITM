@@ -162,6 +162,30 @@ export interface Stakeholder {
   notizen: string;
 }
 
+export type MeetingTyp = 'Jour Fixe' | 'Lenkungsausschuss' | 'Workshop' | 'Sonstiges';
+
+export interface MeetingTOP {
+  id: string;
+  titel: string;
+  ergebnis: string;
+  verantwortlich: string;
+  faelligAm: string;
+  status: 'Offen' | 'Erledigt';
+}
+
+export interface Meeting {
+  id: string;
+  typ: MeetingTyp;
+  datum: string;
+  beginn: string;
+  ende: string;
+  ort: string;
+  teilnehmer: string;
+  tops: MeetingTOP[];
+  naechsteMeeting: string;
+  protokolliert: boolean;
+}
+
 export type LiefergegenstandStatus = 'Offen' | 'In Arbeit' | 'Abgenommen';
 
 export interface Liefergegenstand {
@@ -201,6 +225,7 @@ export interface AppState {
   quelldokumente: Quelldokument[];
   liefergegenstaende: Liefergegenstand[];
   stakeholder: Stakeholder[];
+  meetings: Meeting[];
   geschaeftsprozesse: Geschaeftsprozess[];
   daten: Datum[];
   anwendungen: Anwendung[];
