@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import type { AppState, TCODaten } from '../types';
+import type { AppState, TCODaten, TCOSzenario } from '../types';
 
 interface Props {
   state: AppState;
@@ -31,12 +31,19 @@ const CostField: React.FC<FieldProps> = ({ label, value, placeholder, onChange }
   </div>
 );
 
+const DEFAULT_SZENARIEN: TCOSzenario[] = [
+  { name: 'Konservativ', faktor: 1.2, notiz: 'Höhere Kosten als geplant (Scope Creep, Mehraufwand)' },
+  { name: 'Realistisch', faktor: 1.0, notiz: 'Plangemäße Kosten ohne wesentliche Abweichungen' },
+  { name: 'Optimistisch', faktor: 0.8, notiz: 'Günstigere Konditionen, höhere Einsparungen als erwartet' },
+];
+
 export const TCOModell: React.FC<Props> = ({ state, onUpdate }) => {
   const tco = state.tcoData;
   const jahre = Math.max(1, parseInt(tco.zeithorizont) || 5);
   const [showRichtwerte, setShowRichtwerte] = useState(false);
   const [showLogik, setShowLogik] = useState(false);
   const [showSchätzPreview, setShowSchätzPreview] = useState(false);
+  const [showAIKosten, setShowAIKosten] = useState(false);
   const [schätzWerte, setSchätzWerte] = useState<null | { lizenzen: number; hardware: number; raumEnergie: number; wartung: number; cloudInfrastruktur: number; lizenzenSaaS: number; }>(null);
 
   const berechneSchätzung = () => {
@@ -90,6 +97,11 @@ export const TCOModell: React.FC<Props> = ({ state, onUpdate }) => {
     }
   };
 
+  const szenarien = tco.szenarien ?? DEFAULT_SZENARIEN;
+  const aktivSzenarioName = tco.aktivesSzenario ?? 'Realistisch';
+  const aktivSzenario = szenarien.find(s => s.name === aktivSzenarioName) ?? szenarien[1];
+  const szenarioFaktor = aktivSzenario.faktor;
+
   const istGesamt = useMemo(() => {
     const b = tco.istkostenOnPrem;
     return (toNum(b.hardware) + toNum(b.lizenzen) + toNum(b.personalBetrieb) + toNum(b.wartung) + toNum(b.raumEnergie) + toNum(b.sonstiges));
@@ -97,11 +109,15 @@ export const TCOModell: React.FC<Props> = ({ state, onUpdate }) => {
 
   const cloudJahrlich = useMemo(() => {
     const b = tco.zielkostenCloud;
-    return (toNum(b.cloudInfrastruktur) + toNum(b.lizenzenSaaS) + toNum(b.personalCloud) + toNum(b.sonstiges));
+    const base = toNum(b.cloudInfrastruktur) + toNum(b.lizenzenSaaS) + toNum(b.personalCloud) + toNum(b.sonstiges);
+    const ai = toNum(b.aiInferenzkosten ?? '');
+    const savings = toNum(b.savingsPlanRabatt ?? '');
+    const idle = toNum(b.idleRessourcen ?? '');
+    return base + ai - savings - idle;
   }, [tco.zielkostenCloud]);
 
   const migration = toNum(tco.zielkostenCloud.migration);
-  const cloudGesamt = cloudJahrlich * jahre + migration;
+  const cloudGesamt = (cloudJahrlich * jahre + migration) * szenarioFaktor;
   const istGesamt5 = istGesamt * jahre;
   const einsparung = istGesamt5 - cloudGesamt;
   const breakEvenJahr = migration > 0 && (istGesamt - cloudJahrlich) > 0
@@ -279,6 +295,26 @@ export const TCOModell: React.FC<Props> = ({ state, onUpdate }) => {
         </div>
       )}
 
+      {/* Block 6 — Szenario-Switcher */}
+      <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex items-center gap-4 flex-wrap">
+        <span className="text-xs font-bold text-indigo-800 uppercase tracking-wide">Szenario:</span>
+        {szenarien.map(s => (
+          <button
+            key={s.name}
+            onClick={() => onUpdate({ ...tco, aktivesSzenario: s.name })}
+            title={s.notiz}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
+              aktivSzenarioName === s.name
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : 'bg-white text-indigo-700 border-indigo-200 hover:border-indigo-400'
+            }`}
+          >
+            {s.name} {s.faktor !== 1 ? `(×${s.faktor})` : ''}
+          </button>
+        ))}
+        <span className="text-xs text-indigo-600 italic ml-2">{aktivSzenario.notiz}</span>
+      </div>
+
       {/* Zeithorizont */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
         <div className="flex items-center gap-4">
@@ -325,6 +361,27 @@ export const TCOModell: React.FC<Props> = ({ state, onUpdate }) => {
           <div className="border-t border-gray-200 pt-3">
             <CostField label="Migrationskosten (einmalig)" value={tco.zielkostenCloud.migration} onChange={v => set('zielkostenCloud.migration', v)} placeholder="Einmalig" />
           </div>
+
+          {/* Block 6 — AI & FinOps Felder */}
+          <button
+            type="button"
+            onClick={() => setShowAIKosten(s => !s)}
+            className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1 mt-1"
+          >
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d={showAIKosten ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} />
+            </svg>
+            {showAIKosten ? 'FinOps/AI-Kosten ausblenden' : 'FinOps & AI-Kosten eingeben'}
+          </button>
+          {showAIKosten && (
+            <div className="space-y-2 border-t border-indigo-100 pt-3">
+              <p className="text-xs font-semibold text-indigo-700">FinOps & AI-Kosten</p>
+              <CostField label="AI/ML-Inferenzkosten (€/Jahr)" value={tco.zielkostenCloud.aiInferenzkosten ?? ''} onChange={v => set('zielkostenCloud.aiInferenzkosten', v)} placeholder="0 €" />
+              <CostField label="Savings Plan / RI-Rabatt (€/Jahr –)" value={tco.zielkostenCloud.savingsPlanRabatt ?? ''} onChange={v => set('zielkostenCloud.savingsPlanRabatt', v)} placeholder="0 €" />
+              <CostField label="Idle-Ressourcen-Einsparung (€/Jahr –)" value={tco.zielkostenCloud.idleRessourcen ?? ''} onChange={v => set('zielkostenCloud.idleRessourcen', v)} placeholder="0 €" />
+              <p className="text-[10px] text-indigo-500">Rabatte und Einsparungen werden von den Jahreskosten abgezogen.</p>
+            </div>
+          )}
           <div className="border-t border-gray-200 pt-3 flex justify-between items-center">
             <span className="text-sm font-semibold text-gray-700">Summe / Jahr (lfd.)</span>
             <span className="text-sm font-bold text-blue-700 font-mono">{fmt(cloudJahrlich)}</span>

@@ -270,6 +270,17 @@ export interface TCOZielkostenBlock {
   personalCloud: string;
   migration: string;
   sonstiges: string;
+  // Block 6 — FinOps: AI-Kosten & Optimierungen
+  aiInferenzkosten?: string;
+  savingsPlanRabatt?: string;
+  idleRessourcen?: string;
+}
+
+// Block 6 — Szenarien
+export interface TCOSzenario {
+  name: 'Konservativ' | 'Realistisch' | 'Optimistisch';
+  faktor: number;
+  notiz: string;
 }
 
 export interface TCODaten {
@@ -277,6 +288,9 @@ export interface TCODaten {
   istkostenOnPrem: TCOIstkostenBlock;
   zielkostenCloud: TCOZielkostenBlock;
   notizen: string;
+  // Block 6 — Szenarien
+  szenarien?: TCOSzenario[];
+  aktivesSzenario?: 'Konservativ' | 'Realistisch' | 'Optimistisch';
 }
 
 export type NIS2Einstufung = 'Besonders wichtig' | 'Wichtig' | 'Nicht betroffen' | 'Unklar';
