@@ -307,6 +307,22 @@ export interface NIS2Assessment {
   erstelltAm: string;
 }
 
+// Block 8 — DORA IKT-Drittparteien-Register
+export interface IKTDienstleister {
+  id: string;
+  name: string;
+  art: 'Cloud' | 'Software' | 'Hardware' | 'Managed Service' | 'Rechenzentrum' | 'Sonstiges';
+  leistung: string;
+  kritiisch: 'Ja' | 'Nein' | 'Unklar';
+  land: string;
+  vertragsende?: string;
+  sla?: string;
+  exitStrategie?: string;
+  doraKategorie?: 'Kritisch' | 'Wichtig' | 'Standard';
+  konzentrationsrisiko?: 'Hoch' | 'Mittel' | 'Niedrig' | 'Unklar';
+  notizen?: string;
+}
+
 export interface AppState {
   customerName: string;
   lastUpdated: string;
@@ -329,6 +345,7 @@ export interface AppState {
   iotSysteme: IoTSystem[];
   raeume: Raum[];
   gebaeude: Gebaeude[];
+  iktDienstleister?: IKTDienstleister[];
 }
 
 export type CategoryKey = keyof Omit<

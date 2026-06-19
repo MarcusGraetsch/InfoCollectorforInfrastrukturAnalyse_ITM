@@ -17,12 +17,13 @@ import { NIS2Check } from './NIS2Check';
 import { EuAiActInventar } from './EuAiActInventar';
 import { SouveraenitaetsBewertung } from './SouveraenitaetsBewertung';
 import { NachhaltigkeitsModul } from './NachhaltigkeitsModul';
+import { DORARegister } from './DORARegister';
 import { countItemsWithOpenFields } from '../cloudFields';
 
 type SubTab =
   | 'liefergegenstaende' | 'cockpit' | 'stakeholder' | 'meetings' | 'tops'
   | 'fragenliste' | 'landkarte' | 'lizenz' | 'tco' | 'security' | 'zielarchitektur'
-  | 'nis2' | 'euaiact' | 'souveraenitaet' | 'nachhaltigkeit'
+  | 'nis2' | 'euaiact' | 'souveraenitaet' | 'nachhaltigkeit' | 'dora'
   | 'bericht' | 'executive';
 
 interface Props {
@@ -33,6 +34,7 @@ interface Props {
   onUpdateAnwendung: (id: string, changes: Partial<Anwendung>) => void;
   onUpdateTCO: (tco: TCODaten) => void;
   onUpdateNIS2: (a: NIS2Assessment) => void;
+  onUpdateIKT: (d: import('../types').IKTDienstleister[]) => void;
   onOpenCloudWizard: (id: string) => void;
 }
 
@@ -80,6 +82,8 @@ const GROUPS = [
         icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" /></svg> },
       { key: 'nachhaltigkeit' as SubTab, label: 'Nachhaltigkeit (EnEfG)',
         icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
+      { key: 'dora' as SubTab, label: 'DORA IKT-Register',
+        icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg> },
     ],
   },
   {
@@ -93,7 +97,7 @@ const GROUPS = [
   },
 ];
 
-export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeholder, onUpdateMeetings, onUpdateAnwendung, onUpdateTCO, onUpdateNIS2, onOpenCloudWizard }) => {
+export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeholder, onUpdateMeetings, onUpdateAnwendung, onUpdateTCO, onUpdateNIS2, onUpdateIKT, onOpenCloudWizard }) => {
   const [subTab, setSubTab] = useState<SubTab>('liefergegenstaende');
 
   const lgStats = {
@@ -183,6 +187,7 @@ export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeh
         {subTab === 'euaiact'            && <EuAiActInventar state={state} onUpdateAnwendung={onUpdateAnwendung} />}
         {subTab === 'souveraenitaet'     && <SouveraenitaetsBewertung state={state} />}
         {subTab === 'nachhaltigkeit'      && <NachhaltigkeitsModul state={state} />}
+        {subTab === 'dora'               && <DORARegister state={state} onUpdate={onUpdateIKT} />}
         {subTab === 'bericht'            && <InfrastrukturBericht state={state} />}
         {subTab === 'executive'          && <ExecutiveSummary state={state} />}
       </div>
