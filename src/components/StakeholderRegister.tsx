@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { AppState, Stakeholder } from '../types';
 import { generateId } from '../store';
+import { esc, openPrintWindow, printHeader, printFooter } from '../utils/safePrint';
 
 interface Props {
   state: AppState;
@@ -59,26 +60,18 @@ export const StakeholderRegister: React.FC<Props> = ({ state, onUpdate }) => {
   const handlePrint = () => {
     const rows = stakeholder.filter(s => s.name.trim()).map(s =>
       `<tr>
-        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb">${s.name}</td>
-        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb">${s.rolle}</td>
-        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb">${s.bereich}</td>
-        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb">${s.email}</td>
-        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb">${s.telefon}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb">${esc(s.name)}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb">${esc(s.rolle)}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb">${esc(s.bereich)}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb">${esc(s.email)}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb">${esc(s.telefon)}</td>
         <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb">${s.lgIds.map(id => `LG ${id}`).join(', ')}</td>
       </tr>`
     ).join('');
-    const win = window.open('', '_blank');
-    if (!win) return;
-    win.document.write(`<!DOCTYPE html><html><head><title>Stakeholder – ${state.customerName}</title>
-      <style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h1{font-size:18px;margin-bottom:4px}
-      p{color:#6b7280;font-size:13px;margin-bottom:16px}table{border-collapse:collapse;width:100%}
-      th{background:#1e3a5f;color:#fff;padding:8px 10px;text-align:left;font-size:12px}
-      td{font-size:12px;color:#374151}tr:nth-child(even) td{background:#f9fafb}</style></head>
-      <body><h1>Stakeholder-Register</h1><p>${state.customerName} · Stand: ${new Date().toLocaleDateString('de-DE')}</p>
+    const body = `${printHeader('Stakeholder-Register', state.customerName)}
       <table><thead><tr><th>Name</th><th>Rolle</th><th>Bereich</th><th>E-Mail</th><th>Telefon</th><th>Zuständig</th></tr></thead>
-      <tbody>${rows}</tbody></table></body></html>`);
-    win.document.close();
-    win.print();
+      <tbody>${rows}</tbody></table>${printFooter()}`;
+    openPrintWindow(`Stakeholder – ${state.customerName}`, body);
   };
 
   return (

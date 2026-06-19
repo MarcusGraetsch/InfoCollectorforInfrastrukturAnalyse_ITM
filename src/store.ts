@@ -1,4 +1,5 @@
 import type { AppState, Liefergegenstand, Stakeholder, TCODaten } from './types';
+import { clearAIConfig } from './integrations/aiSuggest';
 
 const DEFAULT_TCO: TCODaten = {
   zeithorizont: '5',
@@ -212,6 +213,22 @@ export function clearState(): void {
   }
   keysToRemove.forEach(k => localStorage.removeItem(k));
   localStorage.removeItem('consultant-name');
+  // Clear snapshots, AI config, and other app keys
+  localStorage.removeItem('it-sa-snapshots');
+  localStorage.removeItem('it-sa-encrypted');
+  localStorage.removeItem('it-sa-salt');
+  localStorage.removeItem('it-sa-iv');
+  localStorage.removeItem('exec-summary-notiz');
+  localStorage.removeItem('it-sa-fragen-answered');
+  localStorage.removeItem('it-sa-security-status');
+  localStorage.removeItem('it-sa-security-details');
+  clearAIConfig();
+  // Clear IndexedDB attachment store
+  try {
+    indexedDB.deleteDatabase('it-strukturanalyse-files');
+  } catch {
+    // Non-fatal — ignore if IndexedDB not available
+  }
 }
 
 export function generateId(): string {

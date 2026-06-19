@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import type { AppState, Anwendung } from '../types';
+import { esc, openPrintWindow, printHeader, printFooter } from '../utils/safePrint';
 
 interface Props {
   state: AppState;
@@ -89,20 +90,12 @@ export const LizenzKostenAnalyse: React.FC<Props> = ({ state, onUpdateAnwendung 
   };
 
   const handlePrint = () => {
-    const win = window.open('', '_blank');
-    if (!win) return;
-    const today = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
-    win.document.write(`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
-      <title>Lizenz- und Kostenanalyse — ${state.customerName || 'Kunde'}</title>
-      <style>body{font-family:Arial,sans-serif;margin:32px;font-size:11px;color:#1a1a2e}h1{font-size:18px}table{width:100%;border-collapse:collapse}th{background:#1a1a2e;color:white;padding:5px 8px;text-align:left;font-size:10px}td{padding:5px 8px;border-bottom:1px solid #f0f0f0;vertical-align:top}tr:nth-child(even){background:#f9fafb}.r-hoch{color:#dc2626;font-weight:700}.r-mittel{color:#d97706;font-weight:600}.r-niedrig{color:#16a34a}</style>
-      </head><body>
-      <h1>Lizenz- und Kostenanalyse (LG 5)</h1>
-      <p>Kunde: <strong>${state.customerName || '–'}</strong> · Stand: ${today} · ${anwendungen.length} Anwendungen</p>
+    const body = `${printHeader('Lizenz- und Kostenanalyse (LG 5)', state.customerName)}
+      <p>${anwendungen.length} Anwendungen</p>
       <table><thead><tr><th>Kürzel</th><th>Anwendung</th><th>Anbieter</th><th>Lizenzmodell</th><th>Cloudfähig</th><th>Jahreskosten</th><th>Vertragsende</th><th>Risiko</th></tr></thead><tbody>
-      ${rows.map(a => `<tr><td>${a.kuerzel}</td><td>${a.name}</td><td>${a.lizenzAnbieter || '–'}</td><td>${a.lizenzmodell || '–'}</td><td>${a.lizenzCloudfaehig || '–'}</td><td>${a.lizenzkosten || '–'}</td><td>${a.vertragsende ? new Date(a.vertragsende).toLocaleDateString('de-DE') : '–'}</td><td class="r-${a.risiko.toLowerCase()}">${a.risiko}</td></tr>`).join('')}
-      </tbody></table></body></html>`);
-    win.document.close();
-    win.print();
+      ${rows.map(a => `<tr><td>${esc(a.kuerzel)}</td><td>${esc(a.name)}</td><td>${esc(a.lizenzAnbieter || '–')}</td><td>${esc(a.lizenzmodell || '–')}</td><td>${esc(a.lizenzCloudfaehig || '–')}</td><td>${esc(a.lizenzkosten || '–')}</td><td>${a.vertragsende ? new Date(a.vertragsende).toLocaleDateString('de-DE') : '–'}</td><td style="color:${a.risiko==='Hoch'?'#dc2626':a.risiko==='Mittel'?'#d97706':'#16a34a'};font-weight:${a.risiko==='Hoch'?'700':a.risiko==='Mittel'?'600':'normal'}">${esc(a.risiko)}</td></tr>`).join('')}
+      </tbody></table>${printFooter()}`;
+    openPrintWindow(`Lizenz- und Kostenanalyse — ${state.customerName || 'Kunde'}`, body);
   };
 
   if (anwendungen.length === 0) {

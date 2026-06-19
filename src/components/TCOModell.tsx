@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import type { AppState, TCODaten, TCOSzenario } from '../types';
+import { esc, openPrintWindow, printHeader, printFooter } from '../utils/safePrint';
 
 interface Props {
   state: AppState;
@@ -125,38 +126,32 @@ export const TCOModell: React.FC<Props> = ({ state, onUpdate }) => {
     : null;
 
   const handlePrint = () => {
-    const win = window.open('', '_blank');
-    if (!win) return;
-    const today = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
     const pct = istGesamt5 > 0 ? Math.round((einsparung / istGesamt5) * 100) : 0;
-    win.document.write(`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
-      <title>TCO-Modell — ${state.customerName || 'Kunde'}</title>
-      <style>body{font-family:Arial,sans-serif;margin:32px;font-size:11px;color:#1a1a2e}h1{font-size:18px}h2{font-size:13px;margin-top:20px;border-bottom:1px solid #e5e7eb;padding-bottom:4px}table{width:100%;border-collapse:collapse;margin-bottom:16px}th{background:#f3f4f6;padding:5px 8px;text-align:left;font-size:10px}td{padding:5px 8px;border-bottom:1px solid #f0f0f0}.mono{font-family:monospace;text-align:right}.total{font-weight:700;background:#f9fafb}.highlight{background:#dbeafe;font-weight:700}.saving{color:${einsparung > 0 ? '#16a34a' : '#dc2626'}}</style>
-      </head><body>
-      <h1>TCO-Modell & Wirtschaftlichkeitsanalyse (LG 6)</h1>
-      <p>Kunde: <strong>${state.customerName || '–'}</strong> · Stand: ${today} · Zeithorizont: ${jahre} Jahre</p>
+    const savingColor = einsparung > 0 ? '#16a34a' : '#dc2626';
+    const body = `${printHeader('TCO-Modell & Wirtschaftlichkeitsanalyse (LG 6)', state.customerName)}
+      <p>Zeithorizont: ${esc(String(jahre))} Jahre</p>
       <h2>Ist-Kosten On-Premises (jährlich)</h2>
       <table><thead><tr><th>Position</th><th style="text-align:right">€ / Jahr</th></tr></thead><tbody>
-      ${[['Hardware / Abschreibung',tco.istkostenOnPrem.hardware],['Lizenzen / Software',tco.istkostenOnPrem.lizenzen],['Personal Betrieb',tco.istkostenOnPrem.personalBetrieb],['Wartung / Support',tco.istkostenOnPrem.wartung],['Raum / Energie',tco.istkostenOnPrem.raumEnergie],['Sonstiges',tco.istkostenOnPrem.sonstiges]].map(([l,v])=>`<tr><td>${l}</td><td class="mono">${toNum(String(v)).toLocaleString('de-DE')} €</td></tr>`).join('')}
-      <tr class="total"><td>Summe / Jahr</td><td class="mono">${fmt(istGesamt)}</td></tr>
-      <tr class="total"><td>Summe ${jahre} Jahre</td><td class="mono">${fmt(istGesamt5)}</td></tr>
+      ${[['Hardware / Abschreibung',tco.istkostenOnPrem.hardware],['Lizenzen / Software',tco.istkostenOnPrem.lizenzen],['Personal Betrieb',tco.istkostenOnPrem.personalBetrieb],['Wartung / Support',tco.istkostenOnPrem.wartung],['Raum / Energie',tco.istkostenOnPrem.raumEnergie],['Sonstiges',tco.istkostenOnPrem.sonstiges]].map(([l,v])=>`<tr><td>${esc(l)}</td><td style="text-align:right;font-family:monospace">${toNum(String(v)).toLocaleString('de-DE')} €</td></tr>`).join('')}
+      <tr style="font-weight:700;background:#f9fafb"><td>Summe / Jahr</td><td style="text-align:right;font-family:monospace">${fmt(istGesamt)}</td></tr>
+      <tr style="font-weight:700;background:#f9fafb"><td>Summe ${esc(String(jahre))} Jahre</td><td style="text-align:right;font-family:monospace">${fmt(istGesamt5)}</td></tr>
       </tbody></table>
-      <h2>Ziel-Kosten Cloud (${jahre} Jahre)</h2>
+      <h2>Ziel-Kosten Cloud (${esc(String(jahre))} Jahre)</h2>
       <table><thead><tr><th>Position</th><th style="text-align:right">€ / Jahr</th></tr></thead><tbody>
-      ${[['Cloud-Infrastruktur',tco.zielkostenCloud.cloudInfrastruktur],['Lizenzen SaaS',tco.zielkostenCloud.lizenzenSaaS],['Personal Cloud-Betrieb',tco.zielkostenCloud.personalCloud],['Sonstiges',tco.zielkostenCloud.sonstiges]].map(([l,v])=>`<tr><td>${l}</td><td class="mono">${toNum(String(v)).toLocaleString('de-DE')} €</td></tr>`).join('')}
-      <tr><td>Migrationskosten (einmalig)</td><td class="mono">${fmt(migration)}</td></tr>
-      <tr class="total"><td>Summe ${jahre} Jahre (inkl. Migration)</td><td class="mono">${fmt(cloudGesamt)}</td></tr>
+      ${[['Cloud-Infrastruktur',tco.zielkostenCloud.cloudInfrastruktur],['Lizenzen SaaS',tco.zielkostenCloud.lizenzenSaaS],['Personal Cloud-Betrieb',tco.zielkostenCloud.personalCloud],['Sonstiges',tco.zielkostenCloud.sonstiges]].map(([l,v])=>`<tr><td>${esc(l)}</td><td style="text-align:right;font-family:monospace">${toNum(String(v)).toLocaleString('de-DE')} €</td></tr>`).join('')}
+      <tr><td>Migrationskosten (einmalig)</td><td style="text-align:right;font-family:monospace">${fmt(migration)}</td></tr>
+      <tr style="font-weight:700;background:#f9fafb"><td>Summe ${esc(String(jahre))} Jahre (inkl. Migration)</td><td style="text-align:right;font-family:monospace">${fmt(cloudGesamt)}</td></tr>
       </tbody></table>
       <h2>Wirtschaftlichkeitsvergleich</h2>
       <table><tbody>
-      <tr class="highlight"><td>Einsparung über ${jahre} Jahre</td><td class="mono saving">${fmt(Math.abs(einsparung))} ${einsparung >= 0 ? '(Einsparung)' : '(Mehrkosten)'}</td></tr>
-      <tr><td>Relative Einsparung</td><td class="mono saving">${Math.abs(pct)} %</td></tr>
-      ${breakEvenJahr ? `<tr><td>Break-Even-Zeitpunkt</td><td class="mono">ca. ${breakEvenJahr} Jahr${breakEvenJahr !== 1 ? 'e' : ''} nach Migration</td></tr>` : ''}
+      <tr style="background:#dbeafe;font-weight:700"><td>Einsparung über ${esc(String(jahre))} Jahre</td><td style="text-align:right;font-family:monospace;color:${savingColor}">${fmt(Math.abs(einsparung))} ${einsparung >= 0 ? '(Einsparung)' : '(Mehrkosten)'}</td></tr>
+      <tr><td>Relative Einsparung</td><td style="text-align:right;font-family:monospace;color:${savingColor}">${Math.abs(pct)} %</td></tr>
+      ${breakEvenJahr ? `<tr><td>Break-Even-Zeitpunkt</td><td style="text-align:right;font-family:monospace">ca. ${breakEvenJahr} Jahr${breakEvenJahr !== 1 ? 'e' : ''} nach Migration</td></tr>` : ''}
       </tbody></table>
-      ${tco.notizen ? `<h2>Anmerkungen</h2><p>${tco.notizen}</p>` : ''}
-      </body></html>`);
-    win.document.close();
-    win.print();
+      ${tco.notizen ? `<h2>Anmerkungen</h2><p>${esc(tco.notizen)}</p>` : ''}
+      ${printFooter()}`;
+    openPrintWindow(`TCO-Modell — ${state.customerName || 'Kunde'}`, body,
+      'h2{font-size:13px;margin-top:20px;border-bottom:1px solid #e5e7eb;padding-bottom:4px}');
   };
 
   return (

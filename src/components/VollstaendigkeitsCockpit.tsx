@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import type { AppState } from '../types';
+import { esc, openPrintWindow, printHeader, printFooter } from '../utils/safePrint';
 import {
   computeCompleteness,
   summarizeCompleteness,
@@ -23,20 +24,12 @@ export const VollstaendigkeitsCockpit: React.FC<Props> = ({ state, onNavigate })
   const summary = useMemo(() => summarizeCompleteness(rows), [rows]);
 
   const handlePrint = () => {
-    const win = window.open('', '_blank');
-    if (!win) return;
-    const today = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
-    win.document.write(`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
-      <title>Erfassungsfortschritt — ${state.customerName || 'Kunde'}</title>
-      <style>body{font-family:Arial,sans-serif;margin:32px;font-size:11px;color:#1a1a2e}h1{font-size:18px}table{width:100%;border-collapse:collapse}th{background:#1a1a2e;color:white;padding:6px 8px;text-align:left;font-size:10px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.g{color:#16a34a;font-weight:700}.y{color:#d97706;font-weight:700}.r{color:#dc2626;font-weight:700}</style>
-      </head><body>
-      <h1>Erfassungsfortschritt</h1>
-      <p>Kunde: <strong>${state.customerName || '–'}</strong> · Stand: ${today} · ${summary.categoriesComplete}/${summary.categoriesTotal} Kategorien vollständig · ${summary.itemsWithUnklar} Einträge mit offenen Feldern</p>
+    const body = `${printHeader('Erfassungsfortschritt', state.customerName)}
+      <p>${summary.categoriesComplete}/${summary.categoriesTotal} Kategorien vollständig &middot; ${summary.itemsWithUnklar} Einträge mit offenen Feldern</p>
       <table><thead><tr><th>Kategorie</th><th>Einträge</th><th>Vollständig</th><th>Mit offenen Feldern</th><th>Fortschritt</th><th>Status</th></tr></thead><tbody>
-      ${rows.map(r => `<tr><td>${r.label}</td><td>${r.total}</td><td>${r.complete}</td><td>${r.withUnklar}</td><td>${r.pct} %</td><td class="${r.status === 'Grün' ? 'g' : r.status === 'Gelb' ? 'y' : 'r'}">${STATUS_STYLE[r.status].label}</td></tr>`).join('')}
-      </tbody></table></body></html>`);
-    win.document.close();
-    win.print();
+      ${rows.map(r => `<tr><td>${esc(r.label)}</td><td>${r.total}</td><td>${r.complete}</td><td>${r.withUnklar}</td><td>${r.pct} %</td><td style="color:${r.status === 'Grün' ? '#16a34a' : r.status === 'Gelb' ? '#d97706' : '#dc2626'};font-weight:700">${esc(STATUS_STYLE[r.status].label)}</td></tr>`).join('')}
+      </tbody></table>${printFooter()}`;
+    openPrintWindow(`Erfassungsfortschritt — ${state.customerName || 'Kunde'}`, body);
   };
 
   return (

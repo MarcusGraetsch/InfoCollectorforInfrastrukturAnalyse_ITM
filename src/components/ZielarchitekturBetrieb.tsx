@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import type { AppState } from '../types';
 import { assessSovereignty } from '../cloudReadiness';
 import { getEffektiverSchutzbedarf } from '../schutzbedarfsVererbung';
+import { esc, openPrintWindow, printHeader, printFooter } from '../utils/safePrint';
 
 interface Props {
   state: AppState;
@@ -144,24 +145,16 @@ export const ZielarchitekturBetrieb: React.FC<Props> = ({ state, onOpenCloudWiza
   }, [systemEmpfehlungen]);
 
   const handlePrint = () => {
-    const win = window.open('', '_blank');
-    if (!win) return;
-    const today = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
-    win.document.write(`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
-      <title>Zielarchitektur — ${state.customerName || 'Kunde'}</title>
-      <style>body{font-family:Arial,sans-serif;margin:32px;font-size:10px;color:#1a1a2e}h1{font-size:16px}h2{font-size:12px;margin-top:16px;border-bottom:1px solid #e5e7eb;padding-bottom:4px}table{width:100%;border-collapse:collapse;margin-bottom:12px}th{background:#1a1a2e;color:white;padding:4px 6px;text-align:left;font-size:9px}td{padding:4px 6px;border-bottom:1px solid #f0f0f0;vertical-align:top}tr:nth-child(even){background:#f9fafb}.hoch{color:#d97706;font-weight:600}.sehr-hoch{color:#dc2626;font-weight:700}</style>
-      </head><body>
-      <h1>Zielarchitektur Betriebs-, Backup- und Recovery-Konzept (LG 10)</h1>
-      <p>Kunde: <strong>${state.customerName || '–'}</strong> · Stand: ${today}</p>
+    const body = `${printHeader('Zielarchitektur Betriebs-, Backup- und Recovery-Konzept (LG 10)', state.customerName)}
       <h2>Systemübersicht mit Deployment-Zielen</h2>
       <table><thead><tr><th>Kürzel</th><th>System</th><th>Kat.</th><th>Schutzbedarf</th><th>Deployment-Ziel</th><th>Backup-Strategie</th><th>RTO</th><th>RPO</th><th>Besonderheit</th></tr></thead><tbody>
-      ${systemEmpfehlungen.map(s => `<tr><td>${s.kuerzel}</td><td>${s.name}</td><td>${s.kategorie}</td><td class="${s.schutzbedarf==='Sehr hoch'?'sehr-hoch':s.schutzbedarf==='Hoch'?'hoch':''}">${s.schutzbedarf}</td><td>${s.deploymentZiel}</td><td>${s.backupStrategie}</td><td>${s.rto}</td><td>${s.rpo}</td><td>${s.besonderheit||'–'}</td></tr>`).join('')}
+      ${systemEmpfehlungen.map(s => `<tr><td>${esc(s.kuerzel)}</td><td>${esc(s.name)}</td><td>${esc(s.kategorie)}</td><td style="color:${s.schutzbedarf==='Sehr hoch'?'#dc2626':s.schutzbedarf==='Hoch'?'#d97706':'inherit'};font-weight:${s.schutzbedarf==='Sehr hoch'?'700':s.schutzbedarf==='Hoch'?'600':'normal'}">${esc(s.schutzbedarf)}</td><td>${esc(s.deploymentZiel)}</td><td>${esc(s.backupStrategie)}</td><td>${esc(s.rto)}</td><td>${esc(s.rpo)}</td><td>${esc(s.besonderheit||'–')}</td></tr>`).join('')}
       </tbody></table>
       <h2>Grundsätze Betriebskonzept</h2>
       <p>IaC-gestütztes Deployment (Terraform/Bicep), Blue-Green oder Rolling Updates, Monitoring via Cloud-native Tools (CloudWatch, Azure Monitor, GCP Operations). Automatische Skalierung (Autoscaling Groups / HPA in Kubernetes). Health-Checks und Circuit-Breaker für kritische Pfade.</p>
-      </body></html>`);
-    win.document.close();
-    win.print();
+      ${printFooter()}`;
+    openPrintWindow(`Zielarchitektur — ${state.customerName || 'Kunde'}`, body,
+      'h2{font-size:12px;margin-top:16px;border-bottom:1px solid #e5e7eb;padding-bottom:4px}');
   };
 
   if (systemEmpfehlungen.length === 0) {

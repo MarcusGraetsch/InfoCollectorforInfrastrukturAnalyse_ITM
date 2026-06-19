@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { AppState, Meeting, MeetingTOP, MeetingTyp } from '../types';
 import { generateId } from '../store';
+import { esc, openPrintWindow } from '../utils/safePrint';
 
 interface Props {
   state: AppState;
@@ -79,12 +80,8 @@ export const MeetingProtokolle: React.FC<Props> = ({ state, onUpdate }) => {
   const handlePrint = (meetingId: string) => {
     const m = state.meetings.find(m => m.id === meetingId);
     if (!m) return;
-    const html = buildPrintHtml(m, state.customerName);
-    const win = window.open('', '_blank');
-    if (!win) return;
-    win.document.write(html);
-    win.document.close();
-    win.print();
+    const { title, body } = buildPrintContent(m, state.customerName);
+    openPrintWindow(title, body);
   };
 
   return (
@@ -364,42 +361,31 @@ const TOPRow: React.FC<TOPRowProps> = ({ top, nr, onChange, onDelete }) => (
   </div>
 );
 
-function buildPrintHtml(m: Meeting, customerName: string): string {
+function buildPrintContent(m: Meeting, customerName: string): { title: string; body: string } {
   const formatDate = (d: string) => d
     ? new Date(d + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
     : '–';
   const tops = m.tops.map((t, i) => `
     <tr>
       <td style="padding:8px 12px;border-bottom:1px solid #eee;font-weight:600;vertical-align:top;white-space:nowrap;">${i + 1}.</td>
-      <td style="padding:8px 12px;border-bottom:1px solid #eee;vertical-align:top;font-weight:600;">${t.titel || '–'}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid #eee;vertical-align:top;color:#444;">${t.ergebnis || '–'}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid #eee;vertical-align:top;white-space:nowrap;">${t.verantwortlich || '–'}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;vertical-align:top;font-weight:600;">${esc(t.titel || '–')}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;vertical-align:top;color:#444;">${esc(t.ergebnis || '–')}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;vertical-align:top;white-space:nowrap;">${esc(t.verantwortlich || '–')}</td>
       <td style="padding:8px 12px;border-bottom:1px solid #eee;vertical-align:top;white-space:nowrap;">${t.faelligAm ? new Date(t.faelligAm + 'T12:00:00').toLocaleDateString('de-DE') : '–'}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid #eee;vertical-align:top;white-space:nowrap;color:${t.status === 'Erledigt' ? '#16a34a' : '#d97706'};">${t.status}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;vertical-align:top;white-space:nowrap;color:${t.status === 'Erledigt' ? '#16a34a' : '#d97706'};">${esc(t.status)}</td>
     </tr>
   `).join('');
 
-  return `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
-  <title>Protokoll ${m.typ} – ${m.datum}</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 40px; color: #1a1a2e; font-size: 13px; }
-    h1 { color: #1a1a2e; margin-bottom: 4px; }
-    .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; margin: 16px 0 24px; font-size: 12px; color: #444; }
-    .meta strong { color: #1a1a2e; }
-    table { width: 100%; border-collapse: collapse; }
-    th { background: #1a1a2e; color: white; padding: 8px 12px; text-align: left; font-size: 12px; }
-    .footer { margin-top: 32px; font-size: 11px; color: #888; border-top: 1px solid #eee; padding-top: 8px; }
-    @media print { body { margin: 20px; } }
-  </style>
-  </head><body>
-  <h1>${m.typ} – Protokoll</h1>
-  <p style="color:#666;margin:0 0 16px;">Projekt: Cloud-Strategie${customerName ? ' | ' + customerName : ''}</p>
-  <div class="meta">
-    <div><strong>Datum:</strong> ${formatDate(m.datum)}</div>
-    <div><strong>Zeit:</strong> ${m.beginn || '–'} – ${m.ende || '–'} Uhr</div>
-    <div><strong>Ort / Medium:</strong> ${m.ort || '–'}</div>
-    <div><strong>Teilnehmer:</strong> ${m.teilnehmer || '–'}</div>
-    ${m.naechsteMeeting ? `<div><strong>Nächstes Meeting:</strong> ${formatDate(m.naechsteMeeting)}</div>` : ''}
+  const title = `Protokoll ${m.typ} – ${m.datum}`;
+  const body = `
+  <h1>${esc(m.typ)} – Protokoll</h1>
+  <p style="color:#666;margin:0 0 16px;">Projekt: Cloud-Strategie${customerName ? ' | ' + esc(customerName) : ''}</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 24px;margin:16px 0 24px;font-size:12px;color:#444">
+    <div><strong>Datum:</strong> ${esc(formatDate(m.datum))}</div>
+    <div><strong>Zeit:</strong> ${esc(m.beginn || '–')} – ${esc(m.ende || '–')} Uhr</div>
+    <div><strong>Ort / Medium:</strong> ${esc(m.ort || '–')}</div>
+    <div><strong>Teilnehmer:</strong> ${esc(m.teilnehmer || '–')}</div>
+    ${m.naechsteMeeting ? `<div><strong>Nächstes Meeting:</strong> ${esc(formatDate(m.naechsteMeeting))}</div>` : ''}
   </div>
   <table>
     <thead><tr>
@@ -407,6 +393,7 @@ function buildPrintHtml(m: Meeting, customerName: string): string {
     </tr></thead>
     <tbody>${tops}</tbody>
   </table>
-  <div class="footer">Erstellt am ${new Date().toLocaleDateString('de-DE')} · HiSolutions AG</div>
-  </body></html>`;
+  <div style="margin-top:32px;font-size:11px;color:#888;border-top:1px solid #eee;padding-top:8px">Erstellt mit HiSolutions IT-Strukturanalyse</div>`;
+
+  return { title, body };
 }

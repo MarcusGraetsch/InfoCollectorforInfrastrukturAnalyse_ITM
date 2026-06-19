@@ -8,6 +8,23 @@ import { assessAll, summarize } from '../cloudReadiness';
 // Excel-Im-/Export wird erst bei Button-Klick gebraucht.
 type XLSXModule = typeof import('xlsx');
 
+/**
+ * Neutralisiert CSV/Excel-Formel-Injection (OWASP CSV Injection).
+ * Werte mit führendem = + - @ werden mit einem Apostroph vorangestellt,
+ * damit Excel/LibreOffice sie als Text und nicht als Formel interpretiert.
+ */
+export function sanitizeCsvCell(val: unknown): string | number | boolean | null | undefined {
+  if (val === null || val === undefined) return val;
+  if (typeof val === 'number' || typeof val === 'boolean') return val;
+  const s = String(val);
+  if (/^[=+\-@|\t\r]/.test(s)) return `'${s}`;
+  return s;
+}
+
+function sanitizeRow(row: unknown[]): unknown[] {
+  return row.map(sanitizeCsvCell);
+}
+
 function addOverviewSheet(XLSX: XLSXModule, wb: XLSX.WorkBook, state: AppState, titel: string): void {
   const overviewData = [
     [titel, ''],
@@ -31,7 +48,7 @@ function addCategorySheets(XLSX: XLSXModule, wb: XLSX.WorkBook, state: AppState)
         return val ?? '';
       })
     );
-    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows.map(sanitizeRow)]);
     XLSX.utils.book_append_sheet(wb, ws, cat.label.substring(0, 31));
   }
 }
@@ -102,7 +119,7 @@ export async function exportWorkshopPackage(state: AppState): Promise<void> {
   ]);
   XLSX.utils.book_append_sheet(
     wb,
-    XLSX.utils.aoa_to_sheet([readinessHeader, ...readinessRows]),
+    XLSX.utils.aoa_to_sheet([readinessHeader, ...readinessRows.map(sanitizeRow)]),
     'Cloud-Readiness'
   );
 
@@ -134,7 +151,7 @@ export async function exportWorkshopPackage(state: AppState): Promise<void> {
   ]);
   XLSX.utils.book_append_sheet(
     wb,
-    XLSX.utils.aoa_to_sheet([docHeader, ...docRows]),
+    XLSX.utils.aoa_to_sheet([docHeader, ...docRows.map(sanitizeRow)]),
     'Unterlagen'
   );
 

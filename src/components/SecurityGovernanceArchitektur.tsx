@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import type { AppState } from '../types';
 import { getEffektiverSchutzbedarf } from '../schutzbedarfsVererbung';
 import { assessAll } from '../cloudReadiness';
+import { esc, openPrintWindow, printHeader, printFooter } from '../utils/safePrint';
 
 interface Props { state: AppState; onOpenCloudWizard: (id: string) => void }
 
@@ -223,19 +224,18 @@ export const SecurityGovernanceArchitektur: React.FC<Props> = ({ state, onOpenCl
   }, [empfehlungen]);
 
   const handlePrint = () => {
-    const win = window.open('', '_blank');
-    if (!win) return;
-    const today = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
-    win.document.write(`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
-      <title>Security- und Governance-Architektur — ${state.customerName || 'Kunde'}</title>
-      <style>body{font-family:Arial,sans-serif;margin:32px;font-size:11px;color:#1a1a2e}h1{font-size:18px}h2{font-size:13px;margin-top:20px;color:#1a1a2e;border-bottom:1px solid #e5e7eb;padding-bottom:4px}h3{font-size:11px;margin:12px 0 4px;font-weight:700}.pflicht{color:#dc2626}.empfohlen{color:#d97706}.optional{color:#2563eb}.item{margin-bottom:12px;padding:8px;border-left:3px solid #e5e7eb}p{margin:2px 0 6px;color:#374151}</style>
-      </head><body>
-      <h1>Vorschlag Security- und Governance-Architektur (LG 9)</h1>
-      <p>Kunde: <strong>${state.customerName || '–'}</strong> · Stand: ${today} · ${empfehlungen.length} Empfehlungen</p>
-      ${grouped.map(g => `<h2>${g.bereich}</h2>${g.items.map(e => `<div class="item"><h3 class="${e.prioritaet.toLowerCase()}">[${e.prioritaet}] ${e.titel}</h3><p>${e.beschreibung}</p></div>`).join('')}`).join('')}
-      </body></html>`);
-    win.document.close();
-    win.print();
+    const sections = grouped.map(g => `
+      <h2>${esc(g.bereich)}</h2>
+      ${g.items.map(e => `
+        <div style="margin-bottom:12px;padding:8px;border-left:3px solid #e5e7eb">
+          <h3 style="font-size:11px;margin:12px 0 4px;font-weight:700;color:${e.prioritaet==='Pflicht'?'#dc2626':e.prioritaet==='Empfohlen'?'#d97706':'#2563eb'}">[${esc(e.prioritaet)}] ${esc(e.titel)}</h3>
+          <p style="margin:2px 0 6px;color:#374151">${esc(e.beschreibung)}</p>
+        </div>`).join('')}`).join('');
+    const body = `${printHeader('Vorschlag Security- und Governance-Architektur (LG 9)', state.customerName)}
+      <p>${empfehlungen.length} Empfehlungen</p>
+      ${sections}${printFooter()}`;
+    openPrintWindow(`Security- und Governance-Architektur — ${state.customerName || 'Kunde'}`, body,
+      'h2{font-size:13px;margin-top:20px;border-bottom:1px solid #e5e7eb;padding-bottom:4px}');
   };
 
   const pflicht    = empfehlungen.filter(e => e.prioritaet === 'Pflicht').length;

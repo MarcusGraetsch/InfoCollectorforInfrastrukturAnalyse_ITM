@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import type { AppState } from '../types';
+import { esc, openPrintWindow } from '../utils/safePrint';
 import { ASSESSABLE_CATEGORIES } from '../cloudReadiness';
 import {
   CLOUD_THEMES,
@@ -97,11 +98,10 @@ export const InterviewFragenliste: React.FC<Props> = ({ state }) => {
   }, [filtered, groupBy]);
 
   const handlePrint = () => {
-    const win = window.open('', '_blank');
-    if (!win) return;
-    win.document.write(buildPrintHtml(grouped, groupBy, state.customerName));
-    win.document.close();
-    win.print();
+    openPrintWindow(
+      `Interview-Fragenliste${state.customerName ? ' – ' + state.customerName : ''}`,
+      buildPrintBody(grouped, groupBy, state.customerName)
+    );
   };
 
   return (
@@ -236,7 +236,7 @@ const FrageCard: React.FC<{ frage: Frage; showThema: boolean; isAnswered: boolea
   </div>
 );
 
-function buildPrintHtml(
+function buildPrintBody(
   grouped: { key: string; label: string; items: Frage[] }[],
   groupBy: string,
   customerName: string
@@ -245,8 +245,10 @@ function buildPrintHtml(
   const totalFragen = grouped.reduce((n, g) => n + g.items.length, 0);
 
   const sections = grouped.map(g => `
-    <div class="group">
-      <h3>${g.label} <span class="badge">${g.items.length}</span></h3>
+    <div style="margin-bottom:24px;page-break-inside:avoid">
+      <h3 style="background:#1a1a2e;color:white;padding:6px 12px;margin:0;font-size:12px;display:flex;align-items:center;gap:8px">
+        ${esc(g.label)} <span style="background:rgba(255,255,255,0.2);color:white;border-radius:9999px;padding:1px 8px;font-size:10px">${g.items.length}</span>
+      </h3>
       <table>
         <thead>
           <tr><th>#</th><th>System</th><th>${groupBy === 'thema' ? 'Kategorie' : 'Thema'}</th><th>Frage</th><th>Antwort</th></tr>
@@ -254,11 +256,11 @@ function buildPrintHtml(
         <tbody>
           ${g.items.map(f => `
             <tr>
-              <td class="nr">${f.nr}</td>
-              <td><span class="kuerzel">${f.kuerzel}</span><br/><span class="name">${f.system}</span></td>
-              <td class="meta">${groupBy === 'thema' ? f.kategorie : f.thema}</td>
-              <td class="frage">${f.frage}</td>
-              <td class="antwort"></td>
+              <td style="width:24px;color:#9ca3af;font-weight:700;text-align:right">${f.nr}</td>
+              <td><span style="font-family:monospace;color:#9ca3af;font-size:10px">${esc(f.kuerzel)}</span><br/><span style="font-weight:600;color:#1f2937">${esc(f.system)}</span></td>
+              <td style="color:#6b7280;font-size:10px;width:110px">${esc(groupBy === 'thema' ? f.kategorie : f.thema)}</td>
+              <td style="color:#1f2937">${esc(f.frage)}</td>
+              <td style="width:180px;border-left:2px solid #e5e7eb"></td>
             </tr>
           `).join('')}
         </tbody>
@@ -266,38 +268,14 @@ function buildPrintHtml(
     </div>
   `).join('');
 
-  return `<!DOCTYPE html><html lang="de"><head>
-  <meta charset="UTF-8">
-  <title>Interview-Fragenliste${customerName ? ' – ' + customerName : ''}</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 32px; color: #1a1a2e; font-size: 11px; }
-    h1 { color: #1a1a2e; margin-bottom: 2px; font-size: 18px; }
-    .sub { color: #666; font-size: 11px; margin-bottom: 16px; }
-    .meta-bar { display: flex; gap: 24px; margin-bottom: 24px; font-size: 11px; color: #444; border-bottom: 2px solid #1a1a2e; padding-bottom: 8px; }
-    .meta-bar strong { color: #1a1a2e; }
-    .group { margin-bottom: 24px; page-break-inside: avoid; }
-    h3 { background: #1a1a2e; color: white; padding: 6px 12px; margin: 0 0 0 0; font-size: 12px; display: flex; align-items: center; gap: 8px; }
-    .badge { background: rgba(255,255,255,0.2); color: white; border-radius: 9999px; padding: 1px 8px; font-size: 10px; }
-    table { width: 100%; border-collapse: collapse; }
-    th { background: #f3f4f6; padding: 5px 8px; text-align: left; font-size: 10px; color: #374151; border-bottom: 1px solid #d1d5db; }
-    td { padding: 6px 8px; vertical-align: top; border-bottom: 1px solid #f0f0f0; }
-    .nr { width: 24px; color: #9ca3af; font-weight: 700; text-align: right; }
-    .kuerzel { font-family: monospace; color: #9ca3af; font-size: 10px; }
-    .name { font-weight: 600; color: #1f2937; }
-    .meta { color: #6b7280; font-size: 10px; width: 110px; }
-    .frage { color: #1f2937; }
-    .antwort { width: 180px; border-left: 2px solid #e5e7eb; }
-    @media print { body { margin: 16px; } }
-  </style>
-  </head><body>
-  <h1>Interview- & Workshop-Fragenliste</h1>
-  <p class="sub">Cloud-Readiness-Analyse · Vorbereitung LG 4</p>
-  <div class="meta-bar">
-    <span><strong>Kunde:</strong> ${customerName || '–'}</span>
-    <span><strong>Stand:</strong> ${today}</span>
+  return `
+  <h1>Interview- &amp; Workshop-Fragenliste</h1>
+  <p style="color:#666;font-size:11px;margin-bottom:16px">Cloud-Readiness-Analyse · Vorbereitung LG 4</p>
+  <div style="display:flex;gap:24px;margin-bottom:24px;font-size:11px;color:#444;border-bottom:2px solid #1a1a2e;padding-bottom:8px">
+    <span><strong>Kunde:</strong> ${esc(customerName || '–')}</span>
+    <span><strong>Stand:</strong> ${esc(today)}</span>
     <span><strong>Offene Fragen:</strong> ${totalFragen}</span>
     <span><strong>Gruppierung:</strong> nach ${groupBy === 'thema' ? 'Thema' : 'Kategorie'}</span>
   </div>
-  ${sections}
-  </body></html>`;
+  ${sections}`;
 }

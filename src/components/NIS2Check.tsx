@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import type { AppState, NIS2Assessment, NIS2MassnahmeStatus } from '../types';
+import { esc, openPrintWindow, printHeader, printFooter } from '../utils/safePrint';
 import {
   NIS2_SEKTOR_GRUPPEN,
   NIS2_MASSNAHMEN,
@@ -57,30 +58,22 @@ export const NIS2Check: React.FC<Props> = ({ state, assessment, onUpdate }) => {
   };
 
   const handlePrint = () => {
-    const win = window.open('', '_blank');
-    if (!win) return;
-    const today = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
-    win.document.write(`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
-      <title>NIS2-Readiness-Check — ${state.customerName || 'Kunde'}</title>
-      <style>body{font-family:Arial,sans-serif;margin:32px;font-size:11px;color:#1a1a2e}h1{font-size:18px}h2{font-size:13px;margin-top:18px}table{width:100%;border-collapse:collapse}th{background:#1a1a2e;color:white;padding:6px 8px;text-align:left;font-size:10px}td{padding:6px 8px;border-bottom:1px solid #f0f0f0}.box{border:2px solid #ccc;border-radius:8px;padding:12px;margin:12px 0}</style>
-      </head><body>
-      <h1>NIS2-/BSIG-Readiness-Check</h1>
-      <p>Kunde: <strong>${state.customerName || '–'}</strong> · Stand: ${today}</p>
-      <div class="box">
-        <strong>Einstufung: ${info.kurz}</strong><br>
-        Sektor: ${assessment.sektor || '–'} · Mitarbeiter: ${assessment.mitarbeiter || '–'} · Umsatz: ${assessment.umsatzMio || '–'} Mio. € · KRITIS: ${assessment.kritis || '–'}<br>
-        Pflichten: ${info.pflichten}<br>
-        ${info.bussgeld !== '—' ? 'Sanktionsrahmen: ' + info.bussgeld : ''}
+    const body = `${printHeader('NIS2-/BSIG-Readiness-Check', state.customerName)}
+      <div style="border:2px solid #ccc;border-radius:8px;padding:12px;margin:12px 0">
+        <strong>Einstufung: ${esc(info.kurz)}</strong><br>
+        Sektor: ${esc(assessment.sektor || '–')} &middot; Mitarbeiter: ${esc(assessment.mitarbeiter || '–')} &middot; Umsatz: ${esc(assessment.umsatzMio || '–')} Mio. € &middot; KRITIS: ${esc(assessment.kritis || '–')}<br>
+        Pflichten: ${esc(info.pflichten)}<br>
+        ${info.bussgeld !== '—' ? 'Sanktionsrahmen: ' + esc(info.bussgeld) : ''}
       </div>
       <h2>Gap-Analyse Mindestmaßnahmen (Art. 21 NIS2 / §30 BSIG) — Erfüllungsgrad: ${gap.erfuellungsgrad} %</h2>
       <table><thead><tr><th>Maßnahme</th><th>Status</th></tr></thead><tbody>
-      ${NIS2_MASSNAHMEN.map(m => `<tr><td>${m.label}</td><td>${assessment.massnahmen[m.key] || 'Fehlend'}</td></tr>`).join('')}
+      ${NIS2_MASSNAHMEN.map(m => `<tr><td>${esc(m.label)}</td><td>${esc(assessment.massnahmen[m.key] || 'Fehlend')}</td></tr>`).join('')}
       </tbody></table>
-      ${assessment.notizen ? `<h2>Notizen</h2><p>${assessment.notizen}</p>` : ''}
+      ${assessment.notizen ? `<h2>Notizen</h2><p>${esc(assessment.notizen)}</p>` : ''}
       <p style="margin-top:20px;color:#888;font-size:9px">Vereinfachte Orientierungshilfe, keine rechtsverbindliche Einstufung. Grundlage: NIS2-Richtlinie (EU) 2022/2555, BSIG (in Kraft seit 06.12.2025).</p>
-      </body></html>`);
-    win.document.close();
-    win.print();
+      ${printFooter()}`;
+    openPrintWindow(`NIS2-Readiness-Check — ${state.customerName || 'Kunde'}`, body,
+      'h2{font-size:13px;margin-top:18px}');
   };
 
   const RadioGroup: React.FC<{ value: string; options: { v: string; l: string }[]; onChange: (v: string) => void }> = ({ value, options, onChange }) => (

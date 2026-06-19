@@ -79,10 +79,13 @@ export async function getAISuggestions(
   const systemPrompt = 'Du bist ein IT-Infrastruktur-Analyst. Ergaenze fehlende Cloud-Readiness-Felder. Antworte NUR mit einem JSON-Array: [{field, value, confidence, begruendung}]';
   const userPrompt = `System: "${itemName}" (${itemKategorie})\nVorhandene Felder: ${JSON.stringify(existingFields)}\nErgaenze: schutzbedarf, bereitstellung, migrationskomplexitaet, lebenszyklus, internetfaehig, datensouveraenitaet`;
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10_000);
   try {
     const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      signal: controller.signal,
       body: JSON.stringify({
         model,
         messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }],
@@ -98,5 +101,7 @@ export async function getAISuggestions(
     return JSON.parse(jsonMatch[0]) as AISuggestion[];
   } catch {
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }

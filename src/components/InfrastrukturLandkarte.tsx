@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import type { AppState } from '../types';
+import { esc, openPrintWindow } from '../utils/safePrint';
 
 interface Props { state: AppState }
 
@@ -158,7 +159,7 @@ export const InfrastrukturLandkarte: React.FC<Props> = ({ state }) => {
     let cancelled = false;
 
     import('mermaid').then(({ default: mermaid }) => {
-      mermaid.initialize({ startOnLoad: false, theme: 'neutral', securityLevel: 'loose', fontFamily: 'Arial, sans-serif' });
+      mermaid.initialize({ startOnLoad: false, theme: 'neutral', securityLevel: 'strict', fontFamily: 'Arial, sans-serif' });
       const id = 'mermaid-' + Date.now();
       mermaid.render(id, diagramCode)
         .then(({ svg: rendered }) => {
@@ -183,19 +184,13 @@ export const InfrastrukturLandkarte: React.FC<Props> = ({ state }) => {
   };
 
   const handlePrint = () => {
-    const win = window.open('', '_blank');
-    if (!win) return;
-    const today = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
-    win.document.write(`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
-      <title>Infrastruktur-Landkarte — ${state.customerName || 'Kunde'}</title>
-      <style>body{font-family:Arial,sans-serif;margin:24px;color:#1a1a2e}h1{font-size:18px;color:#1a1a2e}p{font-size:11px;color:#666}</style>
-      </head><body>
+    // svg comes from mermaid's renderer directly — not user data interpolated into HTML
+    // We escape the title/customer but keep the SVG as-is (mermaid output)
+    const body = `
       <h1>Infrastruktur-Landkarte</h1>
-      <p>Kunde: <strong>${state.customerName || '–'}</strong> · Stand: ${today}</p>
-      ${svg}
-      </body></html>`);
-    win.document.close();
-    win.print();
+      <p style="font-size:11px;color:#666">Kunde: <strong>${esc(state.customerName || '–')}</strong> &middot; Erstellt mit HiSolutions IT-Strukturanalyse</p>
+      ${svg}`;
+    openPrintWindow(`Infrastruktur-Landkarte — ${state.customerName || 'Kunde'}`, body);
   };
 
   const ANSICHTEN: { key: Ansicht; label: string }[] = [
