@@ -258,6 +258,29 @@ export interface IoTSystem extends BaseItem, CloudFields, HardwareFields, Wirtsc
 }
 
 /**
+ * Schnittstelle / Kommunikationsbeziehung zwischen Anwendungen (Decision 3,
+ * LeanIX-"Interface"). quellAnwendung/zielAnwendung sind multiref → anwendungen
+ * (Engine-konform; primär wird der erste Eintrag verwendet).
+ */
+export interface Schnittstelle extends BaseItem {
+  status: Status;
+  quellAnwendung: string[];
+  zielAnwendung: string[];
+  protokoll: string;
+  ports: string;
+  richtung: string;            // Unidirektional / Bidirektional
+  initiator: string;           // Quelle / Ziel / Beide
+  synchronitaet: string;       // Synchron / Asynchron / Batch
+  frequenz: string;
+  datenfluss: string;
+  verschluesselung: string;
+  authentifizierung: string;
+  firewallRegel: string;
+  voraussetzungen: string;
+  daten?: string[];
+}
+
+/**
  * Betriebssystem als eigene, wiederverwendbare IT-Component (Decision 1,
  * analog iTop OSFamily/OSVersion). Wird von Servern/Clients per multiref
  * referenziert → ermöglicht "Server A → OS x → Apps a,b,c".
@@ -453,6 +476,7 @@ export interface AppState {
   daten: Datum[];
   anwendungen: Anwendung[];
   betriebssysteme: Betriebssystem[];
+  schnittstellen: Schnittstelle[];
   datentraeger: Datentraeger[];
   server: Server[];
   netzkomponenten: Netzkomponente[];

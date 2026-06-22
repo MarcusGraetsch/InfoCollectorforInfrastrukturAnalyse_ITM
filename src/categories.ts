@@ -500,6 +500,32 @@ export const CATEGORIES: CategoryDef[] = [
     ],
   },
   {
+    key: 'schnittstellen',
+    label: 'Schnittstellen / Kommunikation',
+    prefix: 'SS',
+    fields: [
+      { key: 'kuerzel', label: 'Kürzel', type: 'text', tooltip: 'Eindeutiges Kürzel, z.B. SS-001', required: true },
+      { key: 'name', label: 'Name', type: 'text', tooltip: 'Bezeichnung der Schnittstelle', required: true },
+      { key: 'erlaeuterung', label: 'Erläuterung / Zweck', type: 'textarea', tooltip: 'Wozu dient die Schnittstelle?' },
+      STATUS_FIELD,
+      { key: 'quellAnwendung', label: 'Quell-Anwendung', type: 'multiref', refCategory: 'anwendungen', tooltip: 'Sendende/initiierende Anwendung (Quelle des Datenflusses)' },
+      { key: 'zielAnwendung', label: 'Ziel-Anwendung', type: 'multiref', refCategory: 'anwendungen', tooltip: 'Empfangende Anwendung (Ziel des Datenflusses)' },
+      { key: 'richtung', label: 'Richtung', type: 'select', options: ['Unidirektional', 'Bidirektional'], tooltip: 'Datenflussrichtung' },
+      { key: 'initiator', label: 'Initiator', type: 'select', options: ['Quelle', 'Ziel', 'Beide'], tooltip: 'Wer baut die Verbindung auf?' },
+      { key: 'protokoll', label: 'Protokoll', type: 'text', suggestions: ['HTTPS/REST', 'gRPC', 'SOAP', 'JDBC', 'AMQP', 'Kafka', 'SFTP', 'MQTT', 'OPC UA', 'GraphQL', 'WebSocket'], tooltip: 'Kommunikationsprotokoll' },
+      { key: 'ports', label: 'Port(s)', type: 'text', placeholder: '443, 8443', tooltip: 'Verwendete Ports' },
+      { key: 'synchronitaet', label: 'Übertragungsart', type: 'select', options: ['Synchron', 'Asynchron', 'Batch'], tooltip: 'Synchron / Asynchron / Batch' },
+      { key: 'frequenz', label: 'Frequenz', type: 'select', options: ['Echtzeit', 'Minütlich', 'Stündlich', 'Täglich', 'Nächtlich', 'On Demand', 'Unklar'], tooltip: 'Wie oft fließen Daten?' },
+      { key: 'datenfluss', label: 'Datenfluss (welche Daten?)', type: 'textarea', tooltip: 'Welche Daten werden übertragen?' },
+      { key: 'daten', label: 'Verknüpfte Datenobjekte', type: 'multiref', refCategory: 'daten', tooltip: 'Übertragene Datenobjekte (optional)' },
+      { key: 'verschluesselung', label: 'Verschlüsselung', type: 'select', options: ['TLS 1.3', 'TLS 1.2', 'mTLS', 'VPN', 'Keine', 'Unklar'], tooltip: 'Transportverschlüsselung — "Keine" ist ein Sicherheitsrisiko' },
+      { key: 'authentifizierung', label: 'Authentifizierung', type: 'select', options: ['OAuth2', 'API-Key', 'mTLS', 'Zertifikat', 'Basic Auth', 'Keine', 'Unklar'], tooltip: 'Authentifizierungsverfahren' },
+      { key: 'firewallRegel', label: 'Firewall-Regel', type: 'textarea', tooltip: 'Benötigte Firewall-Freischaltungen' },
+      { key: 'voraussetzungen', label: 'Voraussetzungen', type: 'textarea', tooltip: 'Weitere Voraussetzungen / Abhängigkeiten' },
+      TAGS_FIELD,
+    ],
+  },
+  {
     key: 'datentraeger',
     label: 'Datenträger',
     prefix: 'DT',
@@ -826,6 +852,25 @@ const HELP: Partial<Record<CategoryKey, CategoryHelp>> = {
     wenFragen: [
       { rolle: 'System-/Server-Administration', tipps: ['Kennt OS-Versionen, Patch-Stände und Support-Ende-Daten', 'Weiß, welche Systeme auf welchem OS laufen'] },
       { rolle: 'SAM / Lizenzmanagement', tipps: ['Kennt OS-Lizenzmodelle und Cloud-Tauglichkeit (BYOL)', 'Weiß über Volumen-/Subscription-Verträge Bescheid'] },
+    ],
+  },
+  schnittstellen: {
+    intro:
+      'Schnittstellen erfassen die typisierten Kommunikationsbeziehungen zwischen Anwendungen (Quelle → Ziel) mit Protokoll, Port, Richtung, Verschlüsselung und Authentifizierung — das LeanIX-"Interface". Grundlage für Datenfluss-Graph und n×n-Matrix.',
+    bsiWhy:
+      'Schnittstellen — besonders mit Außenanbindung und ohne Verschlüsselung — sind im IT-Grundschutz kritische Betrachtungsobjekte. Protokoll, Port und Verschlüsselung dokumentieren die Angriffsfläche und nötige Firewall-Freischaltungen.',
+    cloudWhy:
+      'Abhängigkeiten zwischen Anwendungen bestimmen die Migrationsreihenfolge und -komplexität. Eng gekoppelte, synchrone Schnittstellen erschweren ein schrittweises Lift&Shift; lose, asynchrone Kopplung erleichtert die Cloud-Migration.',
+    interviewQuestions: [
+      'Welche Anwendungen tauschen Daten aus und über welches Protokoll?',
+      'Sind die Schnittstellen verschlüsselt und authentifiziert?',
+      'Welche sind synchron (Echtzeit) und welche asynchron/Batch?',
+      'Welche Firewall-Freischaltungen sind nötig?',
+    ],
+    ansprechpartner: 'Anwendungsverantwortliche, Integrations-/Middleware-Team, Netzwerk-/Security',
+    wenFragen: [
+      { rolle: 'Anwendungsverantwortliche', tipps: ['Kennen die Schnittstellen ihrer Anwendung und deren Datenfluss', 'Wissen über Protokolle, Frequenzen und Abhängigkeiten'] },
+      { rolle: 'Netzwerk-/Security', tipps: ['Kennen Firewall-Regeln, Ports und Verschlüsselung', 'Wissen, welche Schnittstellen das Netz verlassen'] },
     ],
   },
   datentraeger: {
