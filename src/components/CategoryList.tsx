@@ -1,5 +1,6 @@
 import React from 'react';
 import type { CategoryDef } from '../categories';
+import { isFieldVisible } from '../categories';
 import type { AppState, CategoryKey } from '../types';
 import { ASSESSABLE_CATEGORIES } from '../cloudReadiness';
 import { getOpenCloudFieldDefs } from '../cloudFields';
@@ -17,8 +18,9 @@ function getOpenCloudFields(item: Record<string, unknown>, category: CategoryKey
 }
 
 function getGeneralCompleteness(item: Record<string, unknown>, def: CategoryDef): { filled: number; total: number } {
+  // Versteckte (showIf=false) Felder zählen nicht als "fehlend".
   const keyFields = def.fields
-    .filter(f => f.type !== 'multiref' && f.key !== 'id' && f.key !== 'kuerzel')
+    .filter(f => f.type !== 'multiref' && f.key !== 'id' && f.key !== 'kuerzel' && isFieldVisible(f, item))
     .map(f => f.key);
   const filled = keyFields.filter(k => {
     const v = item[k];

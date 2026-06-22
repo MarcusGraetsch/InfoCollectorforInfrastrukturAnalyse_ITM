@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { CategoryDef, FieldDef } from '../categories';
+import { isFieldVisible } from '../categories';
 import type { AppState, CategoryKey, CIASchutzbedarf, SchutzbedarfNiveau } from '../types';
 import { generateId, generateKuerzel } from '../store';
 import { MultiSelect } from './MultiSelect';
@@ -75,6 +76,27 @@ function CIATripletEditor({
   );
 }
 
+/** Einklappbarer Unter-Block innerhalb einer Feldgruppe (z.B. "Technische Details"). */
+const CollapsibleSection: React.FC<{ title: string; hidden?: boolean; children: React.ReactNode }> = ({ title, hidden, children }) => {
+  const [open, setOpen] = useState(false);
+  if (hidden) return null;
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white/60">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between px-3 py-2 text-xs font-bold text-hi-slate uppercase tracking-wider hover:bg-gray-50 rounded-lg"
+      >
+        <span>{title}</span>
+        <svg className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && <div className="px-3 pb-3 pt-1 space-y-4">{children}</div>}
+    </div>
+  );
+};
+
 interface Props {
   categoryDef: CategoryDef;
   state: AppState;
@@ -122,6 +144,8 @@ export const CategoryForm: React.FC<Props> = ({ categoryDef, state, editId, onSa
   };
 
   const renderField = (field: FieldDef) => {
+    // Conditional visibility (showIf) — hidden fields keep their value.
+    if (!isFieldVisible(field, form)) return null;
     // Block 4 — CIA triplet for schutzbedarf fields
     if (field.key === 'schutzbedarf' && field.group === 'cloud') {
       return (
@@ -217,12 +241,90 @@ export const CategoryForm: React.FC<Props> = ({ categoryDef, state, editId, onSa
           label={field.label}
         />
       )}
+      {field.type === 'number' && (
+        <div className="relative">
+          <input
+            type="number"
+            value={(form[field.key] as string) || ''}
+            onChange={(e) => handleChange(field.key, e.target.value)}
+            required={field.required}
+            min={field.min}
+            step={field.step}
+            placeholder={field.placeholder}
+            className={`w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-hi-accent focus:border-hi-accent bg-white transition-colors ${field.unit ? 'pr-12' : ''}`}
+          />
+          {field.unit && (
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-hi-slate pointer-events-none">{field.unit}</span>
+          )}
+        </div>
+      )}
+      {field.type === 'date' && (
+        <input
+          type="date"
+          value={(form[field.key] as string) || ''}
+          onChange={(e) => handleChange(field.key, e.target.value)}
+          required={field.required}
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-hi-accent focus:border-hi-accent bg-white transition-colors"
+        />
+      )}
+      {field.type === 'url' && (
+        <div className="flex items-center gap-2">
+          <input
+            type="url"
+            value={(form[field.key] as string) || ''}
+            onChange={(e) => handleChange(field.key, e.target.value)}
+            required={field.required}
+            placeholder={field.placeholder || 'https://…'}
+            className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-hi-accent focus:border-hi-accent bg-white transition-colors"
+          />
+          {(() => {
+            const v = String(form[field.key] ?? '').trim();
+            return /^https?:\/\//i.test(v) ? (
+              <a href={v} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 text-xs font-semibold text-hi-accent hover:underline whitespace-nowrap">↗ öffnen</a>
+            ) : null;
+          })()}
+        </div>
+      )}
     </div>
   );
   };
 
-  const basisFields = categoryDef.fields.filter((f) => f.group !== 'cloud');
+  const basisFields = categoryDef.fields.filter((f) => !f.group || f.group === 'basis');
   const cloudFields = categoryDef.fields.filter((f) => f.group === 'cloud');
+  const hardwareFields = categoryDef.fields.filter((f) => f.group === 'hardware');
+  const wirtschaftFields = categoryDef.fields.filter((f) => f.group === 'wirtschaft');
+
+  /**
+   * Rendert eine Feldgruppe und gruppiert dabei Felder mit `section` in
+   * einklappbare Unterblöcke (z.B. "Technische Details"). Felder ohne section
+   * werden direkt gerendert.
+   */
+  const renderFieldGroup = (fields: FieldDef[]): React.ReactNode => {
+    const out: React.ReactNode[] = [];
+    let i = 0;
+    while (i < fields.length) {
+      const f = fields[i];
+      if (f.section) {
+        const sectionName = f.section;
+        const block: FieldDef[] = [];
+        while (i < fields.length && fields[i].section === sectionName) {
+          block.push(fields[i]);
+          i++;
+        }
+        // Nur rendern, wenn mindestens ein Feld der Sektion aktuell sichtbar ist.
+        const anyVisible = block.some((bf) => isFieldVisible(bf, form));
+        out.push(
+          <CollapsibleSection key={`sec-${sectionName}`} title={sectionName} hidden={!anyVisible}>
+            {block.map(renderField)}
+          </CollapsibleSection>
+        );
+      } else {
+        out.push(renderField(f));
+        i++;
+      }
+    }
+    return out;
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -241,7 +343,31 @@ export const CategoryForm: React.FC<Props> = ({ categoryDef, state, editId, onSa
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-4">{basisFields.map(renderField)}</div>
+        <div className="space-y-4">{renderFieldGroup(basisFields)}</div>
+
+        {hardwareFields.length > 0 && (
+          <fieldset className="border border-slate-200 bg-gradient-to-b from-slate-50/80 to-white rounded-xl p-5 space-y-4 mt-6">
+            <legend className="px-2 text-xs font-bold text-slate-700 flex items-center gap-1.5 uppercase tracking-wider">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+              </svg>
+              Technik &amp; Hardware
+            </legend>
+            {renderFieldGroup(hardwareFields)}
+          </fieldset>
+        )}
+
+        {wirtschaftFields.length > 0 && (
+          <fieldset className="border border-emerald-200 bg-gradient-to-b from-emerald-50/80 to-white rounded-xl p-5 space-y-4 mt-6">
+            <legend className="px-2 text-xs font-bold text-emerald-800 flex items-center gap-1.5 uppercase tracking-wider">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Wirtschaftlichkeit &amp; Vertrag
+            </legend>
+            {renderFieldGroup(wirtschaftFields)}
+          </fieldset>
+        )}
 
         {cloudFields.length > 0 && (
           <fieldset className="border border-sky-200 bg-gradient-to-b from-sky-50/80 to-white rounded-xl p-5 space-y-4 mt-6">
@@ -251,7 +377,7 @@ export const CategoryForm: React.FC<Props> = ({ categoryDef, state, editId, onSa
               </svg>
               Cloud-Readiness — Workshop-Vorbereitung
             </legend>
-            {cloudFields.map(renderField)}
+            {renderFieldGroup(cloudFields)}
           </fieldset>
         )}
 

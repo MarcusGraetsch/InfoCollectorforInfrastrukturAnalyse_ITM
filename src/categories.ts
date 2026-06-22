@@ -1,6 +1,8 @@
 import type { CategoryKey } from './types';
 
-export type FieldType = 'text' | 'textarea' | 'select' | 'multiref';
+export type FieldType =
+  | 'text' | 'textarea' | 'select' | 'multiref'
+  | 'number' | 'date' | 'url';
 
 export interface FieldDef {
   key: string;
@@ -12,8 +14,38 @@ export interface FieldDef {
   refCategory?: CategoryKey;
   tooltip?: string;
   required?: boolean;
-  /** 'basis' = BSI-Strukturanalyse, 'cloud' = Cloud-Readiness-Zusatz */
-  group?: 'basis' | 'cloud';
+  /**
+   * Visuelle Gruppierung im Formular:
+   * 'basis' = BSI-Strukturanalyse, 'cloud' = Cloud-Readiness-Zusatz,
+   * 'hardware' = Technik/Hardware, 'wirtschaft' = Wirtschaftlichkeit/Vertrag.
+   */
+  group?: 'basis' | 'cloud' | 'hardware' | 'wirtschaft';
+  /** Einheiten-Suffix für number-Felder (z.B. 'W', '€', 'GB', 'HE', 'Jahre'). */
+  unit?: string;
+  /** Minimalwert für number-Felder. */
+  min?: number;
+  /** Schrittweite für number-Felder. */
+  step?: number;
+  /** Platzhalter im Eingabefeld. */
+  placeholder?: string;
+  /**
+   * Optionale Unter-Sektion (collapsible). Felder mit gleichem `section`-Wert
+   * werden in einem einklappbaren Block zusammengefasst — z.B. "Technische Details".
+   */
+  section?: string;
+  /** Feld nur anzeigen, wenn ein anderes Feld einen der Werte hat (Conditional Field). */
+  showIf?: { field: string; equals: string[] };
+}
+
+/**
+ * Prüft, ob ein Feld unter den aktuellen Formularwerten sichtbar ist.
+ * Felder ohne `showIf` sind immer sichtbar. Versteckte Felder behalten ihren
+ * Wert (rein UI-seitige Sichtbarkeit) und werden nicht als "fehlend" gezählt.
+ */
+export function isFieldVisible(field: FieldDef, form: Record<string, unknown>): boolean {
+  if (!field.showIf) return true;
+  const current = String(form[field.showIf.field] ?? '');
+  return field.showIf.equals.includes(current);
 }
 
 /** Erklärende Hilfe für den durchführenden Mitarbeiter (BSI-orientiert). */
