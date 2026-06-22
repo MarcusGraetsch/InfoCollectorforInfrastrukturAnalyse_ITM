@@ -1,6 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import type { AppState, CategoryKey } from './types';
-import { loadState, saveState, createDefaultState, clearState, generateId, mergeWithDefault } from './store';
+import { loadState, saveState, loadStateFromIDB, createDefaultState, clearState, generateId, mergeWithDefault } from './store';
+import { idbSave } from './db';
 import { isEncrypted, decryptData, encryptData } from './crypto';
 import { CATEGORIES, CATEGORY_MAP } from './categories';
 import { AppHeader } from './components/AppHeader';
@@ -95,11 +96,61 @@ function App() {
   const [showEmailTemplate, setShowEmailTemplate] = useState(false);
   const [cloudWizardTargetId, setCloudWizardTargetId] = useState<string | null>(null);
   const [showAISettings, setShowAISettings] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [idbRecoveryUsed, setIdbRecoveryUsed] = useState(false);
+
+  // IDB hydration: on mount, check if IndexedDB has newer data than localStorage
+  useEffect(() => {
+    if (locked) return;
+    loadStateFromIDB().then(idbState => {
+      if (!idbState) return;
+      setState(prev => {
+        const localTs = prev.lastUpdated ?? '';
+        const idbTs = idbState.lastUpdated ?? '';
+        if (idbTs > localTs) {
+          setIdbRecoveryUsed(true);
+          return idbState;
+        }
+        return prev;
+      });
+    });
+  }, []); // runs once on mount
+
+  // beforeunload warning when a save is in flight
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (saveStatus === 'saving') {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [saveStatus]);
+
+  const saveWithStatus = useCallback((newState: AppState) => {
+    setSaveStatus('saving');
+    const json = JSON.stringify({ ...newState, lastUpdated: new Date().toISOString() });
+    // synchronous localStorage write (fast read cache)
+    try {
+      const id = localStorage.getItem('it-strukturanalyse-install-id');
+      if (id) localStorage.setItem(`it-strukturanalyse-data-${id}`, json);
+    } catch {
+      // ignore quota errors here; saveState handles alerting
+    }
+    idbSave(json)
+      .then(() => {
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus('idle'), 2000);
+      })
+      .catch(() => setSaveStatus('error'));
+  }, []);
 
   const updateState = useCallback((updater: (prev: AppState) => AppState) => {
     setState((prev) => {
       const next = updater(prev);
       saveState(next);
+      saveWithStatus(next);
       // If encryption is active, re-encrypt after writing plaintext
       if (isEncrypted()) {
         const sessionPw = sessionStorage.getItem(SESSION_PW_KEY);
@@ -118,7 +169,7 @@ function App() {
       }
       return next;
     });
-  }, []);
+  }, [saveWithStatus]);
 
   const handleCategoryChange = (key: CategoryKey) => {
     setActiveCategory(key);
@@ -286,6 +337,12 @@ function App() {
   return (
     <div className="h-screen flex flex-col bg-hi-gray">
       {showAISettings && <AIAssistantSettings onClose={() => setShowAISettings(false)} />}
+      {idbRecoveryUsed && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center justify-between text-sm text-amber-800">
+          <span>ℹ️ Daten wurden aus dem persistenten Speicher (IndexedDB) wiederhergestellt — möglicherweise neuer als der zuletzt angezeigte Stand.</span>
+          <button onClick={() => setIdbRecoveryUsed(false)} className="ml-4 text-amber-600 hover:text-amber-900">✕</button>
+        </div>
+      )}
       <AppHeader
         state={state}
         mode={mode}
@@ -297,6 +354,7 @@ function App() {
         onExportJSON={handleExportJSON}
         onExportReport={handleExportReport}
         onAISettings={() => setShowAISettings(true)}
+        saveStatus={saveStatus}
         onClearData={() => {
           clearState();           // entfernt Installations-ID + Daten-Key
           setState(createDefaultState()); // frisches Default-Objekt setzen

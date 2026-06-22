@@ -118,6 +118,20 @@ Die Leitidee: **Aus „Unklar"-Einträgen werden automatisch Aufgaben**, aus Auf
 
 ---
 
+## Datenpersistenz
+
+Dual-Layer-Ansatz (seit 2026-06):
+
+- **localStorage** — synchroner Lesecache für schnellen initialen Load (`loadState()` bleibt synchron)
+- **IndexedDB** (`it-sa-db`, ObjectStore `state`, Key `main`) — primärer persistenter Speicher; wird bei jeder Zustandsänderung asynchron beschrieben
+- **Warum IndexedDB?** localStorage kann von Browsern als „Site Data" bei Cookie-Bereinigung gelöscht werden; IndexedDB ist robuster gegenüber automatischer Browser-Bereinigung und hat kein 5 MB-Limit
+- **`src/db.ts`** — kapselt die gesamte IndexedDB-Interaktion (`idbSave`, `idbLoad`, `idbClear`)
+- **`loadStateFromIDB()`** in `store.ts` — wird beim App-Start aufgerufen; wenn IndexedDB neuere Daten hat als localStorage (`lastUpdated`-Vergleich), wird der IDB-Stand verwendet (Recovery-Banner im UI)
+- **Visueller Speicherstatus** — Spinner „Speichern…" / „✓ Gespeichert" / „⚠ Speicherfehler" im AppHeader
+- **beforeunload-Warnung** — Browser warnt wenn ein Speichervorgang noch läuft
+
+---
+
 ## Bekannte technische Schulden
 
 - `updateState` in `App.tsx` ist zentral aber untypisiert (`Record<string, unknown>[]`) — langfristig durch typisierte Updater ersetzen
