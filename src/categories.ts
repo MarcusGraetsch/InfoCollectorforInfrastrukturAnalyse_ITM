@@ -341,6 +341,71 @@ export const WIRTSCHAFTLICHKEIT_FIELDS: FieldDef[] = [
   { key: 'kostenstelle', label: 'Kostenstelle', type: 'text', group: 'wirtschaft', tooltip: 'Kostenstelle für das Controlling' },
 ];
 
+/**
+ * Erweiterte Software-Felder für Anwendungen (Phase 3). Hersteller/Version/Links
+ * sind immer sichtbar; die typabhängigen Feldsätze werden via `showIf` auf das
+ * bestehende `typ`-Select ein-/ausgeblendet. Die equals-Werte entsprechen exakt
+ * den Optionen des `typ`-Feldes.
+ */
+export const SOFTWARE_FIELDS: FieldDef[] = [
+  { key: 'hersteller', label: 'Hersteller / Anbieter', type: 'text', group: 'basis', suggestions: ['Microsoft', 'SAP', 'Oracle', 'Atlassian', 'Adobe', 'Salesforce', 'IBM', 'VMware', 'Red Hat', 'Google'], tooltip: 'Software-Hersteller / Anbieter' },
+  { key: 'produktname', label: 'Produktname', type: 'text', group: 'basis', tooltip: 'Offizieller Produktname' },
+  { key: 'version', label: 'Version', type: 'text', group: 'basis', tooltip: 'z.B. „2024 R2", „15.6.1"' },
+  { key: 'updateZyklus', label: 'Update-Zyklus', type: 'select', options: ['Kontinuierlich', 'Monatlich', 'Quartalsweise', 'Jährlich', 'Bei Bedarf', 'Unklar'], group: 'basis', tooltip: 'Wie häufig wird die Software aktualisiert?' },
+  { key: 'linkBetriebshandbuch', label: 'Link Betriebshandbuch', type: 'url', group: 'basis', tooltip: 'Verweis auf das Betriebshandbuch / die Doku' },
+  { key: 'linkRepository', label: 'Link Repository', type: 'url', group: 'basis', tooltip: 'Git-/Artefakt-Repository' },
+  { key: 'linkHersteller', label: 'Link Hersteller/Produkt', type: 'url', group: 'basis', tooltip: 'Produkt-/Doku-Website des Herstellers' },
+
+  // a) Datenbank
+  { key: 'dbTyp', label: 'DB-Modell', type: 'select', options: ['Relational', 'NoSQL (Dokument)', 'Key-Value', 'Graph', 'Zeitreihen', 'Spaltenorientiert'], group: 'basis', section: 'Datenbank-Details', showIf: { field: 'typ', equals: ['Datenbank / Datenhaltung'] }, tooltip: 'Datenbankmodell' },
+  { key: 'dbVersion', label: 'DB-Produkt / Version', type: 'text', group: 'basis', section: 'Datenbank-Details', suggestions: ['PostgreSQL', 'Oracle', 'MS SQL Server', 'MySQL/MariaDB', 'MongoDB', 'Redis'], showIf: { field: 'typ', equals: ['Datenbank / Datenhaltung'] }, tooltip: 'DB-Produkt und Version' },
+  { key: 'dbBackupStrategie', label: 'Backup-Strategie', type: 'select', options: ['Full täglich', 'Inkrementell', 'Dump', 'Snapshot', 'Keine', 'Unklar'], group: 'basis', section: 'Datenbank-Details', showIf: { field: 'typ', equals: ['Datenbank / Datenhaltung'] } },
+  { key: 'dbBackupOrt', label: 'Backup-Ort', type: 'text', group: 'basis', section: 'Datenbank-Details', suggestions: ['NAS', 'Band', 'Cloud', 'Offsite'], showIf: { field: 'typ', equals: ['Datenbank / Datenhaltung'] } },
+  { key: 'dbReplikation', label: 'Replikation', type: 'select', options: ['Keine', 'Master-Replica', 'Multi-Master', 'Log-Shipping', 'Unklar'], group: 'basis', section: 'Datenbank-Details', showIf: { field: 'typ', equals: ['Datenbank / Datenhaltung'] } },
+  { key: 'dbHochverfuegbarkeit', label: 'HA-/Cluster-Setup', type: 'select', options: ['Keines', 'Failover-Cluster', 'Always-On', 'Patroni', 'Unklar'], group: 'basis', section: 'Datenbank-Details', showIf: { field: 'typ', equals: ['Datenbank / Datenhaltung'] } },
+
+  // b) Webserver / Backend
+  { key: 'webServerSoftware', label: 'Server-Software', type: 'select', options: ['nginx', 'Apache HTTP', 'IIS', 'Caddy', 'Tomcat', 'Node.js', 'Sonstiges'], group: 'basis', section: 'Web-/Backend-Details', showIf: { field: 'typ', equals: ['Web-Applikation (Browser-basiert)', 'Server-Dienst / Backend-Service'] } },
+  { key: 'webTlsVersion', label: 'TLS-Version', type: 'select', options: ['TLS 1.3', 'TLS 1.2', 'gemischt', 'kein TLS', 'Unklar'], group: 'basis', section: 'Web-/Backend-Details', showIf: { field: 'typ', equals: ['Web-Applikation (Browser-basiert)', 'Server-Dienst / Backend-Service'] } },
+  { key: 'webPorts', label: 'Exponierte Ports', type: 'text', group: 'basis', section: 'Web-/Backend-Details', placeholder: '80, 443', showIf: { field: 'typ', equals: ['Web-Applikation (Browser-basiert)', 'Server-Dienst / Backend-Service'] } },
+  { key: 'webReverseProxy', label: 'Reverse Proxy / WAF', type: 'text', group: 'basis', section: 'Web-/Backend-Details', showIf: { field: 'typ', equals: ['Web-Applikation (Browser-basiert)', 'Server-Dienst / Backend-Service'] } },
+
+  // c) Betriebssystem-nahe Software
+  { key: 'osVersion', label: 'OS-Version', type: 'text', group: 'basis', section: 'Betriebssystem-Details', showIf: { field: 'typ', equals: ['OS-nahe Software / Treiber'] } },
+  { key: 'osPatchLevel', label: 'Patch-Level / Build', type: 'text', group: 'basis', section: 'Betriebssystem-Details', showIf: { field: 'typ', equals: ['OS-nahe Software / Treiber'] } },
+  { key: 'osKernel', label: 'Kernel-Version', type: 'text', group: 'basis', section: 'Betriebssystem-Details', showIf: { field: 'typ', equals: ['OS-nahe Software / Treiber'] } },
+  { key: 'osSupportEnde', label: 'OS-Support-Ende', type: 'date', group: 'basis', section: 'Betriebssystem-Details', showIf: { field: 'typ', equals: ['OS-nahe Software / Treiber'] } },
+  { key: 'osEdition', label: 'Edition / Architektur', type: 'text', group: 'basis', section: 'Betriebssystem-Details', placeholder: 'Datacenter x64', showIf: { field: 'typ', equals: ['OS-nahe Software / Treiber'] } },
+
+  // d) Middleware / Integration
+  { key: 'middlewareTyp', label: 'Middleware-Typ', type: 'select', options: ['Message Broker', 'ESB', 'API-Gateway', 'ETL', 'App-Server', 'iPaaS'], group: 'basis', section: 'Middleware-Details', showIf: { field: 'typ', equals: ['Middleware / Integration'] } },
+  { key: 'middlewareProtokolle', label: 'Protokolle', type: 'text', group: 'basis', section: 'Middleware-Details', placeholder: 'AMQP, JMS, Kafka, SOAP, REST', showIf: { field: 'typ', equals: ['Middleware / Integration'] } },
+  { key: 'middlewareEndpunkte', label: 'Anzahl Endpunkte/Flows', type: 'number', min: 0, group: 'basis', section: 'Middleware-Details', showIf: { field: 'typ', equals: ['Middleware / Integration'] } },
+
+  // e) ERP / CRM
+  { key: 'erpModule', label: 'Aktive Module', type: 'text', group: 'basis', section: 'ERP/CRM-Details', placeholder: 'FI/CO, MM, SD, HR …', showIf: { field: 'typ', equals: ['ERP / CRM (Geschäftssoftware)'] } },
+  { key: 'customizingGrad', label: 'Customizing-Grad', type: 'select', options: ['Standard', 'Mittel', 'Stark angepasst', 'Unklar'], group: 'basis', section: 'ERP/CRM-Details', showIf: { field: 'typ', equals: ['ERP / CRM (Geschäftssoftware)'] } },
+  { key: 'mandanten', label: 'Anzahl Mandanten', type: 'number', min: 0, group: 'basis', section: 'ERP/CRM-Details', showIf: { field: 'typ', equals: ['ERP / CRM (Geschäftssoftware)'] } },
+
+  // f) Monitoring / Security
+  { key: 'monitoringKategorie', label: 'Kategorie', type: 'select', options: ['SIEM', 'EDR/AV', 'Firewall-Mgmt', 'Monitoring', 'Vuln-Scan', 'IAM'], group: 'basis', section: 'Monitoring/Security-Details', showIf: { field: 'typ', equals: ['Sicherheits-/Monitoring-Tool'] } },
+  { key: 'monitoringAbdeckung', label: 'Abdeckung', type: 'text', group: 'basis', section: 'Monitoring/Security-Details', placeholder: 'alle Server + Clients', showIf: { field: 'typ', equals: ['Sicherheits-/Monitoring-Tool'] } },
+  { key: 'monitoringLogRetention', label: 'Log-Aufbewahrung', type: 'text', group: 'basis', section: 'Monitoring/Security-Details', placeholder: 'z.B. 90 Tage', showIf: { field: 'typ', equals: ['Sicherheits-/Monitoring-Tool'] } },
+
+  // g) Backup-Software
+  { key: 'backupProdukt', label: 'Produkt', type: 'text', group: 'basis', section: 'Backup-Details', suggestions: ['Veeam', 'Veritas', 'Commvault', 'Bareos'], showIf: { field: 'typ', equals: ['Backup-Software'] } },
+  { key: 'backupRpo', label: 'RPO (Recovery Point)', type: 'text', group: 'basis', section: 'Backup-Details', showIf: { field: 'typ', equals: ['Backup-Software'] } },
+  { key: 'backupRto', label: 'RTO (Recovery Time)', type: 'text', group: 'basis', section: 'Backup-Details', showIf: { field: 'typ', equals: ['Backup-Software'] } },
+  { key: 'backup321', label: '3-2-1-Regel erfüllt', type: 'select', options: ['Ja', 'Teilweise', 'Nein', 'Unklar'], group: 'basis', section: 'Backup-Details', showIf: { field: 'typ', equals: ['Backup-Software'] } },
+  { key: 'backupOffsite', label: 'Offsite-/Air-Gap-Kopie', type: 'select', options: ['Ja', 'Nein', 'Unklar'], group: 'basis', section: 'Backup-Details', showIf: { field: 'typ', equals: ['Backup-Software'] } },
+
+  // h) Virtualisierung / Hypervisor
+  { key: 'hypervisorProdukt', label: 'Hypervisor', type: 'select', options: ['VMware vSphere', 'Hyper-V', 'Proxmox VE', 'Nutanix AHV', 'KVM', 'Citrix'], group: 'basis', section: 'Virtualisierung-Details', showIf: { field: 'typ', equals: ['Virtualisierung / Hypervisor'] } },
+  { key: 'virtClusterKnoten', label: 'Cluster-Knoten', type: 'number', min: 0, group: 'basis', section: 'Virtualisierung-Details', showIf: { field: 'typ', equals: ['Virtualisierung / Hypervisor'] } },
+  { key: 'virtVmAnzahl', label: 'Anzahl VMs', type: 'number', min: 0, group: 'basis', section: 'Virtualisierung-Details', showIf: { field: 'typ', equals: ['Virtualisierung / Hypervisor'] } },
+  { key: 'virtLiveMigration', label: 'Live-Migration', type: 'select', options: ['Ja', 'Nein', 'Unklar'], group: 'basis', section: 'Virtualisierung-Details', showIf: { field: 'typ', equals: ['Virtualisierung / Hypervisor'] } },
+];
+
 export const CATEGORIES: CategoryDef[] = [
   {
     key: 'geschaeftsprozesse',
@@ -399,10 +464,12 @@ export const CATEGORIES: CategoryDef[] = [
           'Middleware / Integration',
           'Entwicklungs-/DevOps-Tool',
           'Sicherheits-/Monitoring-Tool',
+          'Backup-Software',
+          'Virtualisierung / Hypervisor',
           'OS-nahe Software / Treiber',
           'Sonstiges',
         ],
-        tooltip: 'Art der Anwendung – hilft bei der Einordnung und Cloud-Eignung',
+        tooltip: 'Art der Anwendung – hilft bei der Einordnung und Cloud-Eignung. Je nach Typ erscheinen zusätzliche Detailfelder.',
       },
       STATUS_FIELD,
       { key: 'verantwortlicher', label: 'Verantwortlich/Administrator', type: 'text', tooltip: 'Technisch verantwortliche Person oder Rolle', suggestions: ['IT-Administration', 'Application Owner', 'Fachbereichsleitung', 'IT-Leitung / CIO', 'Externes RZ / Dienstleister', 'DevOps-Team'] },
@@ -620,6 +687,13 @@ export const CATEGORIES: CategoryDef[] = [
     ],
   },
 ];
+
+// Software-Tiefe + typabhängige Felder an Anwendungen anhängen (Phase 3).
+for (const cat of CATEGORIES) {
+  if (cat.key === 'anwendungen') {
+    cat.fields.push(...SOFTWARE_FIELDS.map((f) => ({ ...f })));
+  }
+}
 
 // Cloud-Readiness-Felder an die cloud-relevanten Kategorien anhängen.
 const CLOUD_RELEVANT: CategoryKey[] = [
