@@ -481,6 +481,25 @@ export const CATEGORIES: CategoryDef[] = [
     ],
   },
   {
+    key: 'betriebssysteme',
+    label: 'Betriebssysteme',
+    prefix: 'OS',
+    fields: [
+      { key: 'kuerzel', label: 'Kürzel', type: 'text', tooltip: 'Eindeutiges Kürzel, z.B. OS-001', required: true },
+      { key: 'name', label: 'Name', type: 'text', tooltip: 'Bezeichnung des Betriebssystems, z.B. „Windows Server 2022 Datacenter"', required: true, suggestions: ['Windows Server 2022', 'Windows Server 2019', 'Windows 11 Pro', 'Ubuntu Server 24.04 LTS', 'Ubuntu Server 22.04 LTS', 'Red Hat Enterprise Linux 9', 'SUSE Linux Enterprise 15', 'Debian 12', 'VMware ESXi 8.0', 'macOS 15 Sequoia'] },
+      { key: 'erlaeuterung', label: 'Erläuterung', type: 'textarea', tooltip: 'Beschreibung / Einsatzzweck des Betriebssystems' },
+      STATUS_FIELD,
+      { key: 'hersteller', label: 'Hersteller', type: 'text', suggestions: ['Microsoft', 'Canonical', 'Red Hat', 'SUSE', 'Debian', 'VMware', 'Apple', 'Oracle'], tooltip: 'OS-Hersteller (iTop OSFamily)' },
+      { key: 'version', label: 'Version', type: 'text', tooltip: 'OS-Version / Release (iTop OSVersion)' },
+      { key: 'kernel', label: 'Kernel-Version', type: 'text', tooltip: 'Kernel-/Build-Version' },
+      { key: 'patchLevel', label: 'Patch-Level', type: 'text', tooltip: 'Aktueller Patch-/Update-Stand' },
+      { key: 'architektur', label: 'Architektur', type: 'select', options: ['x86-64', 'ARM64', 'x86 (32-bit)', 'Sonstige'], tooltip: 'Prozessor-Architektur' },
+      { key: 'lizenztyp', label: 'Lizenztyp', type: 'select', options: ['Proprietär (Volumenlizenz)', 'Proprietär (OEM)', 'Subscription', 'Open Source (frei)', 'Open Source (Support-Abo)', 'Unklar'], tooltip: 'Lizenzmodell des OS' },
+      { key: 'supportEnde', label: 'Support-Ende (EoL)', type: 'date', tooltip: 'End-of-Life / End-of-Support des OS' },
+      TAGS_FIELD,
+    ],
+  },
+  {
     key: 'datentraeger',
     label: 'Datenträger',
     prefix: 'DT',
@@ -536,6 +555,7 @@ export const CATEGORIES: CategoryDef[] = [
       { key: 'verantwortlicher', label: 'Verantwortlich/Administrator', type: 'text', tooltip: 'Systemadministrator oder zuständige Rolle', suggestions: ['Systemadministrator', 'IT-Leitung', 'DevOps-Team', 'Externes RZ / Managed Service', 'Cloud-Team', 'Fachbereichsleitung'] },
       { key: 'benutzer', label: 'Benutzer', type: 'text', tooltip: 'Nutzergruppen des Servers', suggestions: ['IT-Administration', 'Alle Mitarbeiter (Dienste)', 'Anwendungsnutzer', 'Entwickler', 'Externe Dienstleister'] },
       TAGS_FIELD,
+      { key: 'betriebssysteme', label: 'Betriebssysteme', type: 'multiref', refCategory: 'betriebssysteme', tooltip: 'Auf dem Server installierte Betriebssysteme (wiederverwendbare IT-Component)' },
       { key: 'anwendungen', label: 'Anwendungen', type: 'multiref', refCategory: 'anwendungen', tooltip: 'Auf dem Server betriebene Anwendungen' },
       { key: 'itSysteme', label: 'IT-Systeme', type: 'multiref', refCategory: 'server', tooltip: 'Verknüpfte IT-Systeme' },
       { key: 'netzverbindungen', label: 'Netzverbindungen', type: 'multiref', refCategory: 'netzverbindungen', tooltip: 'Netzverbindungen des Servers' },
@@ -611,6 +631,7 @@ export const CATEGORIES: CategoryDef[] = [
       { key: 'verantwortlicher', label: 'Verantwortlich/Administrator', type: 'text', tooltip: 'Zuständige Person oder Rolle', suggestions: ['Client-Management', 'IT-Helpdesk / Support', 'IT-Administration', 'Managed Service Provider', 'IT-Leitung'] },
       { key: 'benutzer', label: 'Benutzer', type: 'text', tooltip: 'Nutzergruppen des Clients', suggestions: ['Alle Mitarbeiter', 'Außendienst / Mobile Worker', 'Home-Office-Mitarbeiter', 'Führungskräfte', 'Produktion / Fertigung', 'IT-Abteilung', 'Externe Dienstleister'] },
       TAGS_FIELD,
+      { key: 'betriebssysteme', label: 'Betriebssysteme', type: 'multiref', refCategory: 'betriebssysteme', tooltip: 'Auf dem Client installierte Betriebssysteme' },
       { key: 'itSysteme', label: 'IT-Systeme', type: 'multiref', refCategory: 'server', tooltip: 'Verknüpfte IT-Systeme' },
       { key: 'netzverbindungen', label: 'Netzverbindungen', type: 'multiref', refCategory: 'netzverbindungen', tooltip: 'Netzverbindungen des Clients' },
       { key: 'raeume', label: 'Räume', type: 'multiref', refCategory: 'raeume', tooltip: 'Aufstellungsort (Raum)' },
@@ -786,6 +807,25 @@ const HELP: Partial<Record<CategoryKey, CategoryHelp>> = {
       { rolle: 'IT-Leitung / CIO', tipps: ['Überblick über die gesamte Anwendungslandschaft', 'Kennt Lizenzverträge und Upgrade-Roadmap'] },
       { rolle: 'Anwendungsverantwortliche', tipps: ['Detailwissen zu Schnittstellen und Abhängigkeiten', 'Wissen über Customizing und besondere Betriebsanforderungen'] },
       { rolle: 'Fachbereiche (Key User)', tipps: ['Können Funktionsumfang und Kritikalität aus Nutzersicht beschreiben', 'Wissen oft von Schatten-IT oder parallelen Excel-Lösungen'] },
+    ],
+  },
+  betriebssysteme: {
+    intro:
+      'Betriebssysteme werden als wiederverwendbare IT-Komponenten geführt und von Servern/Clients referenziert. So lässt sich ein OS einmal pflegen (Version, Support-Ende) und an vielen Systemen verlinken.',
+    bsiWhy:
+      'Der Lebenszyklus des Betriebssystems (Support-Ende, Patch-Level) ist grundschutzrelevant: veraltete OS ohne Sicherheitsupdates sind ein zentrales Risiko und betreffen alle darauf laufenden Anwendungen.',
+    cloudWhy:
+      'Das OS bestimmt Migrationspfade (z.B. End-of-Life-Windows-Server → Neubeschaffung statt Lift&Shift) und Lizenzfragen (BYOL, OS-Subscription in der Cloud).',
+    interviewQuestions: [
+      'Welche Betriebssysteme und Versionen sind im Einsatz?',
+      'Welche OS haben das Support-Ende erreicht oder bald?',
+      'Wie ist der Patch-Stand und wie werden Updates ausgerollt?',
+      'Welche Lizenzmodelle gelten (Volumen, OEM, Subscription, Open Source)?',
+    ],
+    ansprechpartner: 'System-/Server-Administration, Client-Management, SAM/Lizenzmanagement',
+    wenFragen: [
+      { rolle: 'System-/Server-Administration', tipps: ['Kennt OS-Versionen, Patch-Stände und Support-Ende-Daten', 'Weiß, welche Systeme auf welchem OS laufen'] },
+      { rolle: 'SAM / Lizenzmanagement', tipps: ['Kennt OS-Lizenzmodelle und Cloud-Tauglichkeit (BYOL)', 'Weiß über Volumen-/Subscription-Verträge Bescheid'] },
     ],
   },
   datentraeger: {

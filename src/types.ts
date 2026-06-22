@@ -257,6 +257,22 @@ export interface IoTSystem extends BaseItem, CloudFields, HardwareFields, Wirtsc
   gebaeude: string[];
 }
 
+/**
+ * Betriebssystem als eigene, wiederverwendbare IT-Component (Decision 1,
+ * analog iTop OSFamily/OSVersion). Wird von Servern/Clients per multiref
+ * referenziert → ermöglicht "Server A → OS x → Apps a,b,c".
+ */
+export interface Betriebssystem extends BaseItem, WirtschaftlichkeitFields {
+  status: Status;
+  hersteller?: string;
+  version?: string;
+  kernel?: string;
+  // supportEnde kommt aus WirtschaftlichkeitFields
+  patchLevel?: string;
+  lizenztyp?: string;
+  architektur?: string;
+}
+
 export interface Raum extends BaseItem {
   anzahl: string;
   verantwortlicher: string;
@@ -436,6 +452,7 @@ export interface AppState {
   geschaeftsprozesse: Geschaeftsprozess[];
   daten: Datum[];
   anwendungen: Anwendung[];
+  betriebssysteme: Betriebssystem[];
   datentraeger: Datentraeger[];
   server: Server[];
   netzkomponenten: Netzkomponente[];

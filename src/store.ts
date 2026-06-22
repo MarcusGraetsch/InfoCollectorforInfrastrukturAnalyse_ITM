@@ -91,6 +91,7 @@ export function createDefaultState(): AppState {
     geschaeftsprozesse: [],
     daten: [],
     anwendungen: [],
+    betriebssysteme: [],
     datentraeger: [],
     server: [],
     netzkomponenten: [],
@@ -165,7 +166,7 @@ export function mergeWithDefault(partial: Partial<AppState> | null | undefined):
 
   // Jede Kategorie/Array-Property als Array erzwingen
   const arrayKeys: (keyof AppState)[] = [
-    'quelldokumente', 'liefergegenstaende', 'stakeholder', 'meetings', 'geschaeftsprozesse', 'daten', 'anwendungen', 'datentraeger',
+    'quelldokumente', 'liefergegenstaende', 'stakeholder', 'meetings', 'geschaeftsprozesse', 'daten', 'anwendungen', 'betriebssysteme', 'datentraeger',
     'server', 'netzkomponenten', 'netzverbindungen', 'clients', 'icsSysteme',
     'iotSysteme', 'raeume', 'gebaeude',
   ];
