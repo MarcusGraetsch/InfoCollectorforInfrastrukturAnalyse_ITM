@@ -444,3 +444,62 @@ Empfehlung: **Phasen 1–2 zuerst** (sofortiger Mehrwert: Asset-Register, AfA, V
 5. **AfA/steuerliche Abschreibung: nur erfassen oder berechnen?** Sollen Anschaffungsdatum/-preis/Abschreibungsdauer **nur erfasst** werden — oder soll das Tool den **Buchwert automatisch berechnen** (lineare AfA, Restwert nach n Jahren) und ggf. eine Asset-Wert-Übersicht/Reinvestitionsplanung ausgeben? (Berechnung = Mehrwert fürs Controlling, aber zusätzliche Logik.)
 
 6. **Reichweite der Wirtschaftlichkeits-Felder & Verhältnis zum TCO-Modul:** Sollen die betriebswirtschaftlichen Felder an **jedem** Objekt erfasst werden, oder nur an ausgewählten Kategorien? Und wie verhalten sie sich zum bestehenden **TCO-Modul** (`TCODaten`, aggregierte Ist-/Zielkosten) — soll künftig aus den Einzel-Objektkosten **automatisch** in die TCO-Ist-Summe aggregiert werden (Single Source of Truth) oder bleiben beide getrennt?
+
+---
+
+## 8. Abgleich mit iTop (Combodo) — Open-Source-CMDB als Referenz
+
+[iTop](https://github.com/Combodo/iTop) ist eine etablierte Open-Source-CMDB/ITSM-Lösung (GPL-3). Ihr Konfigurationsmanagement-Datenmodell (`datamodels/2.x/itop-config-mgmt/datamodel.itop-config-mgmt.xml`) ist über Jahre praxiserprobt und eignet sich hervorragend als Referenz-Schema. Der direkte Abgleich mit dem Quellcode **bestätigt unsere oben vorgeschlagene Struktur weitgehend** — wir bauen damit keinen Sonderweg, sondern folgen einem bewährten CMDB-Modell.
+
+### 8.1 iTop-Klassenhierarchie (aus dem Quellcode)
+
+```
+FunctionalCI (abstrakt)          name, description, org_id, business_criticity, move2production,
+  │                              contacts_list, documents_list, applicationsolution_list, softwares_list
+  ├─ PhysicalDevice (abstrakt)   serialnumber, location_id, status, brand_id, model_id,
+  │   │                          model_end_of_support, asset_number, purchase_date, end_of_warranty
+  │   └─ ConnectableCI           networkdevice_list, physicalinterface_list
+  │       └─ DatacenterDevice    rack_id, enclosure_id, nb_u, managementip,
+  │           │                  powerA/powerB, redundancy, san_list
+  │           ├─ Server          osfamily_id, osversion_id, os_end_of_support, oslicence_id,
+  │           │                  cpu, ram, logicalvolumes_list
+  │           └─ NetworkDevice   networkdevicetype_id, iosversion_id, ios_end_of_support, ram
+  ├─ SoftwareInstance (abstrakt) system_id (läuft auf!), software_id, software_end_of_support,
+  │   │                          softwarelicence_id, path, status
+  │   ├─ DBServer                dbschema_list
+  │   ├─ WebServer               webapp_list
+  │   ├─ Middleware              middlewareinstance_list
+  │   └─ PCSoftware
+  ├─ ApplicationSolution         functionalcis_list, businessprocess_list, status, redundancy
+  └─ BusinessProcess             applicationsolutions_list, status
+
+Referenz-/Stammdaten: OSFamily, OSVersion, Brand, Model, SoftwareLicence, NetworkDeviceType
+Software-Kategorien:   DB Servers · Middlewares · PC Softwares · Web Servers · Other (5 Typen)
+```
+
+### 8.2 Was iTop unsere Vorschläge bestätigt
+
+| Unser Vorschlag | iTop-Entsprechung | Schlussfolgerung |
+|---|---|---|
+| `HardwareFields` (Hersteller, Modell, Seriennummer, HE, Strom, Management-IP) | `PhysicalDevice`/`DatacenterDevice`: `brand_id`, `model_id`, `serialnumber`, `nb_u`, `powerA/B`, `managementip` | ✅ Felder praktisch deckungsgleich — übernehmen |
+| `WirtschaftlichkeitFields` (Anschaffungsdatum, Support-/Garantie-Ende) | `asset_number`, `purchase_date`, `end_of_warranty`, `model_end_of_support`, `move2production` | ✅ bestätigt; `asset_number` (Inventarnummer) + `move2production` (Produktivnahme) ergänzen wir |
+| Server-Technik CPU/RAM | `Server.cpu`, `Server.ram` | ✅ einfache Textfelder genügen (iTop macht es genauso) |
+| **Betriebssysteme als eigene Kategorie** (Entscheidung 1) | `OSFamily` + `OSVersion` als **eigene, wiederverwendbare Klassen**, am Server nur referenziert (`osfamily_id`) | ✅ **starkes Argument für die eigene Kategorie** |
+| **Conditional Fields nach Software-Typ** (Entscheidung 3-Kontext) | Software ist in **5 Unterklassen** modelliert (DBServer, WebServer, Middleware, PCSoftware, Other) mit je eigenen Beziehungen (`dbschema_list`, `webapp_list`) | ✅ unser `showIf`-Ansatz bildet dieselbe Idee schlanker ab (eine Klasse + typabhängige Felder statt Vererbungsbaum) |
+| Software „läuft auf" Server | `SoftwareInstance.system_id` | ✅ entspricht unserem multiref `itSysteme` |
+| Lizenz-Verknüpfung | `SoftwareLicence` (+ `oslicence_id`) | ✅ deckt sich mit bestehendem LG-5-Lizenzmodul |
+
+### 8.3 Wo wir über iTop hinausgehen (LeanIX-Stärke)
+
+iTops **kostenloses** CMDB-Modell hat **keine reiche App-zu-App-Schnittstelle** mit Port/Protokoll/Richtung/Firewall als Erstklassen-Objekt — Abhängigkeiten werden dort primär über die *Impact-Analyse* (depends-on/impacts) und physische Interfaces abgebildet. Unsere geplante Kategorie **`Schnittstelle`/`Kommunikationsbeziehung`** (Kap. 3.5) ist damit der bewusste **Schritt über iTop hinaus in Richtung LeanIX „Interfaces"/Data-Flow** — und bleibt der eigentliche Differenzierer.
+
+### 8.4 Konkrete Übernahmen ins Konzept
+
+Aus dem iTop-Abgleich ergänzen wir die Feldkataloge um:
+- **`inventarnummer`** (asset_number) in `WirtschaftlichkeitFields`,
+- **`produktivnahmeDatum`** (move2production) — wichtig auch für AfA-Beginn,
+- **`managementIp`** und **`redundanz`** in `HardwareFields` (für RZ-Geräte),
+- **Software-End-of-Support** (`software_end_of_support`) als eigenes Datum (ergänzt das bestehende `lebenszyklus`),
+- Bestätigung, dass **CPU/RAM einfache Text-/Number-Felder** sein dürfen (kein eigener Spezifikationsbaum nötig).
+
+> **Fazit:** iTop validiert die vorgeschlagene Richtung. Wir übernehmen sein bewährtes Asset-/Software-Schema 1:1 in unsere schlankere deklarative Form und ergänzen die LeanIX-artige Schnittstellen-Ebene, die iTop (frei) nicht bietet. Ein 1:1-Einsatz von iTop selbst scheidet aus, weil es ein server-/datenbankbasiertes PHP-System ist — unvereinbar mit dem Designprinzip „kein Backend, offline, localStorage".
