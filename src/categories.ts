@@ -295,6 +295,52 @@ export const CLOUD_FIELDS: FieldDef[] = [
   },
 ];
 
+/**
+ * Hardware-/Asset-Felder (Decision 2): Basics immer sichtbar, tiefe Technik
+ * (CPU/RAM/Disk/Netzteile) in einem einklappbaren Block "Technische Details".
+ * Angehängt an Server, Clients, Netzkomponenten, ICS, IoT, Datenträger.
+ */
+export const HARDWARE_FIELDS: FieldDef[] = [
+  { key: 'hersteller', label: 'Hersteller', type: 'text', group: 'hardware', suggestions: ['Dell', 'HPE', 'Lenovo', 'Fujitsu', 'Cisco', 'Supermicro', 'IBM', 'Huawei', 'Apple', 'Microsoft'], tooltip: 'Gerätehersteller (Asset-Stammdatum, iTop brand_id)' },
+  { key: 'modell', label: 'Modell / Typ', type: 'text', group: 'hardware', tooltip: 'z.B. „PowerEdge R750" (iTop model_id)' },
+  { key: 'seriennummer', label: 'Seriennummer', type: 'text', group: 'hardware', tooltip: 'Seriennummer / S/N des Geräts' },
+  { key: 'inventarnummer', label: 'Inventar-/Asset-Nummer', type: 'text', group: 'hardware', tooltip: 'Für die Anlagenbuchhaltung (iTop asset_number)' },
+  { key: 'stromverbrauch', label: 'Stromverbrauch (typ.)', type: 'number', unit: 'W', min: 0, group: 'hardware', tooltip: 'Typische Leistungsaufnahme — Grundlage für Energiekosten/Nachhaltigkeit' },
+  { key: 'hoeheneinheiten', label: 'Höheneinheiten', type: 'number', unit: 'HE', min: 0, group: 'hardware', tooltip: 'Rack-Höheneinheiten (iTop nb_u)' },
+  { key: 'managementIp', label: 'Management-IP', type: 'text', group: 'hardware', tooltip: 'IP der Management-Schnittstelle (iLO/iDRAC/IPMI, iTop managementip)' },
+  { key: 'formfaktor', label: 'Formfaktor', type: 'select', options: ['Rack', 'Tower', 'Blade', 'Virtuell', 'Mobil', 'Embedded'], group: 'hardware', tooltip: 'Bauform des Geräts' },
+  { key: 'redundanz', label: 'Redundanz / Netzteile', type: 'select', options: ['Keine', 'Redundante Netzteile', 'HA / Cluster', 'Unklar'], group: 'hardware', tooltip: 'Redundanzgrad (iTop redundancy)' },
+  { key: 'standortDetail', label: 'Rack / Standort-Detail', type: 'text', group: 'hardware', tooltip: 'z.B. „Rack 4, HE 12–13"' },
+  // ── Technische Details (einklappbar) ──
+  { key: 'cpu', label: 'CPU (Typ / Kerne)', type: 'text', group: 'hardware', section: 'Technische Details', tooltip: 'z.B. „2× Xeon Gold 6338, 64C"' },
+  { key: 'ram', label: 'Arbeitsspeicher', type: 'number', unit: 'GB', min: 0, group: 'hardware', section: 'Technische Details', tooltip: 'Hauptspeicher in GB' },
+  { key: 'speicher', label: 'Speicher / Kapazität', type: 'text', group: 'hardware', section: 'Technische Details', tooltip: 'z.B. „2× 1,92 TB SSD RAID1"' },
+  { key: 'leistungsaufnahmeMax', label: 'Leistungsaufnahme (max.)', type: 'number', unit: 'kW', min: 0, step: 0.1, group: 'hardware', section: 'Technische Details', tooltip: 'Maximale Leistungsaufnahme' },
+  { key: 'spannung', label: 'Versorgungsspannung', type: 'text', group: 'hardware', section: 'Technische Details', tooltip: 'z.B. 230 / 400 V' },
+];
+
+/**
+ * Wirtschaftlichkeits-/Vertragsfelder (Decision 4). Angehängt an alle
+ * HW-Kategorien + Anwendungen. Anschaffungsdatum/-preis/Abschreibungsdauer
+ * sind Grundlage für die AfA-Berechnung (Phase 7).
+ */
+export const WIRTSCHAFTLICHKEIT_FIELDS: FieldDef[] = [
+  { key: 'anschaffungsdatum', label: 'Anschaffungsdatum', type: 'date', group: 'wirtschaft', tooltip: 'Kaufdatum — Beginn der linearen AfA' },
+  { key: 'produktivnahmeDatum', label: 'Produktivnahme', type: 'date', group: 'wirtschaft', tooltip: 'Datum der Inbetriebnahme (iTop move2production)' },
+  { key: 'anschaffungspreis', label: 'Anschaffungspreis (netto)', type: 'number', unit: '€', min: 0, group: 'wirtschaft', tooltip: 'Netto-Anschaffungspreis — Basis für AfA und TCO' },
+  { key: 'abschreibungsdauer', label: 'Abschreibungsdauer', type: 'number', unit: 'Jahre', min: 0, group: 'wirtschaft', tooltip: 'Nutzungsdauer für lineare AfA (Server/PC üblich 3–5 J.)' },
+  { key: 'buchwert', label: 'Aktueller Buchwert', type: 'number', unit: '€', min: 0, group: 'wirtschaft', tooltip: 'Kann aus Anschaffung + AfA automatisch berechnet werden (AfA-Übersicht)' },
+  { key: 'betriebskostenJahr', label: 'Betriebskosten / Jahr', type: 'number', unit: '€', min: 0, group: 'wirtschaft', tooltip: 'Laufende Betriebskosten pro Jahr — fließen in TCO Ist-Summe' },
+  { key: 'wartungsvertrag', label: 'Wartungsvertrag', type: 'select', options: ['Ja', 'Nein', 'Unklar'], group: 'wirtschaft', tooltip: 'Besteht ein Wartungsvertrag?' },
+  { key: 'wartungskostenJahr', label: 'Wartungskosten / Jahr', type: 'number', unit: '€', min: 0, group: 'wirtschaft', tooltip: 'Jährliche Wartungs-/Supportkosten' },
+  { key: 'vertragsbeginn', label: 'Vertragsbeginn', type: 'date', group: 'wirtschaft', tooltip: 'Beginn des Wartungs-/Lizenzvertrags' },
+  { key: 'vertragsende', label: 'Vertragsende', type: 'date', group: 'wirtschaft', tooltip: 'Ende des Vertrags' },
+  { key: 'kuendigungsfrist', label: 'Kündigungsfrist', type: 'text', group: 'wirtschaft', tooltip: 'z.B. „3 Monate zum Quartalsende"' },
+  { key: 'supportEnde', label: 'Support-Ende (EoL/EoS)', type: 'date', group: 'wirtschaft', tooltip: 'Herstellersupport-Ende (iTop model_end_of_support)' },
+  { key: 'softwareSupportEnde', label: 'Software-Support-Ende', type: 'date', group: 'wirtschaft', tooltip: 'End-of-Support der Software (iTop software_end_of_support)' },
+  { key: 'kostenstelle', label: 'Kostenstelle', type: 'text', group: 'wirtschaft', tooltip: 'Kostenstelle für das Controlling' },
+];
+
 export const CATEGORIES: CategoryDef[] = [
   {
     key: 'geschaeftsprozesse',
@@ -586,6 +632,22 @@ const CLOUD_RELEVANT: CategoryKey[] = [
 for (const cat of CATEGORIES) {
   if (CLOUD_RELEVANT.includes(cat.key)) {
     cat.fields.push(...CLOUD_FIELDS.map((f) => ({ ...f })));
+  }
+}
+
+// Hardware-/Wirtschaftlichkeits-Mixins anhängen (Phase 2, Decision 2 + 4).
+const HARDWARE_RELEVANT: CategoryKey[] = [
+  'server', 'clients', 'netzkomponenten', 'icsSysteme', 'iotSysteme', 'datentraeger',
+];
+const WIRTSCHAFT_RELEVANT: CategoryKey[] = [
+  'server', 'clients', 'netzkomponenten', 'icsSysteme', 'iotSysteme', 'datentraeger', 'anwendungen',
+];
+for (const cat of CATEGORIES) {
+  if (HARDWARE_RELEVANT.includes(cat.key)) {
+    cat.fields.push(...HARDWARE_FIELDS.map((f) => ({ ...f })));
+  }
+  if (WIRTSCHAFT_RELEVANT.includes(cat.key)) {
+    cat.fields.push(...WIRTSCHAFTLICHKEIT_FIELDS.map((f) => ({ ...f })));
   }
 }
 
