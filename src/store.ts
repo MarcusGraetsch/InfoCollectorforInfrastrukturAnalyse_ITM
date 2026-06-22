@@ -1,4 +1,5 @@
 import type { AppState, Liefergegenstand, Stakeholder, TCODaten } from './types';
+import { clearAIConfig } from './integrations/aiSuggest';
 
 const DEFAULT_TCO: TCODaten = {
   zeithorizont: '5',
@@ -77,6 +78,10 @@ export function createDefaultState(): AppState {
       zeithorizont: '',
       notizen: '',
     },
+    nis2Assessment: {
+      sektor: '', mitarbeiter: '', umsatzMio: '', kritis: 'Unklar',
+      einstufung: 'Unklar', massnahmen: {}, notizen: '', erstelltAm: '',
+    },
     quelldokumente: [],
     tcoData: { ...DEFAULT_TCO, istkostenOnPrem: { ...DEFAULT_TCO.istkostenOnPrem }, zielkostenCloud: { ...DEFAULT_TCO.zielkostenCloud } },
     liefergegenstaende: DEFAULT_LIEFERGEGENSTAENDE.map(lg => ({ ...lg, anhaenge: [] })),
@@ -143,6 +148,20 @@ export function mergeWithDefault(partial: Partial<AppState> | null | undefined):
     merged.meetings = [];
   }
 
+  // nis2Assessment: optionales Compliance-Modul (Block 2)
+  if (!merged.nis2Assessment || typeof merged.nis2Assessment !== 'object') {
+    merged.nis2Assessment = {
+      sektor: '', mitarbeiter: '', umsatzMio: '', kritis: 'Unklar',
+      einstufung: 'Unklar', massnahmen: {}, notizen: '', erstelltAm: '',
+    };
+  } else if (!merged.nis2Assessment.massnahmen || typeof merged.nis2Assessment.massnahmen !== 'object') {
+    merged.nis2Assessment.massnahmen = {};
+  }
+
+  // Block 4 Migration: schutzbedarf-String zu CIASchutzbedarf konvertieren
+  // (optional — alte String-Werte bleiben gültig dank Union-Typ)
+  // Keine aktive Migration nötig, da der Union-Typ beide Formen akzeptiert.
+
   // Jede Kategorie/Array-Property als Array erzwingen
   const arrayKeys: (keyof AppState)[] = [
     'quelldokumente', 'liefergegenstaende', 'stakeholder', 'meetings', 'geschaeftsprozesse', 'daten', 'anwendungen', 'datentraeger',
@@ -194,6 +213,22 @@ export function clearState(): void {
   }
   keysToRemove.forEach(k => localStorage.removeItem(k));
   localStorage.removeItem('consultant-name');
+  // Clear snapshots, AI config, and other app keys
+  localStorage.removeItem('it-sa-snapshots');
+  localStorage.removeItem('it-sa-encrypted');
+  localStorage.removeItem('it-sa-salt');
+  localStorage.removeItem('it-sa-iv');
+  localStorage.removeItem('exec-summary-notiz');
+  localStorage.removeItem('it-sa-fragen-answered');
+  localStorage.removeItem('it-sa-security-status');
+  localStorage.removeItem('it-sa-security-details');
+  clearAIConfig();
+  // Clear IndexedDB attachment store
+  try {
+    indexedDB.deleteDatabase('it-strukturanalyse-files');
+  } catch {
+    // Non-fatal — ignore if IndexedDB not available
+  }
 }
 
 export function generateId(): string {

@@ -3,6 +3,7 @@ import type { AppState } from '../types';
 import { assessAll, summarize } from '../cloudReadiness';
 import { CATEGORIES } from '../categories';
 import { countItemsWithOpenFields } from '../cloudFields';
+import { berechneMaturity } from '../maturity';
 
 interface Props {
   state: AppState;
@@ -19,6 +20,8 @@ export const ExecutiveSummary: React.FC<Props> = ({ state }) => {
   const offeneFelder = countItemsWithOpenFields(state);
   const lg = state.liefergegenstaende ?? [];
   const lgAbgenommen = lg.filter(l => l.status === 'Abgenommen').length;
+
+  const maturity = useMemo(() => berechneMaturity(state), [state]);
 
   // Ermittlung: Top-3 Kandidaten für Cloud-Migration
   const topKandidaten = assessed
@@ -245,6 +248,62 @@ export const ExecutiveSummary: React.FC<Props> = ({ state }) => {
           </div>
         </div>
       </div>
+
+      {/* Reifegradmodell / Maturity Spider Chart */}
+      <div className="bg-white rounded-xl shadow-sm border border-hi-slate/20 p-6">
+        <h3 className="text-lg font-bold text-hi-navy mb-1">Reifegradmodell</h3>
+        <p className="text-sm text-hi-slate mb-4">
+          Gesamtniveau: <span className="font-semibold text-hi-accent">{maturity.gesamtLevel} / 5</span>
+          {' — '}{maturity.gesamtLabel}
+        </p>
+        <div className="flex flex-col md:flex-row gap-6 items-start">
+          {/* SVG Radar */}
+          <div className="flex-shrink-0">
+            <MaturitySpider dimensions={maturity.dimensions} />
+          </div>
+          {/* Dimension table */}
+          <div className="flex-1 min-w-0">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-hi-slate/20 text-xs text-hi-slate uppercase text-left">
+                  <th className="pb-2 pr-3">Dimension</th>
+                  <th className="pb-2 pr-3 text-center">Level</th>
+                  <th className="pb-2">Begründung</th>
+                </tr>
+              </thead>
+              <tbody>
+                {maturity.dimensions.map((d) => (
+                  <tr key={d.id} className="border-b border-hi-slate/10">
+                    <td className="py-1.5 pr-3 font-medium text-hi-navy">{d.label}</td>
+                    <td className="py-1.5 pr-3 text-center">
+                      <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${
+                        d.level >= 4 ? 'bg-green-100 text-green-800' :
+                        d.level === 3 ? 'bg-blue-100 text-blue-800' :
+                        d.level === 2 ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>{d.level}</span>
+                    </td>
+                    <td className="py-1.5 text-xs text-hi-slate">{d.rationale}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {maturity.handlungsempfehlungen.length > 0 && (
+              <div className="mt-4">
+                <p className="text-xs font-semibold text-hi-navy mb-1">Handlungsempfehlungen:</p>
+                <ul className="space-y-1">
+                  {maturity.handlungsempfehlungen.map((h, i) => (
+                    <li key={i} className="text-xs text-hi-slate flex gap-2">
+                      <span className="text-hi-accent font-bold">→</span>
+                      {h}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
@@ -316,3 +375,65 @@ function buildPrintShell(content: string, customerName: string): string {
   </style>
   </head><body>${content}</body></html>`;
 }
+
+// SVG Spider / Radar Chart for MaturityDimensions
+function MaturitySpider({ dimensions }: { dimensions: import('../maturity').MaturityDimension[] }) {
+  const SIZE = 200;
+  const cx = SIZE / 2;
+  const cy = SIZE / 2;
+  const R = 80;
+  const n = dimensions.length;
+  const levels = [1, 2, 3, 4, 5];
+
+  function angleFor(i: number) {
+    return (Math.PI * 2 * i) / n - Math.PI / 2;
+  }
+  function point(level: number, i: number) {
+    const r = (level / 5) * R;
+    const a = angleFor(i);
+    return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+  }
+
+  const gridPolygons = levels.map((l) =>
+    dimensions.map((_, i) => point(l, i)).map((p) => `${p.x},${p.y}`).join(' ')
+  );
+  const dataPolygon = dimensions.map((d, i) => point(d.level, i)).map((p) => `${p.x},${p.y}`).join(' ');
+
+  return (
+    <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} className="overflow-visible">
+      {/* Grid */}
+      {gridPolygons.map((pts, li) => (
+        <polygon key={li} points={pts} fill="none" stroke="#CBD5E1" strokeWidth="0.5" />
+      ))}
+      {/* Axes */}
+      {dimensions.map((d, i) => {
+        const p = point(5, i);
+        const lp = point(5.6, i);
+        return (
+          <g key={i}>
+            <line x1={cx} y1={cy} x2={p.x} y2={p.y} stroke="#CBD5E1" strokeWidth="0.5" />
+            <text
+              x={lp.x}
+              y={lp.y}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fontSize="7"
+              fill="#64748B"
+              style={{ fontFamily: 'sans-serif' }}
+            >
+              {d.label.split(' ')[0]}
+            </text>
+          </g>
+        );
+      })}
+      {/* Data area */}
+      <polygon points={dataPolygon} fill="#3B82F6" fillOpacity="0.25" stroke="#3B82F6" strokeWidth="1.5" />
+      {/* Data points */}
+      {dimensions.map((d, i) => {
+        const p = point(d.level, i);
+        return <circle key={i} cx={p.x} cy={p.y} r="3" fill="#3B82F6" />;
+      })}
+    </svg>
+  );
+}
+

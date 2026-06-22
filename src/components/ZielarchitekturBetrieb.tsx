@@ -1,5 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import type { AppState } from '../types';
+import { assessSovereignty } from '../cloudReadiness';
+import { getEffektiverSchutzbedarf } from '../schutzbedarfsVererbung';
+import { esc, openPrintWindow, printHeader, printFooter } from '../utils/safePrint';
 
 interface Props {
   state: AppState;
@@ -20,6 +23,8 @@ interface SystemEmpfehlung {
   rpo: string;
   besonderheit: string;
   schutzbedarf: string;
+  sovereignLevel: string;
+  sovereignLabel: string;
 }
 
 function deriveDeployment(item: { bereitstellung?: string; cloudEignung?: string }): string {
@@ -68,15 +73,17 @@ function buildSystemEmpfehlungen(state: AppState): SystemEmpfehlung[] {
   ];
 
   for (const cat of cats) {
-    const items = state[cat.key] as { id: string; kuerzel: string; name: string; cloudEignung?: string; bereitstellung?: string; schutzbedarf?: string }[];
+    const items = state[cat.key] as import('../types').CloudFields[]  & { id: string; kuerzel: string; name: string; cloudEignung?: string; bereitstellung?: string }[];
     for (const item of items) {
       const deployment = deriveDeployment(item);
+      const effSb = getEffektiverSchutzbedarf(item);
       let besonderheit = '';
-      if (item.schutzbedarf === 'Sehr hoch') besonderheit = 'Confidential Computing prüfen';
+      if (effSb === 'Sehr hoch') besonderheit = 'Confidential Computing prüfen';
       else if (item.cloudEignung?.includes('Refactor'))    besonderheit = 'Erheblicher Entwicklungsaufwand';
       else if (item.cloudEignung?.includes('Repurchase'))  besonderheit = 'Datenmigration + User-Schulung erforderlich';
       else if (item.cloudEignung?.includes('Retain'))      besonderheit = 'Hybrid-Connectivity (VPN/ExpressRoute)';
 
+      const sovereign = assessSovereignty(item);
       result.push({
         id: item.id,
         categoryKey: cat.key,
@@ -86,11 +93,13 @@ function buildSystemEmpfehlungen(state: AppState): SystemEmpfehlung[] {
         cloudEignung: item.cloudEignung || '–',
         bereitstellung: item.bereitstellung || '–',
         deploymentZiel: deployment,
-        backupStrategie: deriveBackup(item.schutzbedarf, item.cloudEignung, item.bereitstellung),
-        rto: deriveRTO(item.schutzbedarf, item.cloudEignung),
-        rpo: deriveRPO(item.schutzbedarf, item.cloudEignung),
+        backupStrategie: deriveBackup(effSb, item.cloudEignung, item.bereitstellung),
+        rto: deriveRTO(effSb, item.cloudEignung),
+        rpo: deriveRPO(effSb, item.cloudEignung),
         besonderheit,
-        schutzbedarf: item.schutzbedarf || '–',
+        schutzbedarf: effSb || '–',
+        sovereignLevel: sovereign.level,
+        sovereignLabel: sovereign.label,
       });
     }
   }
@@ -136,24 +145,16 @@ export const ZielarchitekturBetrieb: React.FC<Props> = ({ state, onOpenCloudWiza
   }, [systemEmpfehlungen]);
 
   const handlePrint = () => {
-    const win = window.open('', '_blank');
-    if (!win) return;
-    const today = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
-    win.document.write(`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
-      <title>Zielarchitektur — ${state.customerName || 'Kunde'}</title>
-      <style>body{font-family:Arial,sans-serif;margin:32px;font-size:10px;color:#1a1a2e}h1{font-size:16px}h2{font-size:12px;margin-top:16px;border-bottom:1px solid #e5e7eb;padding-bottom:4px}table{width:100%;border-collapse:collapse;margin-bottom:12px}th{background:#1a1a2e;color:white;padding:4px 6px;text-align:left;font-size:9px}td{padding:4px 6px;border-bottom:1px solid #f0f0f0;vertical-align:top}tr:nth-child(even){background:#f9fafb}.hoch{color:#d97706;font-weight:600}.sehr-hoch{color:#dc2626;font-weight:700}</style>
-      </head><body>
-      <h1>Zielarchitektur Betriebs-, Backup- und Recovery-Konzept (LG 10)</h1>
-      <p>Kunde: <strong>${state.customerName || '–'}</strong> · Stand: ${today}</p>
+    const body = `${printHeader('Zielarchitektur Betriebs-, Backup- und Recovery-Konzept (LG 10)', state.customerName)}
       <h2>Systemübersicht mit Deployment-Zielen</h2>
       <table><thead><tr><th>Kürzel</th><th>System</th><th>Kat.</th><th>Schutzbedarf</th><th>Deployment-Ziel</th><th>Backup-Strategie</th><th>RTO</th><th>RPO</th><th>Besonderheit</th></tr></thead><tbody>
-      ${systemEmpfehlungen.map(s => `<tr><td>${s.kuerzel}</td><td>${s.name}</td><td>${s.kategorie}</td><td class="${s.schutzbedarf==='Sehr hoch'?'sehr-hoch':s.schutzbedarf==='Hoch'?'hoch':''}">${s.schutzbedarf}</td><td>${s.deploymentZiel}</td><td>${s.backupStrategie}</td><td>${s.rto}</td><td>${s.rpo}</td><td>${s.besonderheit||'–'}</td></tr>`).join('')}
+      ${systemEmpfehlungen.map(s => `<tr><td>${esc(s.kuerzel)}</td><td>${esc(s.name)}</td><td>${esc(s.kategorie)}</td><td style="color:${s.schutzbedarf==='Sehr hoch'?'#dc2626':s.schutzbedarf==='Hoch'?'#d97706':'inherit'};font-weight:${s.schutzbedarf==='Sehr hoch'?'700':s.schutzbedarf==='Hoch'?'600':'normal'}">${esc(s.schutzbedarf)}</td><td>${esc(s.deploymentZiel)}</td><td>${esc(s.backupStrategie)}</td><td>${esc(s.rto)}</td><td>${esc(s.rpo)}</td><td>${esc(s.besonderheit||'–')}</td></tr>`).join('')}
       </tbody></table>
       <h2>Grundsätze Betriebskonzept</h2>
       <p>IaC-gestütztes Deployment (Terraform/Bicep), Blue-Green oder Rolling Updates, Monitoring via Cloud-native Tools (CloudWatch, Azure Monitor, GCP Operations). Automatische Skalierung (Autoscaling Groups / HPA in Kubernetes). Health-Checks und Circuit-Breaker für kritische Pfade.</p>
-      </body></html>`);
-    win.document.close();
-    win.print();
+      ${printFooter()}`;
+    openPrintWindow(`Zielarchitektur — ${state.customerName || 'Kunde'}`, body,
+      'h2{font-size:12px;margin-top:16px;border-bottom:1px solid #e5e7eb;padding-bottom:4px}');
   };
 
   if (systemEmpfehlungen.length === 0) {
@@ -246,6 +247,7 @@ export const ZielarchitekturBetrieb: React.FC<Props> = ({ state, onOpenCloudWiza
                     RPO
                   </Tooltip>
                 </th>
+                <th className="px-3 py-2.5 text-left font-medium w-24">Souveränität</th>
                 <th className="px-3 py-2.5 text-left font-medium">
                   <Tooltip text="Automatisch abgeleiteter Hinweis: Bei 'Sehr hoch' → Confidential Computing (verschlüsselte Ausführungsumgebung) prüfen. Bei 'Refactor' → erheblicher Umbauaufwand. Bei 'Repurchase' → SaaS-Ablösung mit Datenmigration. Bei 'Retain' → Hybrid-Anbindung via VPN oder ExpressRoute nötig.">
                     Besonderheit
@@ -276,6 +278,14 @@ export const ZielarchitekturBetrieb: React.FC<Props> = ({ state, onOpenCloudWiza
                   <td className="px-3 py-2.5 text-gray-600">{s.backupStrategie}</td>
                   <td className="px-3 py-2.5 text-center text-gray-700 font-mono">{s.rto}</td>
                   <td className="px-3 py-2.5 text-center text-gray-700 font-mono">{s.rpo}</td>
+                  <td className="px-3 py-2.5">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      s.sovereignLevel === 'S3' ? 'bg-red-100 text-red-800' :
+                      s.sovereignLevel === 'S2' ? 'bg-purple-100 text-purple-800' :
+                      s.sovereignLevel === 'S1' ? 'bg-blue-100 text-blue-800' :
+                      'bg-gray-100 text-gray-500'
+                    }`}>{s.sovereignLevel}</span>
+                  </td>
                   <td className="px-3 py-2.5 text-gray-500 italic">{s.besonderheit || <span className="not-italic text-gray-300">–</span>}</td>
                 </tr>
               ))}

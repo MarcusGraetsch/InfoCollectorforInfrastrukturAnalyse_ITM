@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import type { AppState } from '../types';
-import { assessAll, summarize } from '../cloudReadiness';
+import { assessAll, summarize, assessSovereignty } from '../cloudReadiness';
 import type { ReadinessLevel } from '../cloudReadiness';
 
 interface Props {
@@ -92,6 +92,22 @@ export const CloudDashboard: React.FC<Props> = ({ state, onGoToWizard, onOpenClo
       ) : (
         <>
           {/* KPIs */}
+          {/* Block 3 — Sovereignty summary row */}
+          {(() => {
+            const s0 = items.filter(i => assessSovereignty(i).level === 'S0').length;
+            const s1 = items.filter(i => assessSovereignty(i).level === 'S1').length;
+            const s2 = items.filter(i => assessSovereignty(i).level === 'S2').length;
+            const s3 = items.filter(i => assessSovereignty(i).level === 'S3').length;
+            if (s1 + s2 + s3 === 0) return null;
+            return (
+              <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 flex items-center gap-4 flex-wrap">
+                <span className="text-xs font-bold text-purple-800 uppercase tracking-wide">Souveränitätsbedarf:</span>
+                {[{ lbl: 'S0 – Kein', val: s0, cls: 'bg-gray-100 text-gray-600' }, { lbl: 'S1 – Standard', val: s1, cls: 'bg-blue-100 text-blue-800' }, { lbl: 'S2 – Erhöht (BYOK)', val: s2, cls: 'bg-purple-100 text-purple-800' }, { lbl: 'S3 – Streng souverän', val: s3, cls: 'bg-red-100 text-red-800' }].map(e => (
+                  <span key={e.lbl} className={e.cls}>{e.lbl}: {e.val}</span>
+                ))}
+              </div>
+            );
+          })()}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <KpiCard
               label="Ø Readiness-Score"

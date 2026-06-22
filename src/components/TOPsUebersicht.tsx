@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import type { AppState, MeetingTOP } from '../types';
+import { esc, openPrintWindow } from '../utils/safePrint';
 
 interface Props {
   state: AppState;
@@ -65,11 +66,10 @@ export const TOPsUebersicht: React.FC<Props> = ({ state, onUpdateTOP }) => {
   }, [allTOPs]);
 
   const handlePrint = () => {
-    const win = window.open('', '_blank');
-    if (!win) return;
-    win.document.write(buildPrintHtml(allTOPs, state.customerName, showErledigt));
-    win.document.close();
-    win.print();
+    openPrintWindow(
+      `Aktionspunkte${state.customerName ? ' – ' + state.customerName : ''}`,
+      buildPrintBody(allTOPs, state.customerName, showErledigt)
+    );
   };
 
   return (
@@ -227,42 +227,30 @@ export const TOPsUebersicht: React.FC<Props> = ({ state, onUpdateTOP }) => {
   );
 };
 
-function buildPrintHtml(tops: FlatTOP[], customerName: string, inclErledigt: boolean): string {
+function buildPrintBody(tops: FlatTOP[], customerName: string, inclErledigt: boolean): string {
   const today = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
   const rows = tops.map(t => {
     const todayStr = new Date().toISOString().split('T')[0];
     const late = t.status === 'Offen' && t.faelligAm && t.faelligAm < todayStr;
     return `<tr>
-      <td>${t.titel}</td>
-      <td>${t.ergebnis || '–'}</td>
-      <td>${t.verantwortlich || '–'}</td>
+      <td>${esc(t.titel)}</td>
+      <td>${esc(t.ergebnis || '–')}</td>
+      <td>${esc(t.verantwortlich || '–')}</td>
       <td style="color:${late ? '#dc2626' : 'inherit'}">${t.faelligAm ? new Date(t.faelligAm + 'T12:00:00').toLocaleDateString('de-DE') : '–'}${late ? ' ⚠' : ''}</td>
-      <td style="color:${t.status === 'Erledigt' ? '#16a34a' : '#d97706'}">${t.status}</td>
-      <td>${t.meetingTyp} · ${t.meetingDatum ? new Date(t.meetingDatum + 'T12:00:00').toLocaleDateString('de-DE') : '–'}</td>
+      <td style="color:${t.status === 'Erledigt' ? '#16a34a' : '#d97706'}">${esc(t.status)}</td>
+      <td>${esc(t.meetingTyp)} · ${t.meetingDatum ? new Date(t.meetingDatum + 'T12:00:00').toLocaleDateString('de-DE') : '–'}</td>
     </tr>`;
   }).join('');
 
-  return `<!DOCTYPE html><html lang="de"><head>
-  <meta charset="UTF-8"><title>Aktionspunkte${customerName ? ' – ' + customerName : ''}</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 32px; color: #1a1a2e; font-size: 11px; }
-    h1 { font-size: 16px; margin-bottom: 2px; }
-    .meta { color: #666; font-size: 10px; margin-bottom: 16px; border-bottom: 2px solid #1a1a2e; padding-bottom: 8px; display: flex; gap: 24px; }
-    table { width: 100%; border-collapse: collapse; }
-    th { background: #1a1a2e; color: white; padding: 6px 8px; text-align: left; font-size: 10px; }
-    td { padding: 5px 8px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
-    @media print { body { margin: 16px; } }
-  </style>
-  </head><body>
+  return `
   <h1>Aktionspunkte-Übersicht</h1>
-  <div class="meta">
-    <span><strong>Kunde:</strong> ${customerName || '–'}</span>
-    <span><strong>Stand:</strong> ${today}</span>
+  <div style="color:#666;font-size:10px;margin-bottom:16px;border-bottom:2px solid #1a1a2e;padding-bottom:8px;display:flex;gap:24px">
+    <span><strong>Kunde:</strong> ${esc(customerName || '–')}</span>
+    <span><strong>Stand:</strong> ${esc(today)}</span>
     <span><strong>Filter:</strong> ${inclErledigt ? 'Alle inkl. Erledigter' : 'Nur offene'}</span>
   </div>
   <table>
     <thead><tr><th>Aktionspunkt</th><th>Ergebnis</th><th>Verantwortlich</th><th>Fällig</th><th>Status</th><th>Meeting</th></tr></thead>
     <tbody>${rows}</tbody>
-  </table>
-  </body></html>`;
+  </table>`;
 }

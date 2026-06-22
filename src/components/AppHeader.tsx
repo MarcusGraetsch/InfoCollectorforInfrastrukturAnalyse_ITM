@@ -15,6 +15,7 @@ interface Props {
   onExportJSON: () => void;
   onExportReport: () => void;
   onClearData: () => void;
+  onAISettings?: () => void;
 }
 
 const TABS = [
@@ -75,7 +76,7 @@ export const AppHeader: React.FC<Props> = ({
   onExportWorkshop,
   onExportJSON,
   onExportReport,
-  onClearData,
+  onClearData, onAISettings,
 }) => {
   const importRef = React.useRef<HTMLInputElement>(null);
   const [showClearConfirm, setShowClearConfirm] = React.useState(false);
@@ -198,6 +199,19 @@ export const AppHeader: React.FC<Props> = ({
             Import
           </button>
           <input ref={importRef} type="file" accept=".xlsx,.xls,.csv,.txt,.tsv,.docx,.pdf,.json" onChange={onImport} className="hidden" />
+          <div className="w-px h-6 bg-white/20 mx-1" />
+          {onAISettings && (
+            <button
+              onClick={onAISettings}
+              title="KI-Anreicherungs-Assistent konfigurieren"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-700 hover:bg-purple-600 text-white border border-purple-500/40 rounded text-xs font-semibold uppercase tracking-wider transition-all"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              KI
+            </button>
+          )}
           <div className="w-px h-6 bg-white/20 mx-1" />
           <button
             onClick={() => setShowClearConfirm(true)}

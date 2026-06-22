@@ -10,12 +10,23 @@ export interface BaseItem {
   tags: string;
 }
 
+// Block 4 — CIA-Triade & Schutzbedarfsvererbung
+export type SchutzbedarfNiveau = 'Normal' | 'Hoch' | 'Sehr hoch' | 'Unklar' | '';
+
+export interface CIASchutzbedarf {
+  vertraulichkeit: SchutzbedarfNiveau;
+  integritaet: SchutzbedarfNiveau;
+  verfuegbarkeit: SchutzbedarfNiveau;
+  begruendung?: string;
+  vererbt?: boolean;
+}
+
 /**
  * Zusätzliche cloud-relevante Attribute zur Vorbereitung des
  * Cloud-Readiness-Workshops. Werden bei Anwendungen und IT-Systemen erfasst.
  */
 export interface CloudFields {
-  schutzbedarf?: 'Normal' | 'Hoch' | 'Sehr hoch' | 'Unklar' | '';
+  schutzbedarf?: CIASchutzbedarf | SchutzbedarfNiveau;
   datensouveraenitaet?: string;
   bereitstellung?: string;
   cloudDienst?: string;
@@ -26,6 +37,11 @@ export interface CloudFields {
   internetfaehig?: string;
   cloudEignung?: string;
   cloudNotiz?: string;
+  // Block 3 — EU-Cloud-Souveränitäts-Bewertung
+  cloudAnbieterJurisdiktion?: 'EU' | 'USA' | 'Gemischt' | 'Unklar';
+  verschluesselungshoheit?: 'Anbieter' | 'Eigene Schlüssel (BYOK)' | 'Hardware-Schlüssel (HYOK)' | 'Unklar';
+  portabilitaetsreife?: 'Hoch (Standard-Formate)' | 'Mittel' | 'Niedrig (proprietär)' | 'Unklar';
+  gaixZertifiziert?: 'Ja' | 'Nein' | 'Geplant' | 'Unklar';
 }
 
 export interface Geschaeftsprozess extends BaseItem {
@@ -58,6 +74,14 @@ export interface Anwendung extends BaseItem, CloudFields {
   lizenzmodell?: string;
   lizenzkosten?: string;
   vertragsende?: string;
+  // EU AI Act (Block 5) — alle optional
+  istKISystem?: boolean;
+  aiRisikoklasse?: 'Verboten' | 'Hoch' | 'Begrenzt' | 'Minimal' | 'Kein KI' | 'Unklar';
+  aiRolle?: 'Anbieter' | 'Betreiber' | 'Beides' | 'Unklar';
+  aiTrainingsdaten?: 'Interne Daten' | 'Öffentliche Daten' | 'Drittanbieter' | 'Unklar';
+  aiMenschlicheAufsicht?: 'Vollständig' | 'Teilweise' | 'Keine' | 'Unklar';
+  aiLoggingVorhanden?: 'Ja' | 'Nein' | 'Teilweise' | 'Unklar';
+  aiNotizen?: string;
 }
 
 export interface Datentraeger extends BaseItem {
@@ -246,6 +270,17 @@ export interface TCOZielkostenBlock {
   personalCloud: string;
   migration: string;
   sonstiges: string;
+  // Block 6 — FinOps: AI-Kosten & Optimierungen
+  aiInferenzkosten?: string;
+  savingsPlanRabatt?: string;
+  idleRessourcen?: string;
+}
+
+// Block 6 — Szenarien
+export interface TCOSzenario {
+  name: 'Konservativ' | 'Realistisch' | 'Optimistisch';
+  faktor: number;
+  notiz: string;
 }
 
 export interface TCODaten {
@@ -253,12 +288,55 @@ export interface TCODaten {
   istkostenOnPrem: TCOIstkostenBlock;
   zielkostenCloud: TCOZielkostenBlock;
   notizen: string;
+  // Block 6 — Szenarien
+  szenarien?: TCOSzenario[];
+  aktivesSzenario?: 'Konservativ' | 'Realistisch' | 'Optimistisch';
+}
+
+export type NIS2Einstufung = 'Besonders wichtig' | 'Wichtig' | 'Nicht betroffen' | 'Unklar';
+export type NIS2MassnahmeStatus = 'Vorhanden' | 'Teilweise' | 'Fehlend' | 'N/A';
+
+export interface NIS2Assessment {
+  sektor: string;
+  mitarbeiter: string;       // '<50' | '50-249' | '≥250' | ''
+  umsatzMio: string;         // '<10' | '10-49' | '≥50' | ''
+  kritis: string;            // 'Ja' | 'Nein' | 'Unklar'
+  einstufung: NIS2Einstufung;
+  massnahmen: Record<string, NIS2MassnahmeStatus>;
+  notizen: string;
+  erstelltAm: string;
+}
+
+// Block 10 — KI-Anreicherungs-Assistent (separate localStorage, never in AppState)
+export interface AIConfig {
+  enabled: boolean;
+  provider: 'openai' | 'custom';
+  endpoint?: string;
+  model?: string;
+  // API key is stored in localStorage as 'it-sa-ai-config' and NEVER exported
+}
+
+// Block 8 — DORA IKT-Drittparteien-Register
+export interface IKTDienstleister {
+  id: string;
+  name: string;
+  art: 'Cloud' | 'Software' | 'Hardware' | 'Managed Service' | 'Rechenzentrum' | 'Sonstiges';
+  leistung: string;
+  kritiisch: 'Ja' | 'Nein' | 'Unklar';
+  land: string;
+  vertragsende?: string;
+  sla?: string;
+  exitStrategie?: string;
+  doraKategorie?: 'Kritisch' | 'Wichtig' | 'Standard';
+  konzentrationsrisiko?: 'Hoch' | 'Mittel' | 'Niedrig' | 'Unklar';
+  notizen?: string;
 }
 
 export interface AppState {
   customerName: string;
   lastUpdated: string;
   cloudStrategy: CloudStrategyMeta;
+  nis2Assessment?: NIS2Assessment;
   quelldokumente: Quelldokument[];
   tcoData: TCODaten;
   liefergegenstaende: Liefergegenstand[];
@@ -276,9 +354,18 @@ export interface AppState {
   iotSysteme: IoTSystem[];
   raeume: Raum[];
   gebaeude: Gebaeude[];
+  iktDienstleister?: IKTDienstleister[];
 }
 
 export type CategoryKey = keyof Omit<
   AppState,
   'customerName' | 'lastUpdated' | 'cloudStrategy' | 'quelldokumente' | 'tcoData'
 >;
+
+// Block 11 — Snapshot-Versionierung
+export interface Snapshot {
+  id: string;
+  label: string;
+  createdAt: string; // ISO timestamp
+  state: AppState;
+}

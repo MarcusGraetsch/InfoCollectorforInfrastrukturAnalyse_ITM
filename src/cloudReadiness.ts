@@ -1,4 +1,5 @@
-import type { AppState, CategoryKey, CloudFields } from './types';
+import type { AppState, CategoryKey, CloudFields, SchutzbedarfNiveau } from './types';
+import { getEffektiverSchutzbedarf } from './schutzbedarfsVererbung';
 
 export type ReadinessLevel = 'Hoch' | 'Mittel' | 'Niedrig' | 'Unbewertet';
 
@@ -47,9 +48,11 @@ function clamp(n: number): number {
  * Ausgerichtet auf souveräne/BSI-konforme UND provider-neutrale Cloud.
  */
 export function assess(item: CloudFields, category: CategoryKey): ReadinessResult {
+  const effSchutzbedarf: SchutzbedarfNiveau = getEffektiverSchutzbedarf(item);
+
   const filled =
     item.bereitstellung ||
-    item.schutzbedarf ||
+    effSchutzbedarf ||
     item.lizenzCloudfaehig ||
     item.migrationskomplexitaet ||
     item.lebenszyklus ||
@@ -128,10 +131,10 @@ export function assess(item: CloudFields, category: CategoryKey): ReadinessResul
       break;
   }
 
-  if (item.schutzbedarf === 'Sehr hoch') {
+  if (effSchutzbedarf === 'Sehr hoch') {
     score -= 10;
     b.push('Sehr hoher Schutzbedarf – erhöhte Anforderungen an den Anbieter.');
-  } else if (item.schutzbedarf === 'Hoch') {
+  } else if (effSchutzbedarf === 'Hoch') {
     score -= 5;
   }
 
@@ -152,7 +155,7 @@ export function assess(item: CloudFields, category: CategoryKey): ReadinessResul
   const souveraen =
     item.datensouveraenitaet === 'Deutschland' ||
     item.datensouveraenitaet === 'Streng souverän (C5 / Gaia-X)' ||
-    (item.schutzbedarf === 'Sehr hoch' &&
+(effSchutzbedarf === 'Sehr hoch' &&
       item.datensouveraenitaet !== 'Keine spezielle Anforderung' &&
       !!item.datensouveraenitaet);
 
@@ -247,5 +250,93 @@ export function summarize(items: AssessedItem[]): PortfolioSummary {
     niedrig,
     souveraen,
     dispositionCounts,
+  };
+}
+
+// ─── Block 3 — EU-Cloud-Souveränitäts-Bewertung ────────────────────────────
+
+export type SovereignLevel = 'S0' | 'S1' | 'S2' | 'S3';
+
+export interface SovereignResult {
+  level: SovereignLevel;
+  label: string;
+  anforderung: string;
+  empfehleCloudTypen: string[];
+  hinweise: string[];
+}
+
+/**
+ * Heuristisches Souveränitäts-Assessment für ein cloud-relevantes Objekt.
+ * S0 = keine besonderen Anforderungen
+ * S1 = Datenspeicherort Deutschland oder hoher Schutzbedarf
+ * S2 = S1 + eigene Schlüsselverwaltung (BYOK/HYOK)
+ * S3 = Gaia-X-zertifiziert oder streng souverän
+ */
+export function assessSovereignty(item: CloudFields): SovereignResult {
+  const hinweise: string[] = [];
+
+  const isS3 =
+    item.gaixZertifiziert === 'Ja' ||
+    item.datensouveraenitaet === 'Streng souverän (C5 / Gaia-X)' ||
+    item.datensouveraenitaet === 'Confidential Computing (TEE / Enclave)';
+
+  const isS1Base =
+    item.datensouveraenitaet === 'Deutschland' ||
+    getEffektiverSchutzbedarf(item) === 'Hoch' ||
+    getEffektiverSchutzbedarf(item) === 'Sehr hoch';
+
+  const hasOwnKeys =
+    item.verschluesselungshoheit === 'Eigene Schlüssel (BYOK)' ||
+    item.verschluesselungshoheit === 'Hardware-Schlüssel (HYOK)';
+
+  const isS2 = isS1Base && hasOwnKeys;
+
+  if (isS3) {
+    if (item.gaixZertifiziert === 'Ja') hinweise.push('Gaia-X-Zertifizierung vorhanden.');
+    if (item.datensouveraenitaet === 'Streng souverän (C5 / Gaia-X)') hinweise.push('Streng-souveräne Anforderung gesetzt.');
+    if (item.datensouveraenitaet === 'Confidential Computing (TEE / Enclave)') hinweise.push('Confidential Computing erforderlich.');
+    return {
+      level: 'S3',
+      label: 'S3 – Streng souverän',
+      anforderung: 'Gaia-X-konforme oder C5-zertifizierte Cloud, Confidential Computing.',
+      empfehleCloudTypen: ['Sovereign Cloud (Gaia-X)', 'On-Premises / Private Cloud', 'Confidential Computing (TEE)'],
+      hinweise,
+    };
+  }
+
+  if (isS2) {
+    if (item.verschluesselungshoheit === 'Eigene Schlüssel (BYOK)') hinweise.push('Eigene Schlüsselverwaltung (BYOK) erforderlich.');
+    if (item.verschluesselungshoheit === 'Hardware-Schlüssel (HYOK)') hinweise.push('Hardware-Schlüssel (HYOK / HSM) erforderlich.');
+    if (item.datensouveraenitaet === 'Deutschland') hinweise.push('Datenspeicherort Deutschland.');
+    return {
+      level: 'S2',
+      label: 'S2 – Erhöhte Souveränität',
+      anforderung: 'Cloud mit BYOK/HYOK-Unterstützung, Datenspeicherort EU/Deutschland.',
+      empfehleCloudTypen: ['EU Sovereign Cloud (BYOK)', 'Private Cloud', 'Managed Private Cloud (DE-CIX / Telekom)'],
+      hinweise,
+    };
+  }
+
+  if (isS1Base) {
+    if (item.datensouveraenitaet === 'Deutschland') hinweise.push('Datenspeicherort Deutschland gefordert.');
+    if (item.datensouveraenitaet === 'EU / DSGVO') hinweise.push('DSGVO-konforme EU-Cloud ausreichend.');
+    if (getEffektiverSchutzbedarf(item) === 'Hoch') hinweise.push('Hoher Schutzbedarf erfordert BSI-konforme Maßnahmen.');
+    if (getEffektiverSchutzbedarf(item) === 'Sehr hoch') hinweise.push('Sehr hoher Schutzbedarf — strengste Sicherheitsmaßnahmen.');
+    return {
+      level: 'S1',
+      label: 'S1 – Standard-Souveränität',
+      anforderung: 'EU/DSGVO-konforme Cloud, Datenspeicherort Deutschland bevorzugt.',
+      empfehleCloudTypen: ['EU Public Cloud (Azure DE, AWS Frankfurt)', 'Private Cloud', 'Hybrid'],
+      hinweise,
+    };
+  }
+
+  // S0 — keine besonderen Anforderungen
+  return {
+    level: 'S0',
+    label: 'S0 – Keine besonderen Anforderungen',
+    anforderung: 'Keine speziellen Souveränitätsanforderungen — Standard Public Cloud ausreichend.',
+    empfehleCloudTypen: ['Public Cloud', 'Multi-Cloud', 'SaaS'],
+    hinweise: ['Keine regulatorischen Einschränkungen identifiziert.'],
   };
 }

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import type { AppState, Anwendung } from '../types';
+import { esc, openPrintWindow, printHeader, printFooter } from '../utils/safePrint';
 
 interface Props {
   state: AppState;
@@ -39,6 +40,7 @@ export const LizenzKostenAnalyse: React.FC<Props> = ({ state, onUpdateAnwendung 
   const [editFields, setEditFields] = useState<Partial<Anwendung>>({});
   const [showRenewalEmail, setShowRenewalEmail] = useState(false);
   const [infoBannerDismissed, setInfoBannerDismissed] = useState(false);
+  const [samTab, setSamTab] = useState<'lizenz' | 'sam'>('lizenz');
 
   const anwendungen = state.anwendungen;
 
@@ -63,6 +65,20 @@ export const LizenzKostenAnalyse: React.FC<Props> = ({ state, onUpdateAnwendung 
     };
   }, [anwendungen]);
 
+  // Block 9 — SAM Compliance Analyse
+  const samStats = useMemo(() => {
+    const total = anwendungen.length;
+    const mitAnbieter = anwendungen.filter(a => a.lizenzAnbieter).length;
+    const mitModell   = anwendungen.filter(a => a.lizenzmodell).length;
+    const mitKosten   = anwendungen.filter(a => a.lizenzkosten).length;
+    const mitEnde     = anwendungen.filter(a => a.vertragsende).length;
+    const unklar      = anwendungen.filter(a => a.lizenzCloudfaehig === 'Unklar' || !a.lizenzCloudfaehig).length;
+    const neinCloud   = anwendungen.filter(a => a.lizenzCloudfaehig === 'Nein').length;
+    const vollstaendig = anwendungen.filter(a => a.lizenzAnbieter && a.lizenzmodell && a.lizenzkosten && a.vertragsende).length;
+    const compliance = total > 0 ? Math.round((vollstaendig / total) * 100) : 0;
+    return { total, mitAnbieter, mitModell, mitKosten, mitEnde, unklar, neinCloud, vollstaendig, compliance };
+  }, [anwendungen]);
+
   const startEdit = (a: Anwendung) => {
     setEditId(a.id);
     setEditFields({ lizenzAnbieter: a.lizenzAnbieter || '', lizenzmodell: a.lizenzmodell || '', lizenzkosten: a.lizenzkosten || '', vertragsende: a.vertragsende || '', lizenzCloudfaehig: a.lizenzCloudfaehig || '' });
@@ -74,20 +90,12 @@ export const LizenzKostenAnalyse: React.FC<Props> = ({ state, onUpdateAnwendung 
   };
 
   const handlePrint = () => {
-    const win = window.open('', '_blank');
-    if (!win) return;
-    const today = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
-    win.document.write(`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
-      <title>Lizenz- und Kostenanalyse — ${state.customerName || 'Kunde'}</title>
-      <style>body{font-family:Arial,sans-serif;margin:32px;font-size:11px;color:#1a1a2e}h1{font-size:18px}table{width:100%;border-collapse:collapse}th{background:#1a1a2e;color:white;padding:5px 8px;text-align:left;font-size:10px}td{padding:5px 8px;border-bottom:1px solid #f0f0f0;vertical-align:top}tr:nth-child(even){background:#f9fafb}.r-hoch{color:#dc2626;font-weight:700}.r-mittel{color:#d97706;font-weight:600}.r-niedrig{color:#16a34a}</style>
-      </head><body>
-      <h1>Lizenz- und Kostenanalyse (LG 5)</h1>
-      <p>Kunde: <strong>${state.customerName || '–'}</strong> · Stand: ${today} · ${anwendungen.length} Anwendungen</p>
+    const body = `${printHeader('Lizenz- und Kostenanalyse (LG 5)', state.customerName)}
+      <p>${anwendungen.length} Anwendungen</p>
       <table><thead><tr><th>Kürzel</th><th>Anwendung</th><th>Anbieter</th><th>Lizenzmodell</th><th>Cloudfähig</th><th>Jahreskosten</th><th>Vertragsende</th><th>Risiko</th></tr></thead><tbody>
-      ${rows.map(a => `<tr><td>${a.kuerzel}</td><td>${a.name}</td><td>${a.lizenzAnbieter || '–'}</td><td>${a.lizenzmodell || '–'}</td><td>${a.lizenzCloudfaehig || '–'}</td><td>${a.lizenzkosten || '–'}</td><td>${a.vertragsende ? new Date(a.vertragsende).toLocaleDateString('de-DE') : '–'}</td><td class="r-${a.risiko.toLowerCase()}">${a.risiko}</td></tr>`).join('')}
-      </tbody></table></body></html>`);
-    win.document.close();
-    win.print();
+      ${rows.map(a => `<tr><td>${esc(a.kuerzel)}</td><td>${esc(a.name)}</td><td>${esc(a.lizenzAnbieter || '–')}</td><td>${esc(a.lizenzmodell || '–')}</td><td>${esc(a.lizenzCloudfaehig || '–')}</td><td>${esc(a.lizenzkosten || '–')}</td><td>${a.vertragsende ? new Date(a.vertragsende).toLocaleDateString('de-DE') : '–'}</td><td style="color:${a.risiko==='Hoch'?'#dc2626':a.risiko==='Mittel'?'#d97706':'#16a34a'};font-weight:${a.risiko==='Hoch'?'700':a.risiko==='Mittel'?'600':'normal'}">${esc(a.risiko)}</td></tr>`).join('')}
+      </tbody></table>${printFooter()}`;
+    openPrintWindow(`Lizenz- und Kostenanalyse — ${state.customerName || 'Kunde'}`, body);
   };
 
   if (anwendungen.length === 0) {
@@ -128,6 +136,19 @@ export const LizenzKostenAnalyse: React.FC<Props> = ({ state, onUpdateAnwendung 
         </div>
       </div>
 
+      {/* Block 9 — SAM Tab Switcher */}
+      <div className="flex gap-2 border-b border-gray-200 pb-0">
+        {([['lizenz', 'Lizenz & Kosten'], ['sam', 'SAM-Compliance']] as const).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setSamTab(key)}
+            className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${samTab === key ? 'border-hi-accent text-hi-accent' : 'border-transparent text-gray-500 hover:text-hi-navy'}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       {showRenewalEmail && (
         <RenewalEmailModal
           customerName={state.customerName}
@@ -136,6 +157,7 @@ export const LizenzKostenAnalyse: React.FC<Props> = ({ state, onUpdateAnwendung 
         />
       )}
 
+      {samTab === 'lizenz' && <>
       {/* Info Banner */}
       {!infoBannerDismissed && (
         <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
@@ -262,6 +284,92 @@ export const LizenzKostenAnalyse: React.FC<Props> = ({ state, onUpdateAnwendung 
         Risikoampel: Nicht cloudfähige Lizenz + Vertragsende &lt; 6 Monate + Hohe Migrationskomplexität = Hoch.
         Felder können direkt in der Tabelle bearbeitet werden (Stift-Icon).
       </p>
+      </> }
+
+      {/* Block 9 — SAM-Compliance Tab */}
+      {samTab === 'sam' && (
+        <div className="space-y-5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: 'SAM-Vollständigkeit', value: `${samStats.compliance}%`, sub: `${samStats.vollstaendig} von ${samStats.total} vollständig`, accent: samStats.compliance >= 75 ? 'text-green-700' : samStats.compliance >= 50 ? 'text-amber-700' : 'text-red-700' },
+              { label: 'Mit Anbieter', value: samStats.mitAnbieter, sub: `${samStats.total - samStats.mitAnbieter} fehlen`, accent: 'text-hi-accent' },
+              { label: 'Mit Lizenzmodell', value: samStats.mitModell, sub: `${samStats.total - samStats.mitModell} fehlen`, accent: 'text-hi-accent' },
+              { label: 'Cloudfähigkeit unklar', value: samStats.unklar, sub: 'Klärungsbedarf', accent: samStats.unklar > 0 ? 'text-amber-700' : 'text-green-700' },
+            ].map(kpi => (
+              <div key={kpi.label} className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm">
+                <div className={`text-xl font-bold ${kpi.accent}`}>{kpi.value}</div>
+                <div className="text-xs font-medium text-gray-700 mt-0.5">{kpi.label}</div>
+                <div className="text-xs text-gray-400">{kpi.sub}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Vollständigkeits-Matrix */}
+          <div className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <h3 className="text-sm font-bold text-hi-navy uppercase tracking-wider">SAM-Vollständigkeitsmatrix</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="bg-hi-gray">
+                  <tr>
+                    <th className="px-4 py-2.5 text-left font-semibold text-hi-slate">Anwendung</th>
+                    <th className="px-3 py-2.5 text-center font-semibold text-hi-slate">Anbieter</th>
+                    <th className="px-3 py-2.5 text-center font-semibold text-hi-slate">Modell</th>
+                    <th className="px-3 py-2.5 text-center font-semibold text-hi-slate">Kosten</th>
+                    <th className="px-3 py-2.5 text-center font-semibold text-hi-slate">Vertragsende</th>
+                    <th className="px-3 py-2.5 text-center font-semibold text-hi-slate">Cloudfähig</th>
+                    <th className="px-3 py-2.5 text-center font-semibold text-hi-slate">Vollständig</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {anwendungen.map(a => {
+                    const checks = [!!a.lizenzAnbieter, !!a.lizenzmodell, !!a.lizenzkosten, !!a.vertragsende, !!a.lizenzCloudfaehig && a.lizenzCloudfaehig !== 'Unklar'];
+                    const vollst = checks.every(Boolean);
+                    const Check = ({ ok }: { ok: boolean }) => (
+                      <span className={ok ? 'text-green-600 font-bold' : 'text-red-400'}>
+                        {ok ? '✓' : '✗'}
+                      </span>
+                    );
+                    return (
+                      <tr key={a.id} className={vollst ? 'bg-green-50/30' : 'hover:bg-gray-50'}>
+                        <td className="px-4 py-2 font-medium text-hi-navy">
+                          <span className="font-mono text-hi-accent text-[10px] mr-1.5">{a.kuerzel}</span>
+                          {a.name}
+                        </td>
+                        <td className="px-3 py-2 text-center"><Check ok={!!a.lizenzAnbieter} /></td>
+                        <td className="px-3 py-2 text-center"><Check ok={!!a.lizenzmodell} /></td>
+                        <td className="px-3 py-2 text-center"><Check ok={!!a.lizenzkosten} /></td>
+                        <td className="px-3 py-2 text-center"><Check ok={!!a.vertragsende} /></td>
+                        <td className="px-3 py-2 text-center"><Check ok={!!a.lizenzCloudfaehig && a.lizenzCloudfaehig !== 'Unklar'} /></td>
+                        <td className="px-3 py-2 text-center">
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${vollst ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {vollst ? 'Vollst.' : 'Lücken'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* SAM-Handlungsempfehlungen */}
+          {samStats.compliance < 100 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+              <p className="text-xs font-semibold text-amber-800 mb-2">SAM-Handlungsempfehlungen</p>
+              <ul className="text-xs text-amber-700 space-y-1 list-disc list-inside">
+                {samStats.total - samStats.mitAnbieter > 0 && <li>{samStats.total - samStats.mitAnbieter} Anwendung(en) ohne Anbieter-Angabe — für Audits und Vertragsverhandlungen erforderlich.</li>}
+                {samStats.total - samStats.mitModell > 0 && <li>{samStats.total - samStats.mitModell} Anwendung(en) ohne Lizenzmodell — Named User, Core, Site License unterscheiden sich massiv im Cloud-Betrieb.</li>}
+                {samStats.total - samStats.mitKosten > 0 && <li>{samStats.total - samStats.mitKosten} Anwendung(en) ohne Kostendaten — TCO-Berechnung und Business Case nicht vollständig möglich.</li>}
+                {samStats.unklar > 0 && <li>{samStats.unklar} Anwendung(en) mit unklarer Cloud-Fähigkeit — vor Migration mit Anbieter oder Lizenzberater klären (SPLA, Cloud-Rider, BYOL).</li>}
+                {samStats.neinCloud > 0 && <li>{samStats.neinCloud} Anwendung(en) lizenzrechtlich NICHT cloud-fähig — SaaS-Alternative (Repurchase) oder Lizenz-Upgrade erforderlich.</li>}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
