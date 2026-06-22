@@ -2,12 +2,20 @@ export type Status = 'Aktiv' | 'Inaktiv' | 'In Planung' | 'Außer Betrieb';
 export type JaNein = 'Ja' | 'Nein';
 export type ProzessArt = 'Kernprozess' | 'Unterstützungsprozess';
 
+export interface ObjektNotiz {
+  id: string;
+  text: string;
+  datum: string; // ISO date string
+  autor?: string;
+}
+
 export interface BaseItem {
   id: string;
   kuerzel: string;
   name: string;
   erlaeuterung: string;
   tags: string;
+  notizen?: ObjektNotiz[];
 }
 
 // Block 4 — CIA-Triade & Schutzbedarfsvererbung

@@ -2,7 +2,7 @@ import type { CategoryKey } from './types';
 
 export type FieldType =
   | 'text' | 'textarea' | 'select' | 'multiref'
-  | 'number' | 'date' | 'url';
+  | 'number' | 'date' | 'url' | 'table';
 
 export interface FieldDef {
   key: string;
@@ -35,6 +35,8 @@ export interface FieldDef {
   section?: string;
   /** Feld nur anzeigen, wenn ein anderes Feld einen der Werte hat (Conditional Field). */
   showIf?: { field: string; equals: string[] };
+  /** Spalten-Definitionen für type='table' (1:N wiederholbare Feldgruppen). */
+  tableColumns?: Array<{ key: string; label: string; type?: 'text' | 'select'; options?: string[] }>;
 }
 
 /**
@@ -478,6 +480,17 @@ export const CATEGORIES: CategoryDef[] = [
       { key: 'anwendungen', label: 'Abhängige Anwendungen', type: 'multiref', refCategory: 'anwendungen', tooltip: 'Andere Anwendungen von denen diese abhängt' },
       { key: 'itSysteme', label: 'IT-Systeme', type: 'multiref', refCategory: 'server', tooltip: 'Server und Systeme auf denen die Anwendung läuft' },
       { key: 'netzverbindungen', label: 'Netzverbindungen', type: 'multiref', refCategory: 'netzverbindungen', tooltip: 'Genutzte Netzverbindungen' },
+      {
+        key: 'lizenzen',
+        label: 'Lizenzen',
+        type: 'table',
+        tableColumns: [
+          { key: 'typ', label: 'Lizenztyp', type: 'select', options: ['Perpetual', 'Subscription', 'OEM', 'Open Source', 'Freeware', 'Sonstige'] },
+          { key: 'anzahl', label: 'Anzahl', type: 'text' },
+          { key: 'ablauf', label: 'Ablaufdatum', type: 'text' },
+          { key: 'anbieter', label: 'Anbieter', type: 'text' },
+        ],
+      },
     ],
   },
   {
@@ -587,6 +600,19 @@ export const CATEGORIES: CategoryDef[] = [
       { key: 'netzverbindungen', label: 'Netzverbindungen', type: 'multiref', refCategory: 'netzverbindungen', tooltip: 'Netzverbindungen des Servers' },
       { key: 'raeume', label: 'Räume', type: 'multiref', refCategory: 'raeume', tooltip: 'Aufstellungsort (Raum)' },
       { key: 'gebaeude', label: 'Gebäude', type: 'multiref', refCategory: 'gebaeude', tooltip: 'Aufstellungsort (Gebäude)' },
+      {
+        key: 'netzwerkInterfaces',
+        label: 'Netzwerk-Interfaces',
+        type: 'table',
+        section: 'Technische Details',
+        tableColumns: [
+          { key: 'name', label: 'Interface', type: 'text' },
+          { key: 'ip', label: 'IP-Adresse', type: 'text' },
+          { key: 'mac', label: 'MAC-Adresse', type: 'text' },
+          { key: 'vlan', label: 'VLAN', type: 'text' },
+          { key: 'typ', label: 'Typ', type: 'select', options: ['Ethernet', 'WiFi', 'Fiber', 'iDRAC/iLO', 'Sonstige'] },
+        ],
+      },
     ],
   },
   {
