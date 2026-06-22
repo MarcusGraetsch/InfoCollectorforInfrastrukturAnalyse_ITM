@@ -135,6 +135,111 @@ export async function importFromExcelWithMapping(
   });
 }
 
+export interface ImportFehler {
+  zeile: number;
+  kuerzel: string;
+  fehler: string;
+  originalRow: Record<string, unknown>;
+}
+
+export interface ImportErgebnis {
+  newState: AppState;
+  erfolgreich: number;
+  fehler: ImportFehler[];
+}
+
+// Validating version of importRows — returns {items, fehler}
+function importRowsValidated(
+  rows: Record<string, unknown>[],
+  categoryKey: CategoryKey,
+  currentState: AppState
+): { items: Record<string, unknown>[]; fehler: ImportFehler[] } {
+  const cat = CATEGORIES.find(c => c.key === categoryKey);
+  if (!cat) return { items: currentState[categoryKey] as unknown as Record<string, unknown>[], fehler: [] };
+
+  const fieldMap: Record<string, string> = {};
+  for (const f of cat.fields) { fieldMap[f.label] = f.key; }
+
+  const validItems: Record<string, unknown>[] = [];
+  const fehler: ImportFehler[] = [];
+
+  rows.forEach((row, idx) => {
+    const item: Record<string, unknown> = { id: generateId() };
+    for (const [label, key] of Object.entries(fieldMap)) {
+      const val = row[label];
+      const fieldDef = cat.fields.find((f) => f.key === key);
+      if (fieldDef?.type === 'multiref') {
+        item[key] = val ? String(val).split(',').map((s) => s.trim()).filter(Boolean) : [];
+      } else { item[key] = val ?? ''; }
+    }
+
+    const kuerzel = String(item['kuerzel'] ?? '').trim();
+    const name = String(item['name'] ?? '').trim();
+
+    if (!kuerzel && !name) {
+      fehler.push({ zeile: idx + 2, kuerzel: '', fehler: 'Kürzel und Name fehlen', originalRow: row });
+      return;
+    }
+    validItems.push(item);
+  });
+
+  const existing = currentState[categoryKey] as unknown as Record<string, unknown>[];
+  const existingMap = new Map(existing.map((e) => [e['kuerzel'] ?? e['id'], e]));
+  for (const imp of validItems) {
+    const k = (imp['kuerzel'] as string) || (imp['id'] as string);
+    existingMap.set(k, { ...existingMap.get(k), ...imp });
+  }
+  return { items: Array.from(existingMap.values()), fehler };
+}
+
+export async function importFromExcelWithMappingValidated(
+  file: File,
+  mapping: Record<string, CategoryKey | null>,
+  currentState: AppState
+): Promise<ImportErgebnis> {
+  const name = file.name.toLowerCase();
+  const newState = { ...currentState };
+  const allFehler: ImportFehler[] = [];
+  let erfolgreich = 0;
+
+  if (name.endsWith('.csv') || name.endsWith('.txt') || name.endsWith('.tsv')) {
+    const text = await file.text();
+    const rows = parseCsvToRows(text);
+    for (const [, categoryKey] of Object.entries(mapping)) {
+      if (!categoryKey) continue;
+      const { items, fehler } = importRowsValidated(rows, categoryKey, newState as AppState);
+      (newState as Record<string, unknown>)[categoryKey] = items;
+      allFehler.push(...fehler);
+      erfolgreich += rows.length - fehler.length;
+    }
+    return { newState: newState as AppState, erfolgreich, fehler: allFehler };
+  }
+
+  const XLSX = await import('xlsx');
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target!.result as ArrayBuffer);
+        const wb = XLSX.read(data, { type: 'array' });
+        for (const sheetName of wb.SheetNames) {
+          const categoryKey = mapping[sheetName];
+          if (!categoryKey) continue;
+          const ws = wb.Sheets[sheetName];
+          const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: '' });
+          const { items, fehler } = importRowsValidated(rows, categoryKey, newState as AppState);
+          (newState as Record<string, unknown>)[categoryKey] = items;
+          allFehler.push(...fehler);
+          erfolgreich += rows.length - fehler.length;
+        }
+        resolve({ newState: newState as AppState, erfolgreich, fehler: allFehler });
+      } catch (err) { reject(err); }
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
 export function importClassifiedRows(
   rows: RowClassification[],
   currentState: AppState

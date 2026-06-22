@@ -1,9 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import type { CategoryDef, FieldDef } from '../categories';
 import { isFieldVisible } from '../categories';
-import type { AppState, CategoryKey, CIASchutzbedarf, SchutzbedarfNiveau } from '../types';
+import type { AppState, CategoryKey, CIASchutzbedarf, SchutzbedarfNiveau, ObjektNotiz } from '../types';
 import { generateId, generateKuerzel } from '../store';
 import { MultiSelect } from './MultiSelect';
+import { ObjektNotizen } from './ObjektNotizen';
+import { TableField } from './TableField';
+
+interface TableRow { [key: string]: string }
+
+function parseTableValue(raw: unknown): TableRow[] {
+  if (typeof raw !== 'string' || !raw) return [];
+  try { return JSON.parse(raw) as TableRow[]; } catch { return []; }
+}
 
 const SCHUTZBEDARF_OPTS: SchutzbedarfNiveau[] = ['Normal', 'Hoch', 'Sehr hoch', 'Unklar'];
 
@@ -285,6 +294,14 @@ export const CategoryForm: React.FC<Props> = ({ categoryDef, state, editId, onSa
           })()}
         </div>
       )}
+      {field.type === 'table' && (
+        <TableField
+          columns={field.tableColumns ?? []}
+          label={field.label}
+          value={parseTableValue(form[field.key])}
+          onChange={(rows) => handleChange(field.key, JSON.stringify(rows))}
+        />
+      )}
     </div>
   );
   };
@@ -380,6 +397,11 @@ export const CategoryForm: React.FC<Props> = ({ categoryDef, state, editId, onSa
             {renderFieldGroup(cloudFields)}
           </fieldset>
         )}
+
+        <ObjektNotizen
+          notizen={(form.notizen as ObjektNotiz[]) ?? []}
+          onChange={(notizen) => setForm(f => ({ ...f, notizen }))}
+        />
 
         <div className="flex gap-3 pt-4 border-t border-gray-100">
           <button
