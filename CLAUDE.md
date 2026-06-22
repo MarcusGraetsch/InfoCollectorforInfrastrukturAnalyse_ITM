@@ -35,7 +35,26 @@ src/
 
 **Kategorien mit Cloud-Readiness-Bewertung:** `anwendungen`, `server`, `clients`, `icsSysteme`, `iotSysteme`
 
+**Weitere Kategorien (Datenmodell-Erweiterung):** `betriebssysteme` (OS als IT-Component), `schnittstellen` (App-zu-App-Kommunikation) — s. Abschnitt „Datenmodell-Erweiterung".
+
 **Scoring-Logik:** Heuristisch (0–100), Schwellen: ≥70 = Hoch, 45–69 = Mittel, <45 = Niedrig. `Unklar`-Werte bei Migrationskomplexität / Lebenszyklus / Internetfähigkeit sind bewusst neutral (kein Punktabzug) — sie markieren offene Fragen.
+
+---
+
+## Datenmodell-Erweiterung (CMDB/EAM-Ausbau, umgesetzt)
+
+Konzept + Status: `docs/DATENMODELL_ERWEITERUNG.md` (Abschnitt 9 = Umsetzungsstatus).
+
+- **Neue FieldTypes:** `number` (mit `unit`/`min`/`step`-Suffix), `date` (native), `url` (mit „öffnen"-Link) — zusätzlich zu `text`/`textarea`/`select`/`multiref`. Werte bleiben **immer Strings** (Export-Format unverändert).
+- **Conditional Fields (`showIf`):** `FieldDef.showIf = { field, equals[] }` blendet Felder typabhängig ein/aus (z.B. DB-Felder nur bei „Datenbank"). Helper `isFieldVisible()`; versteckte Felder behalten ihren Wert und zählen nicht als „fehlend".
+- **Collapsible Sektionen:** `FieldDef.section` gruppiert Felder in einklappbare Blöcke (z.B. „Technische Details"). Form-Gruppen: `group: 'basis' | 'cloud' | 'hardware' | 'wirtschaft'`.
+- **Mixins:** `HardwareFields` (Hersteller/Modell/Seriennr/Inventarnr/Management-IP/Strom/HE/CPU/RAM/Disk…) und `WirtschaftlichkeitFields` (Anschaffung/AfA/Betriebs-/Wartungskosten/Verträge/Support-Ende/Kostenstelle) — via `extends` + `HARDWARE_FIELDS`/`WIRTSCHAFTLICHKEIT_FIELDS`-Schleife (Muster wie `CLOUD_FIELDS`).
+- **Neue Kategorien:**
+  - `betriebssysteme` (Prefix `OS`): wiederverwendbare IT-Component, multiref von Server/Client → „Server → OS → Apps".
+  - `schnittstellen` (Prefix `SS`): typisierte App-zu-App-Kommunikation (Protokoll, Port, Richtung, Verschlüsselung, Auth, Firewall …); quell/ziel als `multiref → anwendungen`.
+- **Schnittstellen-Visualisierung:** Modus „Schnittstellen-Graph" in `InfrastrukturLandkarte` (Kantenfarbe nach Verschlüsselung) + druckbare n×n-Matrix `SchnittstellenMatrix.tsx` (Subtab in ProjectView).
+- **AfA / TCO-Aggregation:** `src/wirtschaftlichkeit.ts` — `berechneBuchwert()` (lineare AfA, Restwert/Restlaufzeit) und `summiereObjektkosten()`. TCO-Modul bietet „Aus Objektdaten übernehmen" (non-destruktiv) + druckbare Asset-/AfA-Übersicht. Single Source of Truth für Ist-Kosten.
+- **Migration:** alle neuen Felder optional; neue Top-Level-Arrays in `createDefaultState` + `arrayKeys` (store.ts) — alte Backups laden unverändert.
 
 ---
 

@@ -503,3 +503,30 @@ Aus dem iTop-Abgleich ergänzen wir die Feldkataloge um:
 - Bestätigung, dass **CPU/RAM einfache Text-/Number-Felder** sein dürfen (kein eigener Spezifikationsbaum nötig).
 
 > **Fazit:** iTop validiert die vorgeschlagene Richtung. Wir übernehmen sein bewährtes Asset-/Software-Schema 1:1 in unsere schlankere deklarative Form und ergänzen die LeanIX-artige Schnittstellen-Ebene, die iTop (frei) nicht bietet. Ein 1:1-Einsatz von iTop selbst scheidet aus, weil es ein server-/datenbankbasiertes PHP-System ist — unvereinbar mit dem Designprinzip „kein Backend, offline, localStorage".
+
+---
+
+## 9. Umsetzungsstatus
+
+> Aus dem Konzeptpapier ist Implementierung geworden. Alle Phasen sind umgesetzt; `npx tsc -b --noEmit` ist fehlerfrei, `npm run build` und `npm test` laufen grün.
+
+| Phase | Inhalt | Status |
+|---|---|---|
+| **1 — Framework** | FieldTypes `number`/`date`/`url`; FieldDef-Attribute `unit`/`min`/`step`/`placeholder`/`section`/`showIf`; `group` um `hardware`/`wirtschaft` erweitert; `isFieldVisible()`-Helper; Render in `CategoryForm` (Unit-Suffix, native date, url-„öffnen"-Link); einklappbare Sektionen; gruppierte Fieldsets; Completeness respektiert `showIf` | ✅ Erledigt |
+| **2 — Mixins HW + Wirtschaft** | `HardwareFields` + `WirtschaftlichkeitFields` (Typen + `HARDWARE_FIELDS`/`WIRTSCHAFTLICHKEIT_FIELDS`-Kataloge + Anhänge-Schleife); iTop-Ergänzungen (`inventarnummer`, `produktivnahmeDatum`, `managementIp`, `redundanz`, `softwareSupportEnde`); tiefe Technik (CPU/RAM/Disk/Netzteile) in collapsible „Technische Details" (Decision 2) | ✅ Erledigt |
+| **3 — Software-Tiefe + Conditional** | Anwendung: `hersteller`/`produktname`/`version`/`updateZyklus` + 3 URL-Links; 8 typabhängige Feldsätze via `showIf` auf `typ` (Datenbank, Webserver/Backend, Betriebssystem-nah, Middleware, ERP/CRM, Monitoring/Security, Backup, Virtualisierung); `typ`-Optionen um „Backup-Software" + „Virtualisierung / Hypervisor" ergänzt | ✅ Erledigt |
+| **4 — Betriebssysteme (eigene Kategorie)** | `Betriebssystem`-Interface (IT-Component, Decision 1) + Kategorie `betriebssysteme` (Prefix `OS`); multiref von Server **und** Client; `store.ts` (`createDefaultState` + `arrayKeys`); Help-Text. Ermöglicht „Server → OS → Apps" | ✅ Erledigt |
+| **5 — Schnittstellen (eigene Kategorie)** | `Schnittstelle`-Interface + Kategorie `schnittstellen` (Prefix `SS`) mit vollen Attributen; quell/ziel als `multiref → anwendungen` (engine-konform, primär = erster Eintrag); `store.ts`-Migration; Help-Text (Decision 3) | ✅ Erledigt |
+| **6 — Visualisierung & Matrix** | `InfrastrukturLandkarte`: Modus „Schnittstellen-Graph" (gerichtet, Kantenfarbe nach Verschlüsselung); neue Komponente `SchnittstellenMatrix.tsx` (druckbare n×n-Data-Flow-Matrix); in `ProjectView` als Subtab verdrahtet (Decision 3) | ✅ Erledigt |
+| **7 — AfA + TCO-Aggregation + Exporte** | `src/wirtschaftlichkeit.ts` (`berechneBuchwert` lineare AfA, `summiereObjektkosten`); TCO „Aus Objektdaten übernehmen" (non-destruktiv) + druckbare Asset-/AfA-Übersicht; Excel-/Report-Export automatisch über deklarative Engine (Decision 4) | ✅ Erledigt |
+
+### Bestätigte Produktentscheidungen (umgesetzt)
+
+1. **Betriebssysteme = eigene Kategorie** `betriebssysteme` (wiederverwendbare IT-Component, multiref von Server/Client).
+2. **Hardware-Tiefe** = Basics immer sichtbar + volle Technik im einklappbaren Block „Technische Details".
+3. **Schnittstellen = eigene Kategorie** `schnittstellen` mit voller Attributik **plus** n×n-Data-Flow-Matrix und gerichtetem Graph.
+4. **Wirtschaftlichkeit** = Erfassungsfelder + automatische Buchwert-/lineare-AfA-Berechnung + Aggregation der Einzel-Objektkosten in das TCO-Modul (Single Source of Truth).
+
+### Migrationssicherheit
+
+Alle neuen Felder sind optional; die einzigen Top-Level-Ergänzungen (`betriebssysteme`, `schnittstellen`) werden in `createDefaultState()` und der `arrayKeys`-Liste in `store.ts` abgefangen. Alte JSON-Backups laden über `mergeWithDefault` unverändert — **kein Breaking-Change am Export-Format**.
