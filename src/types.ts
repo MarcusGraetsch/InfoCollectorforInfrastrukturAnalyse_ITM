@@ -497,12 +497,29 @@ export interface AppState {
   iktDienstleister?: IKTDienstleister[];
   /** Status des Nachweis-/Evidence-Katalogs (Key = NachweisItem.id). */
   nachweisStatus?: Record<string, { vorhanden: boolean; notiz: string }>;
+  /** Zentrales Kantenmodell: generische Beziehungen zwischen beliebigen Objekten. */
+  beziehungen?: Beziehung[];
 }
 
 export type CategoryKey = keyof Omit<
   AppState,
-  'customerName' | 'lastUpdated' | 'cloudStrategy' | 'quelldokumente' | 'tcoData'
+  'customerName' | 'lastUpdated' | 'cloudStrategy' | 'quelldokumente' | 'tcoData' | 'beziehungen'
 >;
+
+// Zentrales Beziehungsmodell (generische Objekt-Verknüpfungen)
+export type BeziehungsTyp = 'kommuniziert' | 'physisch' | 'treiber' | 'abhaengig' | 'teil-von' | 'redundanz';
+export type BeziehungsRichtung = 'uni' | 'bi';
+export interface Beziehung {
+  id: string;
+  quelleKategorie: CategoryKey;
+  quelleId: string;
+  zielKategorie: CategoryKey;
+  zielId: string;
+  typ: BeziehungsTyp;
+  richtung: BeziehungsRichtung;
+  protokoll?: string;   // optional, only meaningful for 'kommuniziert'
+  notiz?: string;
+}
 
 // Block 11 — Snapshot-Versionierung
 export interface Snapshot {

@@ -9,6 +9,7 @@ import { ExecutiveSummary } from './ExecutiveSummary';
 import { TOPsUebersicht } from './TOPsUebersicht';
 import { InfrastrukturLandkarte } from './InfrastrukturLandkarte';
 import { SchnittstellenMatrix } from './SchnittstellenMatrix';
+import { BeziehungenEditor } from './BeziehungenEditor';
 import { LizenzKostenAnalyse } from './LizenzKostenAnalyse';
 import { TCOModell } from './TCOModell';
 import { SecurityGovernanceArchitektur } from './SecurityGovernanceArchitektur';
@@ -27,7 +28,7 @@ import { EncryptionSettings } from './EncryptionSettings';
 
 type SubTab =
   | 'liefergegenstaende' | 'cockpit' | 'stakeholder' | 'meetings' | 'tops'
-  | 'fragenliste' | 'landkarte' | 'schnittstellen' | 'lizenz' | 'tco' | 'security' | 'zielarchitektur'
+  | 'fragenliste' | 'landkarte' | 'schnittstellen' | 'beziehungen' | 'lizenz' | 'tco' | 'security' | 'zielarchitektur'
   | 'nis2' | 'euaiact' | 'souveraenitaet' | 'nachweise' | 'quellen' | 'nachhaltigkeit' | 'dora'
   | 'bericht' | 'executive' | 'snapshots' | 'einstellungen';
 
@@ -40,6 +41,7 @@ interface Props {
   onUpdateTCO: (tco: TCODaten) => void;
   onUpdateNIS2: (a: NIS2Assessment) => void;
   onUpdateNachweise: (status: Record<string, { vorhanden: boolean; notiz: string }>) => void;
+  onUpdateBeziehungen: (beziehungen: import('../types').Beziehung[]) => void;
   onUpdateIKT: (d: import('../types').IKTDienstleister[]) => void;
   onOpenCloudWizard: (id: string) => void;
   onRestore: (state: AppState) => void;
@@ -72,6 +74,8 @@ const GROUPS = [
         icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg> },
       { key: 'schnittstellen' as SubTab, label: 'Schnittstellen-Matrix',
         icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 9h16M4 14h16M9 4v16M14 4v16" /></svg> },
+      { key: 'beziehungen' as SubTab, label: 'Beziehungen',
+        icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg> },
       { key: 'lizenz' as SubTab, label: 'Lizenz & Kosten (LG 5)',
         icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" /></svg> },
       { key: 'tco' as SubTab, label: 'TCO-Modell (LG 6)',
@@ -119,7 +123,7 @@ const GROUPS = [
   },
 ];
 
-export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeholder, onUpdateMeetings, onUpdateAnwendung, onUpdateTCO, onUpdateNIS2, onUpdateNachweise, onUpdateIKT, onOpenCloudWizard, onRestore, onReload }) => {
+export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeholder, onUpdateMeetings, onUpdateAnwendung, onUpdateTCO, onUpdateNIS2, onUpdateNachweise, onUpdateBeziehungen, onUpdateIKT, onOpenCloudWizard, onRestore, onReload }) => {
   const [subTab, setSubTab] = useState<SubTab>('liefergegenstaende');
   const [activeGroup, setActiveGroup] = useState<string>(GROUPS[0].label);
 
@@ -251,6 +255,25 @@ export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeh
         {subTab === 'fragenliste'        && <InterviewFragenliste state={state} />}
         {subTab === 'landkarte'          && <InfrastrukturLandkarte state={state} />}
         {subTab === 'schnittstellen'     && <SchnittstellenMatrix state={state} />}
+        {subTab === 'beziehungen'        && (
+          <div className="p-6 max-w-5xl mx-auto space-y-4">
+            <div>
+              <h2 className="text-2xl font-bold text-hi-navy mb-1">Beziehungen / Abhängigkeiten</h2>
+              <p className="text-sm text-gray-500">
+                Zentrales Kantenmodell: generische Verknüpfungen zwischen beliebigen Objekten
+                (Hardware ↔ Software ↔ Cloud) — Kommunikation, physische Verbindungen, Treiber,
+                Abhängigkeiten, Komponenten und Redundanz. Ergänzt die detaillierte
+                Schnittstellen-Matrix (Netzwerk-Kommunikation) und die „Läuft auf"-Zuordnung
+                (Plattform).
+              </p>
+            </div>
+            <BeziehungenEditor
+              state={state}
+              beziehungen={state.beziehungen ?? []}
+              onChange={onUpdateBeziehungen}
+            />
+          </div>
+        )}
         {subTab === 'lizenz'             && <LizenzKostenAnalyse state={state} onUpdateAnwendung={onUpdateAnwendung} />}
         {subTab === 'tco'                && <TCOModell state={state} onUpdate={onUpdateTCO} />}
         {subTab === 'security'           && <SecurityGovernanceArchitektur state={state} onOpenCloudWizard={onOpenCloudWizard} />}

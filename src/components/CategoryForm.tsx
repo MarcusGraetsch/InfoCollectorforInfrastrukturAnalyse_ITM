@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import type { CategoryDef, FieldDef } from '../categories';
 import { isFieldVisible } from '../categories';
-import type { AppState, CategoryKey, CIASchutzbedarf, SchutzbedarfNiveau, ObjektNotiz } from '../types';
+import type { AppState, CategoryKey, CIASchutzbedarf, SchutzbedarfNiveau, ObjektNotiz, Beziehung } from '../types';
+import { BeziehungenEditor } from './BeziehungenEditor';
 import { generateId, generateKuerzel } from '../store';
 import { MultiSelect } from './MultiSelect';
 import { ObjektNotizen } from './ObjektNotizen';
@@ -120,6 +121,8 @@ interface Props {
   editId: string | null;
   onSave: (item: Record<string, unknown>) => void;
   onCancel: () => void;
+  beziehungen?: Beziehung[];
+  onUpdateBeziehungen?: (next: Beziehung[]) => void;
 }
 
 function getRefItems(state: AppState, refCategory: CategoryKey): { kuerzel: string; name: string }[] {
@@ -137,7 +140,7 @@ function buildDefaultItem(def: CategoryDef, state: AppState): Record<string, unk
   return obj;
 }
 
-export const CategoryForm: React.FC<Props> = ({ categoryDef, state, editId, onSave, onCancel }) => {
+export const CategoryForm: React.FC<Props> = ({ categoryDef, state, editId, onSave, onCancel, beziehungen, onUpdateBeziehungen }) => {
   const [form, setForm] = useState<Record<string, unknown>>({});
   const [showPicker, setShowPicker] = useState(false);
   const [autofillToast, setAutofillToast] = useState<string | null>(null);
@@ -476,6 +479,22 @@ export const CategoryForm: React.FC<Props> = ({ categoryDef, state, editId, onSa
           notizen={(form.notizen as ObjektNotiz[]) ?? []}
           onChange={(notizen) => setForm(f => ({ ...f, notizen }))}
         />
+
+        <fieldset className="border border-gray-200 rounded-lg p-4">
+          <legend className="px-2 text-sm font-semibold text-hi-navy">Beziehungen / Abhängigkeiten</legend>
+          {editId && onUpdateBeziehungen ? (
+            <BeziehungenEditor
+              state={state}
+              beziehungen={beziehungen ?? []}
+              onChange={onUpdateBeziehungen}
+              fokus={{ kategorie: categoryDef.key, id: editId }}
+            />
+          ) : (
+            <p className="text-sm text-hi-slate/60 italic">
+              Verbindungen zu anderen Objekten können nach dem ersten Speichern hinzugefügt werden.
+            </p>
+          )}
+        </fieldset>
 
         <div className="flex gap-3 pt-4 border-t border-gray-100">
           <button
