@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import type { AppState } from '../types';
 import { esc, openPrintWindow } from '../utils/safePrint';
+import { BEZIEHUNGS_TYPEN, TYP_LABEL, objektLabel, pruneOrphanBeziehungen } from '../utils/beziehungen';
 
 interface Props { state: AppState }
 
-type Ansicht = 'kategorien' | 'server-anwendungen' | 'netzwerk' | 'schnittstellen';
+type Ansicht = 'kategorien' | 'server-anwendungen' | 'netzwerk' | 'schnittstellen' | 'beziehungen';
 
 const VERSCHLUESSELUNG_COLOR: Record<string, string> = {
   'Keine':    '#dc2626',
@@ -203,6 +204,35 @@ function buildSchnittstellenDiagram(state: AppState): string {
   return lines.join('\n');
 }
 
+function buildBeziehungenDiagram(state: AppState): string {
+  const edges = pruneOrphanBeziehungen(state);
+  if (edges.length === 0) {
+    return 'graph LR\n  empty["Noch keine Beziehungen erfasst"]';
+  }
+  const lines: string[] = ['graph LR'];
+  const usedNodes = new Set<string>();
+  const edgeLines: string[] = [];
+  const styleLines: string[] = [];
+  let edgeIdx = 0;
+
+  for (const b of edges) {
+    const qid = nodeId(String(b.quelleKategorie), b.quelleId);
+    const zid = nodeId(String(b.zielKategorie), b.zielId);
+    const qLbl = objektLabel(state, b.quelleKategorie, b.quelleId) ?? b.quelleId;
+    const zLbl = objektLabel(state, b.zielKategorie, b.zielId) ?? b.zielId;
+    usedNodes.add(`  ${qid}["${sanitize(qLbl)}"]`);
+    usedNodes.add(`  ${zid}["${sanitize(zLbl)}"]`);
+    const arrow = b.richtung === 'bi' ? '<-->' : '-->';
+    const col = BEZIEHUNGS_TYPEN.find(t => t.typ === b.typ)?.farbe ?? '#6b7280';
+    edgeLines.push(`  ${qid} ${arrow}|"${sanitize(TYP_LABEL[b.typ])}"| ${zid}`);
+    styleLines.push(`  linkStyle ${edgeIdx} stroke:${col},stroke-width:2px`);
+    edgeIdx++;
+  }
+
+  lines.push(...usedNodes, ...edgeLines, ...styleLines);
+  return lines.join('\n');
+}
+
 export const InfrastrukturLandkarte: React.FC<Props> = ({ state }) => {
   const [ansicht, setAnsicht] = useState<Ansicht>('kategorien');
   const containerRef = useRef<HTMLDivElement>(null);
@@ -214,6 +244,7 @@ export const InfrastrukturLandkarte: React.FC<Props> = ({ state }) => {
     if (ansicht === 'kategorien')         return buildKategorienDiagram(state);
     if (ansicht === 'server-anwendungen') return buildServerAnwendungenDiagram(state);
     if (ansicht === 'schnittstellen')     return buildSchnittstellenDiagram(state);
+    if (ansicht === 'beziehungen')        return buildBeziehungenDiagram(state);
     return buildNetzwerkDiagram(state);
   }, [ansicht, state]);
 
@@ -261,6 +292,7 @@ export const InfrastrukturLandkarte: React.FC<Props> = ({ state }) => {
     { key: 'kategorien',         label: 'Kategorien-Übersicht' },
     { key: 'server-anwendungen', label: 'Server → Anwendungen' },
     { key: 'schnittstellen',     label: 'Schnittstellen-Graph' },
+    { key: 'beziehungen',        label: 'Beziehungen' },
     { key: 'netzwerk',           label: 'Netzwerktopologie' },
   ];
 

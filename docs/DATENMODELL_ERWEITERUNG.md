@@ -552,3 +552,61 @@ Im Zuge des DATAGerry-Vergleichs (`docs/DATAGERRY_VERGLEICH.md`) wurden vier wei
 ### Migrationssicherheit
 
 Alle neuen Felder sind optional; die einzigen Top-Level-Ergänzungen (`betriebssysteme`, `schnittstellen`) werden in `createDefaultState()` und der `arrayKeys`-Liste in `store.ts` abgefangen. Alte JSON-Backups laden über `mergeWithDefault` unverändert — **kein Breaking-Change am Export-Format**.
+
+---
+
+## Plattform-Zuordnung (Läuft-auf-Logik)
+
+Sanfter Nudge, mit dem das Formular aktiv fragt: **„Worauf läuft dieses Objekt?"** — offen lassen ist erlaubt (kein Save-Block) und wird als offener Punkt erfasst.
+
+**Scope (Laufzeit-Objekte):** `anwendungen`, `betriebssysteme`, `clients`, `icsSysteme`, `iotSysteme`. **NICHT** `server` — ein Server *ist* die Plattform.
+
+- **Neues Feld `plattformTyp`** (`group: 'plattform'`, FieldType `select`) je Laufzeit-Kategorie. Optionen: `Physische Hardware`, `Virtuelle Maschine`, `Container`, `Cloud-Dienst / SaaS`, `Externes System (Dienstleister)`, `Unklar — beim Kunden erfragen`. Steht jeweils zuerst in der Plattform-Gruppe.
+- **Relations-Felder (multiref) pro Kategorie** (`src/utils/plattform.ts` → `PLATTFORM_RELATION_FIELDS`):
+  - `anwendungen`: `itSysteme` (→ server, „Läuft auf Server / Host") + neu `betriebssysteme` (→ betriebssysteme, „Läuft auf Betriebssystem")
+  - `betriebssysteme`: neu `itSysteme` (→ server, „Installiert auf Server / Host")
+  - `clients`: `betriebssysteme` + `itSysteme` (beide in Plattform-Gruppe)
+  - `icsSysteme`, `iotSysteme`: `itSysteme` (→ server, „Läuft auf Server / Host")
+- **Neue Form-Gruppe `'plattform'`** (FieldDef-`group`-Union erweitert). `CategoryForm.tsx` rendert sie als eigenes violett-getöntes `<fieldset>` „Plattform — Worauf läuft das?" direkt nach dem Basis-Block, vor Hardware.
+- **Soft-Nudge** (nicht blockierend), berechnet aus dem aktuellen Formularstand via `isPlatformUnassigned()`:
+  - `plattformTyp = 'Unklar — …'` → neutraler Hinweis „Als offener Punkt markiert".
+  - kein Link und kein konkreter Typ → amber Hinweis „💡 Worauf läuft dieses Objekt? …".
+  - sonst (verknüpft oder konkreter Typ gewählt) → kein Nudge.
+- **OffenePunkte-Integration:** additiver, separater Block „Offene Plattform-Zuordnungen (Worauf läuft das?)" über `findPlatformGaps(state)` — unabhängig von der bestehenden Cloud-Feld-Logik. Badge „explizit Unklar" vs. „noch nicht zugeordnet", „Bearbeiten" springt via `onEditItem(id)` ins Formular.
+- **Bidirektionale Konsistenz:** ein neues `BIDIR_PAIRS`-Paar `['betriebssysteme','itSysteme','server','betriebssysteme']` hält OS↔Server-Links synchron.
+- **Migration:** alle Felder optional, Werte bleiben Strings/Arrays — alte Backups laden unverändert (kein Breaking-Change am Export-Format).
+
+---
+
+## Beziehungen / Abhängigkeiten (zentrales Kantenmodell)
+
+Generisches Kantenmodell für Verknüpfungen zwischen **beliebigen** Objekten
+(Hardware ↔ Software ↔ Cloud, kategorieübergreifend). Ergänzt — ersetzt **nicht** —
+die `schnittstellen`-Kategorie (detaillierte Netzwerk-Kommunikation mit
+Protokoll/Port/Verschlüsselung) und die `plattform`-„Läuft auf"-Zuordnung (multiref).
+
+- **Interface `Beziehung`** (`src/types.ts`): `id`, `quelleKategorie`/`quelleId`,
+  `zielKategorie`/`zielId` (beide `CategoryKey` + Objekt-`id`), `typ`, `richtung`,
+  optional `protokoll` (nur für `kommuniziert` sinnvoll), optional `notiz`.
+  Neues optionales Top-Level-Array `AppState.beziehungen?` — `'beziehungen'` ist
+  via `Omit` aus `CategoryKey` ausgeschlossen (keine BSI-Kategorie).
+- **Sechs Typen** (`BeziehungsTyp`): `kommuniziert` (bi), `physisch` (uni, Kabel/
+  USB/seriell), `treiber` (uni, Treiber-/Companion-Software), `abhaengig` (uni),
+  `teil-von` (uni, Komponente), `redundanz` (bi, Cluster). Default-Richtung pro
+  Typ in `BEZIEHUNGS_TYPEN` (`src/utils/beziehungen.ts`).
+- **Richtung:** `uni` (gerichtet, → / `-->`) oder `bi` (beidseitig, ↔ / `<-->`).
+- **Editor** (`src/components/BeziehungenEditor.tsx`) in zwei Modi:
+  - **Inline** (`fokus` gesetzt): in `CategoryForm.tsx` unter den Notizen, nur bei
+    bestehendem Objekt (`editId`). Quelle = das fokussierte Objekt. Für neue,
+    ungespeicherte Objekte erscheint nur ein Hinweis (vermeidet verwaiste Kanten
+    aus abgebrochenen Neuanlagen).
+  - **Global** (kein `fokus`): Subtab „Beziehungen" in ProjectView-Gruppe
+    „Analyse & Strategie" (neben Schnittstellen-Matrix/Landkarte) — alle Kanten,
+    mit Quell-Pickern und „verwaiste Beziehungen entfernen".
+- **Orphan-Pruning:** `pruneOrphanBeziehungen(state)` entfernt Kanten, deren
+  Endpunkte nicht mehr existieren (gelöschte Objekte). Im Editor als Bereinigungs-
+  Button; in der Graph-Ansicht werden Orphans übersprungen.
+- **Graph:** Ansicht „Beziehungen" in `InfrastrukturLandkarte.tsx`
+  (`buildBeziehungenDiagram`, Mermaid `graph LR`, Kantenfarbe nach Typ).
+- **Migration:** Feld optional, in `createDefaultState` (`[]`) + `arrayKeys`
+  (store.ts) — alte Backups laden unverändert.

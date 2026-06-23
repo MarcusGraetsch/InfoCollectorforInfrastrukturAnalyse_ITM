@@ -439,6 +439,7 @@ function App() {
               onUpdateTCO={(tco: TCODaten) => updateState(prev => ({ ...prev, tcoData: tco }))}
               onUpdateNIS2={(a) => updateState(prev => ({ ...prev, nis2Assessment: a }))}
               onUpdateNachweise={(status) => updateState(prev => ({ ...prev, nachweisStatus: status }))}
+              onUpdateBeziehungen={(beziehungen) => updateState(prev => ({ ...prev, beziehungen }))}
               onUpdateIKT={(d) => updateState(prev => ({ ...prev, iktDienstleister: d }))}
               onOpenCloudWizard={id => setCloudWizardTargetId(id)}
               onRestore={(s) => updateState(() => s)}
@@ -506,6 +507,8 @@ function App() {
                   editId={editId}
                   onSave={handleSave}
                   onCancel={handleCancel}
+                  beziehungen={state.beziehungen ?? []}
+                  onUpdateBeziehungen={(beziehungen) => updateState(prev => ({ ...prev, beziehungen }))}
                 />
               )}
             </main>

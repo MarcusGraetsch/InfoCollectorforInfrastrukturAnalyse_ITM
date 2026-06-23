@@ -30,9 +30,35 @@ const KIND_LABELS: { kind: ComponentKind | 'all'; label: string }[] = [
   { kind: 'iot', label: 'IoT' },
   { kind: 'middleware', label: 'Middleware' },
   { kind: 'devops', label: 'DevOps' },
+  { kind: 'ai', label: 'KI / AI' },
+  { kind: 'vdi', label: 'VDI' },
   { kind: 'hardware', label: 'Hardware' },
   { kind: 'cloud', label: 'Cloud/Hyperscaler' },
 ];
+
+const CATEGORY_CONTEXT: Record<string, { layer: string; hint: string }> = {
+  server:              { layer: 'Infrastruktur', hint: 'Server-Objekte: Hardware-Einträge und Hypervisoren. Software (Datenbanken, Web-Server usw.) gehört in die Kategorie „Anwendungen".' },
+  clients:             { layer: 'Infrastruktur', hint: 'Endgeräte: Notebooks, Desktops, Mobilgeräte.' },
+  betriebssysteme:     { layer: 'Plattform', hint: 'Betriebssysteme, die auf Servern oder Clients installiert sind.' },
+  anwendungen:         { layer: 'Software', hint: 'Alle Software-Anwendungen: Datenbanken, Web-Server, ERP, Monitoring, Office-Suites, Cloud-Dienste usw.' },
+  netzkomponenten:     { layer: 'Netzwerk', hint: 'Netzwerkgeräte: Switches, Router, Firewalls, VPN-Gateways.' },
+  sicherheitskomponenten: { layer: 'Sicherheit', hint: 'Sicherheitskomponenten: Firewalls, EDR, SIEM, IAM, Scanner.' },
+  datentraeger:        { layer: 'Speicher', hint: 'Speichermedien und -systeme: NAS, SAN, Storage Arrays.' },
+  icsSysteme:          { layer: 'OT/ICS', hint: 'Industrielle Steuerungssysteme: SPSen, SCADA, HMI.' },
+  iotSysteme:          { layer: 'IoT', hint: 'IoT-Systeme: Gateways, Sensoren, Broker, eingebettete Systeme.' },
+};
+
+const CATEGORY_RELEVANT_KINDS: Record<string, ComponentKind[]> = {
+  server:           ['hardware', 'virtualization'],
+  clients:          ['hardware', 'os'],
+  betriebssysteme:  ['os'],
+  anwendungen:      ['database', 'webserver', 'appserver', 'iam', 'container', 'monitoring', 'backup', 'middleware', 'devops', 'security', 'office', 'erp', 'crm', 'ai', 'vdi', 'cloud'],
+  netzkomponenten:  ['network', 'security'],
+  sicherheitskomponenten: ['security', 'iam', 'network'],
+  datentraeger:     ['storage', 'backup'],
+  icsSysteme:       ['ics'],
+  iotSysteme:       ['iot', 'os', 'hardware'],
+};
 
 export const ComponentPicker: React.FC<ComponentPickerProps> = ({ categoryKey, onSelect, onClose }) => {
   const [query, setQuery] = useState('');
@@ -53,6 +79,10 @@ export const ComponentPicker: React.FC<ComponentPickerProps> = ({ categoryKey, o
 
   const kindHasEntriesForCategory = (kind: ComponentKind) =>
     COMPONENT_CATALOG.some(e => e.kind === kind && e.categoryTargets.includes(categoryKey));
+
+  const relevantKinds = new Set<ComponentKind>(CATEGORY_RELEVANT_KINDS[categoryKey] ?? []);
+  const primaryKinds = KIND_LABELS.filter(k => k.kind !== 'all' && relevantKinds.has(k.kind as ComponentKind));
+  const otherKinds = KIND_LABELS.filter(k => k.kind !== 'all' && !relevantKinds.has(k.kind as ComponentKind));
 
   const handleApply = () => {
     if (!selectedEntry) return;
@@ -93,6 +123,16 @@ export const ComponentPicker: React.FC<ComponentPickerProps> = ({ categoryKey, o
           </button>
         </div>
 
+        {/* Category context banner */}
+        {CATEGORY_CONTEXT[categoryKey] && (
+          <div className="px-6 pt-3 pb-0">
+            <div className="bg-sky-50 border border-sky-100 rounded-lg px-3 py-2">
+              <span className="text-[10px] font-bold text-sky-700 uppercase tracking-wide mr-2">{CATEGORY_CONTEXT[categoryKey].layer}</span>
+              <span className="text-xs text-sky-800">{CATEGORY_CONTEXT[categoryKey].hint}</span>
+            </div>
+          </div>
+        )}
+
         {/* Search */}
         <div className="px-6 pt-4 pb-2">
           <input
@@ -105,10 +145,24 @@ export const ComponentPicker: React.FC<ComponentPickerProps> = ({ categoryKey, o
           />
         </div>
 
-        {/* Kind filter */}
-        <div className="px-6 pb-2 flex gap-1.5 flex-wrap">
-          {KIND_LABELS.map(({ kind, label }) => {
-            const disabled = kind !== 'all' && !kindHasEntriesForCategory(kind as ComponentKind);
+        {/* Kind filter — primary kinds first, then divider, then secondary */}
+        <div className="px-6 pb-2 flex gap-1.5 flex-wrap items-center">
+          {/* All button */}
+          <button
+            key="all"
+            type="button"
+            onClick={() => { setSelectedKind('all'); setSelectedEntry(null); }}
+            className={`px-2.5 py-1 text-xs rounded-full border transition-colors font-medium ${
+              selectedKind === 'all'
+                ? 'bg-hi-accent text-white border-hi-accent'
+                : 'bg-white border-gray-200 text-hi-slate hover:border-hi-accent/50 hover:text-hi-accent'
+            }`}
+          >
+            Alle
+          </button>
+          {/* Primary (relevant) kinds */}
+          {primaryKinds.map(({ kind, label }) => {
+            const disabled = !kindHasEntriesForCategory(kind as ComponentKind);
             return (
               <button
                 key={kind}
@@ -131,12 +185,52 @@ export const ComponentPicker: React.FC<ComponentPickerProps> = ({ categoryKey, o
               </button>
             );
           })}
+          {/* Divider between primary and secondary */}
+          {primaryKinds.length > 0 && otherKinds.length > 0 && (
+            <span className="text-gray-300 text-sm select-none">|</span>
+          )}
+          {/* Secondary (less relevant) kinds — dimmed */}
+          {otherKinds.map(({ kind, label }) => {
+            const disabled = !kindHasEntriesForCategory(kind as ComponentKind);
+            return (
+              <button
+                key={kind}
+                type="button"
+                disabled={disabled}
+                onClick={() => {
+                  if (disabled) return;
+                  setSelectedKind(kind as ComponentKind | 'all');
+                  setSelectedEntry(null);
+                }}
+                className={`px-2.5 py-1 text-xs rounded-full border transition-colors font-medium opacity-50 ${
+                  disabled
+                    ? 'bg-white border-gray-100 text-gray-400 cursor-not-allowed'
+                    : selectedKind === kind
+                    ? 'bg-hi-accent text-white border-hi-accent opacity-100'
+                    : 'bg-white border-gray-200 text-hi-slate hover:border-hi-accent/50 hover:text-hi-accent hover:opacity-100'
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Results */}
         <div className="flex-1 overflow-y-auto px-6 pb-2 space-y-1 min-h-0">
           {results.length === 0 && (
-            <p className="text-sm text-hi-slate py-4 text-center">Keine Einträge gefunden.</p>
+            <div className="py-6 text-center">
+              {query.length >= 2 ? (
+                <p className="text-sm text-hi-slate">Keine Einträge für „{query}" gefunden.</p>
+              ) : selectedKind !== 'all' ? (
+                <p className="text-sm text-hi-slate">
+                  Keine {KIND_LABELS.find(k => k.kind === selectedKind)?.label}-Einträge für diese Kategorie.<br/>
+                  <span className="text-xs">Tipp: Suchbegriff eingeben um den gesamten Katalog zu durchsuchen.</span>
+                </p>
+              ) : (
+                <p className="text-sm text-hi-slate">Keine Einträge für diese Kategorie.</p>
+              )}
+            </div>
           )}
           {results.map(entry => (
             <button

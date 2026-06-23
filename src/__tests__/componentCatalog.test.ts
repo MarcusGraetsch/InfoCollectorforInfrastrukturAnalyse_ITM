@@ -102,3 +102,41 @@ describe('componentCatalog', () => {
     });
   });
 });
+
+  describe('categoryTargets BSI layer correctness', () => {
+    it('hardware entries have categoryTargets containing server or clients, not anwendungen', () => {
+      const hardwareEntries = COMPONENT_CATALOG.filter(e => e.kind === 'hardware');
+      expect(hardwareEntries.length).toBeGreaterThan(0);
+      for (const e of hardwareEntries) {
+        const hasServerOrClients = e.categoryTargets.includes('server') || e.categoryTargets.includes('clients') || e.categoryTargets.includes('netzkomponenten');
+        expect(hasServerOrClients, `${e.id} should target server/clients/netzkomponenten`).toBe(true);
+        expect(e.categoryTargets.includes('anwendungen'), `${e.id} should NOT target anwendungen`).toBe(false);
+      }
+    });
+
+    it('database entries have categoryTargets containing anwendungen only', () => {
+      const dbEntries = COMPONENT_CATALOG.filter(e => e.kind === 'database');
+      expect(dbEntries.length).toBeGreaterThan(0);
+      for (const e of dbEntries) {
+        expect(e.categoryTargets.includes('anwendungen'), `${e.id} should target anwendungen`).toBe(true);
+        expect(e.categoryTargets.includes('server'), `${e.id} should NOT target server`).toBe(false);
+      }
+    });
+
+    it('os entries have categoryTargets containing betriebssysteme', () => {
+      const osEntries = COMPONENT_CATALOG.filter(e => e.kind === 'os');
+      expect(osEntries.length).toBeGreaterThan(0);
+      for (const e of osEntries) {
+        expect(e.categoryTargets.includes('betriebssysteme'), `${e.id} should target betriebssysteme`).toBe(true);
+        expect(e.categoryTargets.includes('server'), `${e.id} should NOT target server`).toBe(false);
+      }
+    });
+
+    it('virtualization entries have categoryTargets containing server', () => {
+      const virtEntries = COMPONENT_CATALOG.filter(e => e.kind === 'virtualization');
+      expect(virtEntries.length).toBeGreaterThan(0);
+      for (const e of virtEntries) {
+        expect(e.categoryTargets.includes('server'), `${e.id} should target server`).toBe(true);
+      }
+    });
+  });
