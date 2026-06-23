@@ -303,7 +303,7 @@ export const CLOUD_FIELDS: FieldDef[] = [
  * Angehängt an Server, Clients, Netzkomponenten, ICS, IoT, Datenträger.
  */
 export const HARDWARE_FIELDS: FieldDef[] = [
-  { key: 'hersteller', label: 'Hersteller', type: 'text', group: 'hardware', suggestions: ['Dell', 'HPE', 'Lenovo', 'Fujitsu', 'Cisco', 'Supermicro', 'IBM', 'Huawei', 'Apple', 'Microsoft'], tooltip: 'Gerätehersteller (Asset-Stammdatum, iTop brand_id)' },
+  { key: 'hersteller', label: 'Hersteller', type: 'text', group: 'hardware', suggestions: ['Dell', 'HPE', 'Lenovo', 'Fujitsu', 'Cisco', 'Supermicro', 'IBM', 'Huawei', 'Apple', 'Microsoft', 'Red Hat', 'VMware (Broadcom)', 'SAP', 'Siemens', 'Fortinet', 'Proxmox', 'GitLab', 'Canonical'], tooltip: 'Gerätehersteller (Asset-Stammdatum, iTop brand_id)' },
   { key: 'modell', label: 'Modell / Typ', type: 'text', group: 'hardware', tooltip: 'z.B. „PowerEdge R750" (iTop model_id)' },
   { key: 'seriennummer', label: 'Seriennummer', type: 'text', group: 'hardware', tooltip: 'Seriennummer / S/N des Geräts' },
   { key: 'inventarnummer', label: 'Inventar-/Asset-Nummer', type: 'text', group: 'hardware', tooltip: 'Für die Anlagenbuchhaltung (iTop asset_number)' },
@@ -350,7 +350,7 @@ export const WIRTSCHAFTLICHKEIT_FIELDS: FieldDef[] = [
  * den Optionen des `typ`-Feldes.
  */
 export const SOFTWARE_FIELDS: FieldDef[] = [
-  { key: 'hersteller', label: 'Hersteller / Anbieter', type: 'text', group: 'basis', suggestions: ['Microsoft', 'SAP', 'Oracle', 'Atlassian', 'Adobe', 'Salesforce', 'IBM', 'VMware', 'Red Hat', 'Google'], tooltip: 'Software-Hersteller / Anbieter' },
+  { key: 'hersteller', label: 'Hersteller / Anbieter', type: 'text', group: 'basis', suggestions: ['Microsoft', 'SAP', 'Oracle', 'Atlassian', 'Adobe', 'Salesforce', 'IBM', 'VMware (Broadcom)', 'Red Hat', 'Google', 'Cisco', 'Siemens', 'Fortinet', 'Proxmox', 'GitLab', 'Canonical'], tooltip: 'Software-Hersteller / Anbieter' },
   { key: 'produktname', label: 'Produktname', type: 'text', group: 'basis', tooltip: 'Offizieller Produktname' },
   { key: 'version', label: 'Version', type: 'text', group: 'basis', tooltip: 'z.B. „2024 R2", „15.6.1"' },
   { key: 'updateZyklus', label: 'Update-Zyklus', type: 'select', options: ['Kontinuierlich', 'Monatlich', 'Quartalsweise', 'Jährlich', 'Bei Bedarf', 'Unklar'], group: 'basis', tooltip: 'Wie häufig wird die Software aktualisiert?' },
@@ -502,7 +502,7 @@ export const CATEGORIES: CategoryDef[] = [
       { key: 'name', label: 'Name', type: 'text', tooltip: 'Bezeichnung des Betriebssystems, z.B. „Windows Server 2022 Datacenter"', required: true, suggestions: ['Windows Server 2022', 'Windows Server 2019', 'Windows 11 Pro', 'Ubuntu Server 24.04 LTS', 'Ubuntu Server 22.04 LTS', 'Red Hat Enterprise Linux 9', 'SUSE Linux Enterprise 15', 'Debian 12', 'VMware ESXi 8.0', 'macOS 15 Sequoia'] },
       { key: 'erlaeuterung', label: 'Erläuterung', type: 'textarea', tooltip: 'Beschreibung / Einsatzzweck des Betriebssystems' },
       STATUS_FIELD,
-      { key: 'hersteller', label: 'Hersteller', type: 'text', suggestions: ['Microsoft', 'Canonical', 'Red Hat', 'SUSE', 'Debian', 'VMware', 'Apple', 'Oracle'], tooltip: 'OS-Hersteller (iTop OSFamily)' },
+      { key: 'hersteller', label: 'Hersteller', type: 'text', suggestions: ['Microsoft', 'Canonical', 'Red Hat', 'SUSE', 'Debian', 'VMware (Broadcom)', 'Apple', 'Oracle', 'AlmaLinux', 'Rocky Linux', 'Proxmox'], tooltip: 'OS-Hersteller (iTop OSFamily)' },
       { key: 'version', label: 'Version', type: 'text', tooltip: 'OS-Version / Release (iTop OSVersion)' },
       { key: 'kernel', label: 'Kernel-Version', type: 'text', tooltip: 'Kernel-/Build-Version' },
       { key: 'patchLevel', label: 'Patch-Level', type: 'text', tooltip: 'Aktueller Patch-/Update-Stand' },
