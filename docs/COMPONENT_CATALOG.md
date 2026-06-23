@@ -29,8 +29,31 @@ export interface ComponentCatalogEntry {
   endoflifeSlug?: string;        // Slug für endoflife.date (optional)
   tags?: string[];               // freie Tags für die Suche
   oeffentlicherSektor?: boolean; // für Behörden/BRD besonders relevant
+  spec?: string;                 // kurze technische Spezifikation (NUR Anzeige, nie Autofill)
+  priceInfo?: string;            // indikativer Preishinweis (NUR Anzeige, nie Autofill)
 }
 ```
+
+## Schema-validiertes Autofill (seit 2026-06)
+
+Das Befüllen läuft über `buildCatalogAutofill(entry, version, categoryDef, currentValues)`
+in `src/utils/componentCatalog.ts`. Es ist **schema-validiert** und **nicht-destruktiv**:
+
+- Es werden **nur Felder** geschrieben, die in der `CategoryDef` der aktuellen Kategorie
+  tatsächlich existieren. Phantom-Schlüssel der Katalogdaten (z.B. `betriebssystem`,
+  `lizenzart`) werden verworfen und tauchen nie im Formular auf.
+- Für `select`-Felder wird ein Wert nur gesetzt, wenn er **exakt eine der `options`** ist
+  (andernfalls übersprungen — kein ungültiger Wert).
+- `multiref`/`table`-Felder werden nie befüllt.
+- Bereits ausgefüllte Felder werden **nie überschrieben**.
+- `lizenztyp` wird aus dem (Freitext-)Lizenzstring des Eintrags heuristisch auf eine
+  gültige Select-Option abgebildet (`Open Source (frei)`, `Subscription`,
+  `Proprietär (OEM)`, `Proprietär (Volumenlizenz)`).
+- `spec` und `priceInfo` sind **reine Anzeigefelder** im Picker-Detail und werden
+  niemals in Formularfelder übernommen.
+
+Die Picker-Komponente gibt nur noch `(entry, version)` zurück; die Validierung erfolgt
+in `CategoryForm.tsx`, da nur dort die `categoryDef` vorliegt.
 
 ## Verfügbare `ComponentKind`-Werte
 
@@ -55,6 +78,27 @@ export interface ComponentCatalogEntry {
 | `ics` | Industrial Control Systems (Siemens S7, SCADA) |
 | `iot` | IoT-Plattformen (Mosquitto, Node-RED) |
 | `middleware` | Middleware (Kafka, RabbitMQ, API Gateway) |
+| `hardware` | Hardware (Server, Clients, Netzwerk-Appliances) |
+| `cloud` | Cloud/Hyperscaler & souveräne Clouds (AWS, Azure, GCP, OTC, StackIT, …) |
+
+### Hardware- und Cloud-Einträge
+
+- **`hardware`**: physische Geräte. Bei Servern werden nur reale Felder befüllt
+  (`hersteller`, `modell`, `formfaktor`), technische Eckdaten stehen in `spec`.
+- **`cloud`**: Hyperscaler- und souveräne Cloud-Dienste. `bereitstellung` wird nur auf
+  gültige Optionen gesetzt (`SaaS / Public Cloud`, `PaaS / App Service`,
+  `Managed Kubernetes (Cloud)`). Instanz-/Service-Details stehen in `spec`,
+  Richtpreise in `priceInfo`.
+
+> **Hinweis zu Preisen:** Alle `priceInfo`-Angaben sind **indikativ** und mit Jahresstand
+> versehen. Das Tool ist offline und ruft keine Live-Preise ab — die Werte müssen
+> daher **regelmäßig manuell aktualisiert** werden.
+
+### Ausgegraute Kind-Filter
+
+Im `ComponentPicker` werden Kind-Filter-Buttons **ausgegraut und deaktiviert**, wenn der
+Katalog für die aktuelle Kategorie keinen passenden Eintrag enthält. „Alle" ist immer
+aktiv. Das verhindert leere „keine Einträge"-Ergebnisse beim Klick.
 
 ## Statistik (Stand 2026-06)
 

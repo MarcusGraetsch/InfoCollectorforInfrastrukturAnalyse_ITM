@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { ComponentCatalogEntry, ComponentKind } from '../data/componentCatalog';
-import { searchComponents, getComponentSuggestionsForCategory, mapComponentToFormFields } from '../utils/componentCatalog';
+import { searchComponents, getComponentSuggestionsForCategory } from '../utils/componentCatalog';
+import { COMPONENT_CATALOG } from '../data/componentCatalog';
 
 interface ComponentPickerProps {
   categoryKey: string;
-  onSelect: (fields: Record<string, string>) => void;
+  onSelect: (entry: ComponentCatalogEntry, version: string) => void;
   onClose: () => void;
 }
 
@@ -29,6 +30,8 @@ const KIND_LABELS: { kind: ComponentKind | 'all'; label: string }[] = [
   { kind: 'iot', label: 'IoT' },
   { kind: 'middleware', label: 'Middleware' },
   { kind: 'devops', label: 'DevOps' },
+  { kind: 'hardware', label: 'Hardware' },
+  { kind: 'cloud', label: 'Cloud/Hyperscaler' },
 ];
 
 export const ComponentPicker: React.FC<ComponentPickerProps> = ({ categoryKey, onSelect, onClose }) => {
@@ -44,14 +47,16 @@ export const ComponentPicker: React.FC<ComponentPickerProps> = ({ categoryKey, o
 
   const results: ComponentCatalogEntry[] = query.length >= 2
     ? searchComponents(query, selectedKind === 'all' ? undefined : selectedKind, 30)
-    : getComponentSuggestionsForCategory(categoryKey, 20).filter(
+    : getComponentSuggestionsForCategory(categoryKey, 50).filter(
         e => selectedKind === 'all' || e.kind === selectedKind
       );
 
+  const kindHasEntriesForCategory = (kind: ComponentKind) =>
+    COMPONENT_CATALOG.some(e => e.kind === kind && e.categoryTargets.includes(categoryKey));
+
   const handleApply = () => {
     if (!selectedEntry) return;
-    const fields = mapComponentToFormFields(selectedEntry, selectedVersion || undefined);
-    onSelect(fields);
+    onSelect(selectedEntry, selectedVersion);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -102,20 +107,30 @@ export const ComponentPicker: React.FC<ComponentPickerProps> = ({ categoryKey, o
 
         {/* Kind filter */}
         <div className="px-6 pb-2 flex gap-1.5 flex-wrap">
-          {KIND_LABELS.map(({ kind, label }) => (
-            <button
-              key={kind}
-              type="button"
-              onClick={() => { setSelectedKind(kind as ComponentKind | 'all'); setSelectedEntry(null); }}
-              className={`px-2.5 py-1 text-xs rounded-full border transition-colors font-medium ${
-                selectedKind === kind
-                  ? 'bg-hi-accent text-white border-hi-accent'
-                  : 'bg-white border-gray-200 text-hi-slate hover:border-hi-accent/50 hover:text-hi-accent'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+          {KIND_LABELS.map(({ kind, label }) => {
+            const disabled = kind !== 'all' && !kindHasEntriesForCategory(kind as ComponentKind);
+            return (
+              <button
+                key={kind}
+                type="button"
+                disabled={disabled}
+                onClick={() => {
+                  if (disabled) return;
+                  setSelectedKind(kind as ComponentKind | 'all');
+                  setSelectedEntry(null);
+                }}
+                className={`px-2.5 py-1 text-xs rounded-full border transition-colors font-medium ${
+                  disabled
+                    ? 'bg-white border-gray-100 text-gray-400 opacity-40 cursor-not-allowed'
+                    : selectedKind === kind
+                    ? 'bg-hi-accent text-white border-hi-accent'
+                    : 'bg-white border-gray-200 text-hi-slate hover:border-hi-accent/50 hover:text-hi-accent'
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Results */}
@@ -163,6 +178,12 @@ export const ComponentPicker: React.FC<ComponentPickerProps> = ({ categoryKey, o
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-hi-navy">{selectedEntry.product}</p>
                 <p className="text-xs text-hi-slate">{selectedEntry.vendor}</p>
+                {selectedEntry.spec && (
+                  <p className="text-[11px] text-gray-500 mt-1">{selectedEntry.spec}</p>
+                )}
+                {selectedEntry.priceInfo && (
+                  <p className="text-[11px] text-gray-500 mt-0.5">💶 indikativ: {selectedEntry.priceInfo}</p>
+                )}
               </div>
               {selectedEntry.versions && selectedEntry.versions.length > 0 && (
                 <div className="flex-shrink-0">

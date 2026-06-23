@@ -7,7 +7,7 @@ import { MultiSelect } from './MultiSelect';
 import { ObjektNotizen } from './ObjektNotizen';
 import { TableField } from './TableField';
 import { ComponentPicker } from './ComponentPicker';
-import { autofillFormFields } from '../utils/componentCatalog';
+import { buildCatalogAutofill } from '../utils/componentCatalog';
 
 const CATALOG_CATEGORIES = new Set([
   'anwendungen', 'server', 'clients', 'betriebssysteme',
@@ -391,17 +391,16 @@ export const CategoryForm: React.FC<Props> = ({ categoryDef, state, editId, onSa
       {showPicker && (
         <ComponentPicker
           categoryKey={categoryDef.key}
-          onSelect={(fields) => {
-            const { merged, filled } = autofillFormFields(form, fields);
+          onSelect={(entry, version) => {
+            const { merged, filled } = buildCatalogAutofill(entry, version, categoryDef, form);
             setForm(merged);
             setShowPicker(false);
             if (filled.length > 0) {
               setAutofillToast(`${filled.length} Feld(er) befüllt: ${filled.join(', ')}`);
-              setTimeout(() => setAutofillToast(null), 5000);
             } else {
-              setAutofillToast('Keine neuen Felder — alle bereits ausgefüllt.');
-              setTimeout(() => setAutofillToast(null), 3000);
+              setAutofillToast('Keine passenden Felder zum Befüllen in dieser Kategorie gefunden.');
             }
+            setTimeout(() => setAutofillToast(null), 6000);
           }}
           onClose={() => setShowPicker(false)}
         />
