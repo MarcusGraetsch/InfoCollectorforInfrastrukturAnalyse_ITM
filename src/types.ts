@@ -495,6 +495,8 @@ export interface AppState {
   raeume: Raum[];
   gebaeude: Gebaeude[];
   iktDienstleister?: IKTDienstleister[];
+  /** Status des Nachweis-/Evidence-Katalogs (Key = NachweisItem.id). */
+  nachweisStatus?: Record<string, { vorhanden: boolean; notiz: string }>;
 }
 
 export type CategoryKey = keyof Omit<

@@ -438,6 +438,7 @@ function App() {
               }))}
               onUpdateTCO={(tco: TCODaten) => updateState(prev => ({ ...prev, tcoData: tco }))}
               onUpdateNIS2={(a) => updateState(prev => ({ ...prev, nis2Assessment: a }))}
+              onUpdateNachweise={(status) => updateState(prev => ({ ...prev, nachweisStatus: status }))}
               onUpdateIKT={(d) => updateState(prev => ({ ...prev, iktDienstleister: d }))}
               onOpenCloudWizard={id => setCloudWizardTargetId(id)}
               onRestore={(s) => updateState(() => s)}
