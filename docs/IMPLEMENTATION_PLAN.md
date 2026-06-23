@@ -1,5 +1,7 @@
 # Umsetzungsplan: Alle Feature-Ideen aus `CONSULTANT_FEATURE_IDEAS.md`
 
+> **Status (2026-06-22): Alle 12 Blocks vollständig umgesetzt.** Das Dokument dient als historische Referenz.
+
 **Stand:** Juni 2026 · **Branch:** `claude/dazzling-ride-04upm4`  
 **Stack:** React 18 + TypeScript + Vite + Tailwind CSS · Kein Backend · localStorage + IndexedDB  
 **Designprinzipien (nie brechen):** Kein Pflicht-Backend · Offline-fähig · Druckbar · Kein Breaking-Change am JSON-Export ohne Migrationspfad

@@ -1,6 +1,6 @@
 # Verbesserungsplan — IT Strukturanalyse
 
-> **Status: Alle 4 Phasen implementiert und committed (2026-06-19)**
+> **Status: Alle 4 Phasen implementiert und committed (2026-06-19). Dieses Dokument dient als historische Referenz.**
 
 **Bezug:** `docs/EXPERT_REVIEW.md` (Finding-IDs SEC-/ARCH-/UX-)
 **Ziel:** Überführung der Review-Befunde in eine priorisierte, nachvollziehbare Roadmap unter strikter Einhaltung der Designprinzipien (kein Backend, kein Login, offline-fähig, druckbar, keine Breaking Changes am JSON-Format ohne Migration).
