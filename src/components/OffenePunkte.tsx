@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import type { AppState, CategoryKey, CloudFields } from '../types';
 import { ASSESSABLE_CATEGORIES } from '../cloudReadiness';
 import { findUnlinkedSuggestions } from '../utils/bidirectional';
+import { findPlatformGaps } from '../utils/plattform';
 import {
   CLOUD_FIELD_DEFS,
   CLOUD_FIELD_BY_KEY,
@@ -15,6 +16,7 @@ import {
 
 const CATEGORY_LABELS: Record<string, string> = {
   anwendungen: 'Anwendungen',
+  betriebssysteme: 'Betriebssysteme',
   server: 'Server',
   clients: 'Clients',
   icsSysteme: 'ICS-Systeme',
@@ -260,6 +262,7 @@ export const OffenePunkte: React.FC<Props> = ({ state, onEditItem, onBatchCloudU
   const [batchDone, setBatchDone] = useState(false);
 
   const allOpen = useMemo(() => buildOpenItems(state), [state]);
+  const platformGaps = useMemo(() => findPlatformGaps(state), [state]);
 
   const filtered = useMemo(
     () => filterCategory === 'alle' ? allOpen : allOpen.filter(i => i.category === filterCategory),
@@ -612,6 +615,51 @@ export const OffenePunkte: React.FC<Props> = ({ state, onEditItem, onBatchCloudU
             )}
           </>
         )
+      )}
+
+      {/* ── PLATTFORM-ZUORDNUNGEN (additiv, separat von Cloud-Feldern) ── */}
+      {tab === 'liste' && platformGaps.length > 0 && (
+        <div className="bg-white rounded-xl border border-violet-100 shadow-sm overflow-hidden">
+          <div className="px-5 py-3 bg-violet-50 border-b border-violet-200 flex items-center gap-3">
+            <span className="text-base">🖥️</span>
+            <h3 className="text-sm font-bold text-violet-900 uppercase tracking-wider">
+              Offene Plattform-Zuordnungen (Worauf läuft das?)
+            </h3>
+            <span className="text-xs bg-violet-100 text-violet-700 border border-violet-200 rounded-full px-2 py-0.5 font-bold ml-auto">
+              {platformGaps.length} Objekte
+            </span>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {platformGaps.map(gap => (
+              <div key={`${gap.category}-${gap.id}`} className="px-5 py-3 flex items-center gap-3">
+                <div className="w-32 flex-shrink-0">
+                  <div className="font-mono text-violet-600 text-xs font-bold">{gap.kuerzel}</div>
+                  <div className="text-sm font-semibold text-hi-navy mt-0.5 leading-snug">{gap.name}</div>
+                </div>
+                <span className="text-[10px] text-hi-slate bg-hi-gray rounded px-1.5 py-0.5">
+                  {CATEGORY_LABELS[gap.category] ?? gap.category}
+                </span>
+                <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${
+                  gap.explicitUnklar
+                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                    : 'bg-red-50 text-red-600 border-red-200'
+                }`}>
+                  {gap.explicitUnklar ? 'explizit Unklar' : 'noch nicht zugeordnet'}
+                </span>
+                <button
+                  onClick={() => onEditItem(gap.id)}
+                  title="Im Wizard bearbeiten"
+                  className="ml-auto flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-violet-600 border border-violet-300 rounded-lg hover:bg-violet-600 hover:text-white transition-all print:hidden"
+                >
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Bearbeiten
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* ── TAB: INTERVIEW-VORBEREITUNG ── */}

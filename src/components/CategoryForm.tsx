@@ -8,6 +8,7 @@ import { ObjektNotizen } from './ObjektNotizen';
 import { TableField } from './TableField';
 import { ComponentPicker } from './ComponentPicker';
 import { buildCatalogAutofill } from '../utils/componentCatalog';
+import { isPlatformUnassigned, RUNTIME_CATEGORIES } from '../utils/plattform';
 
 const CATALOG_CATEGORIES = new Set([
   'anwendungen', 'server', 'clients', 'betriebssysteme',
@@ -316,6 +317,7 @@ export const CategoryForm: React.FC<Props> = ({ categoryDef, state, editId, onSa
   };
 
   const basisFields = categoryDef.fields.filter((f) => !f.group || f.group === 'basis');
+  const plattformFields = categoryDef.fields.filter((f) => f.group === 'plattform');
   const cloudFields = categoryDef.fields.filter((f) => f.group === 'cloud');
   const hardwareFields = categoryDef.fields.filter((f) => f.group === 'hardware');
   const wirtschaftFields = categoryDef.fields.filter((f) => f.group === 'wirtschaft');
@@ -408,6 +410,31 @@ export const CategoryForm: React.FC<Props> = ({ categoryDef, state, editId, onSa
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-4">{renderFieldGroup(basisFields)}</div>
+
+        {plattformFields.length > 0 && RUNTIME_CATEGORIES.includes(categoryDef.key) && (() => {
+          const isUnklar = form.plattformTyp === 'Unklar — beim Kunden erfragen';
+          const unassigned = isPlatformUnassigned(form, categoryDef.key);
+          return (
+            <fieldset className="border border-violet-200 bg-gradient-to-b from-violet-50/80 to-white rounded-xl p-5 space-y-4 mt-6">
+              <legend className="px-2 text-xs font-bold text-violet-800 flex items-center gap-1.5 uppercase tracking-wider">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+                </svg>
+                Plattform — Worauf läuft das?
+              </legend>
+              {renderFieldGroup(plattformFields)}
+              {isUnklar ? (
+                <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  Als offener Punkt markiert — erscheint in der Offene-Punkte-Liste.
+                </div>
+              ) : unassigned ? (
+                <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  💡 Worauf läuft dieses Objekt? Verknüpfe ein System/Betriebssystem oder wähle eine Bereitstellungsart. Unklar? → „Unklar — beim Kunden erfragen" wählen.
+                </div>
+              ) : null}
+            </fieldset>
+          );
+        })()}
 
         {hardwareFields.length > 0 && (
           <fieldset className="border border-slate-200 bg-gradient-to-b from-slate-50/80 to-white rounded-xl p-5 space-y-4 mt-6">

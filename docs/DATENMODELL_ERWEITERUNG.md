@@ -552,3 +552,26 @@ Im Zuge des DATAGerry-Vergleichs (`docs/DATAGERRY_VERGLEICH.md`) wurden vier wei
 ### Migrationssicherheit
 
 Alle neuen Felder sind optional; die einzigen Top-Level-Ergänzungen (`betriebssysteme`, `schnittstellen`) werden in `createDefaultState()` und der `arrayKeys`-Liste in `store.ts` abgefangen. Alte JSON-Backups laden über `mergeWithDefault` unverändert — **kein Breaking-Change am Export-Format**.
+
+---
+
+## Plattform-Zuordnung (Läuft-auf-Logik)
+
+Sanfter Nudge, mit dem das Formular aktiv fragt: **„Worauf läuft dieses Objekt?"** — offen lassen ist erlaubt (kein Save-Block) und wird als offener Punkt erfasst.
+
+**Scope (Laufzeit-Objekte):** `anwendungen`, `betriebssysteme`, `clients`, `icsSysteme`, `iotSysteme`. **NICHT** `server` — ein Server *ist* die Plattform.
+
+- **Neues Feld `plattformTyp`** (`group: 'plattform'`, FieldType `select`) je Laufzeit-Kategorie. Optionen: `Physische Hardware`, `Virtuelle Maschine`, `Container`, `Cloud-Dienst / SaaS`, `Externes System (Dienstleister)`, `Unklar — beim Kunden erfragen`. Steht jeweils zuerst in der Plattform-Gruppe.
+- **Relations-Felder (multiref) pro Kategorie** (`src/utils/plattform.ts` → `PLATTFORM_RELATION_FIELDS`):
+  - `anwendungen`: `itSysteme` (→ server, „Läuft auf Server / Host") + neu `betriebssysteme` (→ betriebssysteme, „Läuft auf Betriebssystem")
+  - `betriebssysteme`: neu `itSysteme` (→ server, „Installiert auf Server / Host")
+  - `clients`: `betriebssysteme` + `itSysteme` (beide in Plattform-Gruppe)
+  - `icsSysteme`, `iotSysteme`: `itSysteme` (→ server, „Läuft auf Server / Host")
+- **Neue Form-Gruppe `'plattform'`** (FieldDef-`group`-Union erweitert). `CategoryForm.tsx` rendert sie als eigenes violett-getöntes `<fieldset>` „Plattform — Worauf läuft das?" direkt nach dem Basis-Block, vor Hardware.
+- **Soft-Nudge** (nicht blockierend), berechnet aus dem aktuellen Formularstand via `isPlatformUnassigned()`:
+  - `plattformTyp = 'Unklar — …'` → neutraler Hinweis „Als offener Punkt markiert".
+  - kein Link und kein konkreter Typ → amber Hinweis „💡 Worauf läuft dieses Objekt? …".
+  - sonst (verknüpft oder konkreter Typ gewählt) → kein Nudge.
+- **OffenePunkte-Integration:** additiver, separater Block „Offene Plattform-Zuordnungen (Worauf läuft das?)" über `findPlatformGaps(state)` — unabhängig von der bestehenden Cloud-Feld-Logik. Badge „explizit Unklar" vs. „noch nicht zugeordnet", „Bearbeiten" springt via `onEditItem(id)` ins Formular.
+- **Bidirektionale Konsistenz:** ein neues `BIDIR_PAIRS`-Paar `['betriebssysteme','itSysteme','server','betriebssysteme']` hält OS↔Server-Links synchron.
+- **Migration:** alle Felder optional, Werte bleiben Strings/Arrays — alte Backups laden unverändert (kein Breaking-Change am Export-Format).

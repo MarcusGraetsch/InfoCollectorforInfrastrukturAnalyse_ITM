@@ -5,6 +5,7 @@ type BidirPair = [CategoryKey, string, CategoryKey, string];
 
 const BIDIR_PAIRS: BidirPair[] = [
   ['anwendungen', 'itSysteme', 'server', 'anwendungen'],
+  ['betriebssysteme', 'itSysteme', 'server', 'betriebssysteme'],
   ['anwendungen', 'netzverbindungen', 'netzverbindungen', 'anwendungen'],
   ['server', 'netzverbindungen', 'netzverbindungen', 'server'],
   ['clients', 'netzverbindungen', 'netzverbindungen', 'clients'],

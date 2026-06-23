@@ -19,7 +19,7 @@ export interface FieldDef {
    * 'basis' = BSI-Strukturanalyse, 'cloud' = Cloud-Readiness-Zusatz,
    * 'hardware' = Technik/Hardware, 'wirtschaft' = Wirtschaftlichkeit/Vertrag.
    */
-  group?: 'basis' | 'cloud' | 'hardware' | 'wirtschaft';
+  group?: 'basis' | 'cloud' | 'hardware' | 'wirtschaft' | 'plattform';
   /** Einheiten-Suffix für number-Felder (z.B. 'W', '€', 'GB', 'HE', 'Jahre'). */
   unit?: string;
   /** Minimalwert für number-Felder. */
@@ -82,6 +82,22 @@ const TAGS_FIELD: FieldDef = {
   label: 'Tags',
   type: 'text',
   tooltip: 'Kommagetrennte Schlagwörter zur Kategorisierung',
+};
+
+/**
+ * Plattform-Zuordnung („Läuft auf"). Sanfter Nudge: Das Formular fragt aktiv,
+ * worauf das Objekt läuft — offen lassen ist erlaubt und erscheint als offener
+ * Punkt (siehe `src/utils/plattform.ts` + OffenePunkte). Wird an alle
+ * Laufzeit-Objekte (anwendungen, betriebssysteme, clients, icsSysteme,
+ * iotSysteme) angehängt — NICHT an server (ein Server IST die Plattform).
+ */
+const PLATTFORM_TYP_FIELD: FieldDef = {
+  key: 'plattformTyp',
+  label: 'Bereitstellungsart (läuft auf)',
+  type: 'select',
+  options: ['', 'Physische Hardware', 'Virtuelle Maschine', 'Container', 'Cloud-Dienst / SaaS', 'Externes System (Dienstleister)', 'Unklar — beim Kunden erfragen'],
+  group: 'plattform',
+  tooltip: 'Worauf läuft dieses Objekt? Wenn unklar, „Unklar — beim Kunden erfragen" wählen — es erscheint dann in der Offene-Punkte-Liste.',
 };
 
 /**
@@ -478,7 +494,9 @@ export const CATEGORIES: CategoryDef[] = [
       { key: 'benutzer', label: 'Benutzer', type: 'text', tooltip: 'Nutzergruppen oder Personen die die Anwendung verwenden', suggestions: ['Alle Mitarbeiter', 'IT-Abteilung', 'Finanz & Controlling', 'Personalwesen (HR)', 'Vertrieb', 'Einkauf', 'Produktion', 'Management', 'Externe Dienstleister', 'Kunden (Self-Service)'] },
       TAGS_FIELD,
       { key: 'anwendungen', label: 'Abhängige Anwendungen', type: 'multiref', refCategory: 'anwendungen', tooltip: 'Andere Anwendungen von denen diese abhängt' },
-      { key: 'itSysteme', label: 'IT-Systeme', type: 'multiref', refCategory: 'server', tooltip: 'Server und Systeme auf denen die Anwendung läuft' },
+      PLATTFORM_TYP_FIELD,
+      { key: 'itSysteme', label: 'Läuft auf Server / Host', type: 'multiref', refCategory: 'server', group: 'plattform', tooltip: 'Server und Systeme auf denen die Anwendung läuft' },
+      { key: 'betriebssysteme', label: 'Läuft auf Betriebssystem', type: 'multiref', refCategory: 'betriebssysteme', group: 'plattform', tooltip: 'Betriebssystem(e), auf denen die Anwendung läuft' },
       { key: 'netzverbindungen', label: 'Netzverbindungen', type: 'multiref', refCategory: 'netzverbindungen', tooltip: 'Genutzte Netzverbindungen' },
       {
         key: 'lizenzen',
@@ -510,6 +528,8 @@ export const CATEGORIES: CategoryDef[] = [
       { key: 'lizenztyp', label: 'Lizenztyp', type: 'select', options: ['Proprietär (Volumenlizenz)', 'Proprietär (OEM)', 'Subscription', 'Open Source (frei)', 'Open Source (Support-Abo)', 'Unklar'], tooltip: 'Lizenzmodell des OS' },
       { key: 'supportEnde', label: 'Support-Ende (EoL)', type: 'date', tooltip: 'End-of-Life / End-of-Support des OS' },
       TAGS_FIELD,
+      PLATTFORM_TYP_FIELD,
+      { key: 'itSysteme', label: 'Installiert auf Server / Host', type: 'multiref', refCategory: 'server', group: 'plattform', tooltip: 'Server/Hosts, auf denen dieses Betriebssystem installiert ist' },
     ],
   },
   {
@@ -683,8 +703,9 @@ export const CATEGORIES: CategoryDef[] = [
       { key: 'verantwortlicher', label: 'Verantwortlich/Administrator', type: 'text', tooltip: 'Zuständige Person oder Rolle', suggestions: ['Client-Management', 'IT-Helpdesk / Support', 'IT-Administration', 'Managed Service Provider', 'IT-Leitung'] },
       { key: 'benutzer', label: 'Benutzer', type: 'text', tooltip: 'Nutzergruppen des Clients', suggestions: ['Alle Mitarbeiter', 'Außendienst / Mobile Worker', 'Home-Office-Mitarbeiter', 'Führungskräfte', 'Produktion / Fertigung', 'IT-Abteilung', 'Externe Dienstleister'] },
       TAGS_FIELD,
-      { key: 'betriebssysteme', label: 'Betriebssysteme', type: 'multiref', refCategory: 'betriebssysteme', tooltip: 'Auf dem Client installierte Betriebssysteme' },
-      { key: 'itSysteme', label: 'IT-Systeme', type: 'multiref', refCategory: 'server', tooltip: 'Verknüpfte IT-Systeme' },
+      PLATTFORM_TYP_FIELD,
+      { key: 'betriebssysteme', label: 'Installiertes Betriebssystem', type: 'multiref', refCategory: 'betriebssysteme', group: 'plattform', tooltip: 'Auf dem Client installierte Betriebssysteme' },
+      { key: 'itSysteme', label: 'Läuft auf / verknüpfter Host', type: 'multiref', refCategory: 'server', group: 'plattform', tooltip: 'Verknüpfte IT-Systeme / Hosts' },
       { key: 'netzverbindungen', label: 'Netzverbindungen', type: 'multiref', refCategory: 'netzverbindungen', tooltip: 'Netzverbindungen des Clients' },
       { key: 'raeume', label: 'Räume', type: 'multiref', refCategory: 'raeume', tooltip: 'Aufstellungsort (Raum)' },
       { key: 'gebaeude', label: 'Gebäude', type: 'multiref', refCategory: 'gebaeude', tooltip: 'Aufstellungsort (Gebäude)' },
@@ -704,7 +725,8 @@ export const CATEGORIES: CategoryDef[] = [
       { key: 'verantwortlicher', label: 'Verantwortlich/Administrator', type: 'text', tooltip: 'Zuständige Person oder Rolle', suggestions: ['OT-/Produktionsverantwortliche', 'Automatisierungstechniker', 'IT-OT-Koordinator', 'Anlagenhersteller / Integrator', 'Werkstechnik'] },
       { key: 'benutzer', label: 'Benutzer', type: 'text', tooltip: 'Nutzergruppen des Systems', suggestions: ['Produktion / Fertigung', 'Anlagenführer', 'Wartungspersonal', 'Prozessleittechnik', 'Qualitätssicherung'] },
       TAGS_FIELD,
-      { key: 'itSysteme', label: 'IT-Systeme', type: 'multiref', refCategory: 'server', tooltip: 'Verknüpfte IT-Systeme' },
+      PLATTFORM_TYP_FIELD,
+      { key: 'itSysteme', label: 'Läuft auf Server / Host', type: 'multiref', refCategory: 'server', group: 'plattform', tooltip: 'Verknüpfte IT-Systeme / Hosts' },
       { key: 'netzverbindungen', label: 'Netzverbindungen', type: 'multiref', refCategory: 'netzverbindungen', tooltip: 'Netzverbindungen des Systems' },
       { key: 'raeume', label: 'Räume', type: 'multiref', refCategory: 'raeume', tooltip: 'Aufstellungsort (Raum)' },
       { key: 'gebaeude', label: 'Gebäude', type: 'multiref', refCategory: 'gebaeude', tooltip: 'Aufstellungsort (Gebäude)' },
@@ -724,7 +746,8 @@ export const CATEGORIES: CategoryDef[] = [
       { key: 'verantwortlicher', label: 'Verantwortlich/Administrator', type: 'text', tooltip: 'Zuständige Person oder Rolle', suggestions: ['Facility Management', 'Haustechnik', 'IT-Administration', 'Sicherheitsdienst', 'Anlagenhersteller / Wartungsfirma'] },
       { key: 'benutzer', label: 'Benutzer', type: 'text', tooltip: 'Nutzergruppen des Geräts', suggestions: ['Facility Management', 'Alle Mitarbeiter (Passiv)', 'Sicherheitspersonal', 'Haustechnik', 'Automatisch (keine Nutzer)'] },
       TAGS_FIELD,
-      { key: 'itSysteme', label: 'IT-Systeme', type: 'multiref', refCategory: 'server', tooltip: 'Verknüpfte IT-Systeme' },
+      PLATTFORM_TYP_FIELD,
+      { key: 'itSysteme', label: 'Läuft auf Server / Host', type: 'multiref', refCategory: 'server', group: 'plattform', tooltip: 'Verknüpfte IT-Systeme / Hosts' },
       { key: 'netzverbindungen', label: 'Netzverbindungen', type: 'multiref', refCategory: 'netzverbindungen', tooltip: 'Netzverbindungen des Geräts' },
       { key: 'raeume', label: 'Räume', type: 'multiref', refCategory: 'raeume', tooltip: 'Aufstellungsort (Raum)' },
       { key: 'gebaeude', label: 'Gebäude', type: 'multiref', refCategory: 'gebaeude', tooltip: 'Aufstellungsort (Gebäude)' },

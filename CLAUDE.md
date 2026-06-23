@@ -55,6 +55,7 @@ Konzept + Status: `docs/DATENMODELL_ERWEITERUNG.md` (Abschnitt 9 = Umsetzungssta
 - **Schnittstellen-Visualisierung:** Modus „Schnittstellen-Graph" in `InfrastrukturLandkarte` (Kantenfarbe nach Verschlüsselung) + druckbare n×n-Matrix `SchnittstellenMatrix.tsx` (Subtab in ProjectView).
 - **AfA / TCO-Aggregation:** `src/wirtschaftlichkeit.ts` — `berechneBuchwert()` (lineare AfA, Restwert/Restlaufzeit) und `summiereObjektkosten()`. TCO-Modul bietet „Aus Objektdaten übernehmen" (non-destruktiv) + druckbare Asset-/AfA-Übersicht. Single Source of Truth für Ist-Kosten.
 - **Migration:** alle neuen Felder optional; neue Top-Level-Arrays in `createDefaultState` + `arrayKeys` (store.ts) — alte Backups laden unverändert.
+- **Plattform-Zuordnung („Läuft auf"):** sanfter Nudge an allen Laufzeit-Objekten (`anwendungen`, `betriebssysteme`, `clients`, `icsSysteme`, `iotSysteme` — NICHT `server`). Neues `plattformTyp`-Select + Relations-Felder in neuer Form-Gruppe `'plattform'` (eigenes violettes Fieldset in `CategoryForm.tsx`). Logik in `src/utils/plattform.ts` (`isPlatformUnassigned`, `findPlatformGaps`); offene Zuordnungen als additiver Block in `OffenePunkte.tsx`. Offen lassen erlaubt (kein Save-Block) → erscheint als offener Punkt. Details: `docs/DATENMODELL_ERWEITERUNG.md`.
 
 ---
 
