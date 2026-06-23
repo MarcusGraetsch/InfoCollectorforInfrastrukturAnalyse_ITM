@@ -25,6 +25,17 @@ function sanitizeRow(row: unknown[]): unknown[] {
   return row.map(sanitizeCsvCell);
 }
 
+/** Tabellenfelder (FieldType 'table') werden als JSON-String gespeichert. */
+function safeParseRows(raw: string): Record<string, unknown>[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 function addOverviewSheet(XLSX: XLSXModule, wb: XLSX.WorkBook, state: AppState, titel: string): void {
   const overviewData = [
     [titel, ''],
@@ -44,6 +55,13 @@ function addCategorySheets(XLSX: XLSXModule, wb: XLSX.WorkBook, state: AppState)
     const rows = items.map((item) =>
       cat.fields.map((f) => {
         const val = item[f.key];
+        if (f.type === 'table') {
+          const raw = typeof val === 'string' ? safeParseRows(val) : Array.isArray(val) ? (val as Record<string, unknown>[]) : [];
+          const cols = f.tableColumns ?? [];
+          return raw
+            .map((r) => cols.map((c) => r[c.key] ?? '').join('|'))
+            .join('; ');
+        }
         if (Array.isArray(val)) return val.join(', ');
         return val ?? '';
       })

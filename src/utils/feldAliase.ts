@@ -6,9 +6,9 @@
  * erstellten Excel-Tabellen vorkommen.
  *
  * Matching-Strategie (Reihenfolge in findeMapping):
- *   1. Exakter Treffer (case-insensitive)
- *   2. Spalte enthält Alias als Substring
- *   3. Alias enthält Spalte als Substring (nur wenn Spalte ≥ 3 Zeichen)
+ *   1. Exakter Treffer (case-insensitive) — gilt für ALLE Aliase
+ *   2. Substring-Treffer — nur für Aliase ≥ 3 Zeichen (kurze wie 'ID'/'U'/'kW'
+ *      werden ausschließlich exakt gematcht, um Fehlzuordnungen zu vermeiden)
  */
 
 export const FELD_ALIASE: Record<string, string[]> = {
@@ -28,8 +28,9 @@ export const FELD_ALIASE: Record<string, string[]> = {
   seriennummer:      ['Seriennummer', 'Serial', 'SN', 'Serial Number', 'Seriennr', 'S/N'],
   inventarnummer:    ['Inventarnummer', 'Inventar', 'Inventar-Nr', 'Asset Number', 'Asset-Nr', 'Asset Nr', 'Inventory', 'Inventory Number'],
   managementIp:      ['Management IP', 'MGMT IP', 'iDRAC IP', 'iLO IP', 'BMC IP', 'Management-IP', 'IPMI IP', 'Remote-Management IP'],
-  stromverbrauchW:   ['Stromverbrauch', 'Strom', 'Watt', 'Power', 'Leistung W', 'Leistungsaufnahme', 'Power Consumption', 'Leistung (W)'],
-  leistungKW:        ['Leistung kW', 'kW', 'Kilowatt', 'Leistung (kW)'],
+  stromverbrauch:    ['Stromverbrauch', 'Strom', 'Watt', 'Power', 'Leistung W', 'Power Consumption', 'Leistung (W)'],
+  leistungsaufnahmeMax: ['Leistungsaufnahme', 'Leistung kW', 'kW', 'Kilowatt', 'Leistung (kW)', 'Leistungsaufnahme (max.)'],
+  spannung:          ['Versorgungsspannung', 'Spannung', 'Voltage', 'Volt'],
   hoeheneinheiten:   ['HE', 'Höheneinheiten', 'Hoeheneinheiten', 'Rack Units', 'RU', 'U', 'Rack-HE'],
   formfaktor:        ['Formfaktor', 'Form Factor', 'Bauform', 'Gehäuseform'],
   cpu:               ['CPU', 'Prozessor', 'Processor', 'CPU-Typ', 'Prozessortyp', 'CPU Modell', 'Prozessor-Modell'],
@@ -101,10 +102,19 @@ export const FELD_ALIASE: Record<string, string[]> = {
 export function findeMapping(spalte: string): string | undefined {
   const lower = spalte.toLowerCase().trim();
   if (!lower) return undefined;
+  // Stufe 1: exakter Treffer (für ALLE Aliase, auch kurze wie 'ID', 'U', 'kW')
+  for (const [feldKey, aliase] of Object.entries(FELD_ALIASE)) {
+    for (const alias of aliase) {
+      if (alias.toLowerCase() === lower) return feldKey;
+    }
+  }
+  // Stufe 2 & 3: Substring-Matching nur für Aliase ≥ 3 Zeichen
+  // (kurze Aliase wie 'ID'/'U'/'CC' würden sonst Spalten wie
+  //  'Liquidität' oder 'Building' fälschlich auf kuerzel/hoeheneinheiten mappen)
   for (const [feldKey, aliase] of Object.entries(FELD_ALIASE)) {
     for (const alias of aliase) {
       const al = alias.toLowerCase();
-      if (al === lower) return feldKey;                          // exakter Treffer
+      if (al.length < 3) continue;
       if (lower.includes(al)) return feldKey;                   // Spalte enthält Alias
       if (lower.length >= 3 && al.includes(lower)) return feldKey; // Alias enthält Spalte
     }
