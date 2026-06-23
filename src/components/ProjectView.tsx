@@ -26,12 +26,13 @@ import { DORARegister } from './DORARegister';
 import { countItemsWithOpenFields } from '../cloudFields';
 import { EncryptionSettings } from './EncryptionSettings';
 import { KatalogUebersicht } from './KatalogUebersicht';
+import { ArchiMateViews } from './ArchiMateViews';
 
 type SubTab =
   | 'liefergegenstaende' | 'cockpit' | 'stakeholder' | 'meetings' | 'tops'
   | 'fragenliste' | 'landkarte' | 'schnittstellen' | 'beziehungen' | 'lizenz' | 'tco' | 'security' | 'zielarchitektur'
   | 'nis2' | 'euaiact' | 'souveraenitaet' | 'nachweise' | 'quellen' | 'nachhaltigkeit' | 'dora'
-  | 'bericht' | 'executive' | 'snapshots' | 'einstellungen' | 'katalog';
+  | 'bericht' | 'executive' | 'snapshots' | 'einstellungen' | 'katalog' | 'archimate';
 
 interface Props {
   state: AppState;
@@ -87,6 +88,8 @@ const GROUPS = [
         icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg> },
       { key: 'katalog' as SubTab, label: 'Komponentenkatalog',
         icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg> },
+      { key: 'archimate' as SubTab, label: 'ArchiMate-Views',
+        icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7l9-4 9 4-9 4-9-4zm0 5l9 4 9-4M3 17l9 4 9-4" /></svg> },
     ],
   },
   {
@@ -293,6 +296,7 @@ export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeh
         {subTab === 'executive'          && <ExecutiveSummary state={state} />}
         {subTab === 'einstellungen'      && <EncryptionSettings onReload={onReload} />}
         {subTab === 'katalog'            && <KatalogUebersicht />}
+        {subTab === 'archimate'          && <ArchiMateViews state={state} />}
       </div>
     </div>
   );
