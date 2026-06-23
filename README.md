@@ -1,8 +1,8 @@
 # IT Strukturanalyse · Cloud-Readiness Suite
 
-**HiSolutions AG** — Werkzeug zur strukturierten Datenaufnahme für BSI IT-Grundschutz Strukturanalysen (Standard 200-2) und zur Vorbereitung von Cloud-Readiness-Workshops.
+**HiSolutions AG** — Strukturiertes Beratungswerkzeug für BSI IT-Grundschutz Strukturanalysen (Standard 200-2), Cloud-Readiness-Bewertungen und regulatorische Compliance-Checks (NIS2, EU AI Act, DORA, EnEfG).
 
-Die Applikation führt Berater:innen vor Ort systematisch durch die Informationsaufnahme, erklärt bei Bedarf den BSI-Hintergrund jeder Frage und erstellt automatisch eine Cloud-Readiness-Bewertung als Grundlage für die Cloud-Strategie.
+Das Tool führt Berater:innen vor Ort systematisch durch die Informationsaufnahme, bewertet die Cloud-Readiness aller erfassten Systeme und erstellt druckbare Liefergegenstände — vollständig im Browser, kein Backend, offline-fähig.
 
 → **[Vollständige Feature-Dokumentation](docs/FEATURES.md)**
 
@@ -47,7 +47,7 @@ npx serve -s dist -l 8080
 
 ## Deinstallation
 
-**Vor der Deinstallation Daten sichern** (siehe [Datensicherung](#datensicherung)):
+**Vor der Deinstallation Daten sichern** (JSON-Backup-Button im App-Header):
 
 **Linux / macOS / WSL:**
 ```bash
@@ -59,57 +59,64 @@ npx serve -s dist -l 8080
 powershell -ExecutionPolicy Bypass -File .\uninstall.ps1
 ```
 
-Das Skript stoppt Docker-Container und -Image, beendet laufende Prozesse und löscht optional den Projektordner. Details: [Deinstallation in der Feature-Dokumentation](docs/FEATURES.md#12-deinstallation).
-
----
-
-## Datensicherung
-
-Alle Daten liegen im **Browser-localStorage** — es gibt kein Backend. Vor der Deinstallation oder einem Gerätewechsel stehen drei Exportformate zur Verfügung (Buttons im Header der App):
-
-| Button | Format | Verwendung |
-|---|---|---|
-| **JSON-Backup** (indigo) | `.json` | Vollständige Sicherung, re-importierbar in jede Neuinstallation |
-| **Bericht (HTML)** (violett) | `.html` | Druckbarer Consultant-Bericht (→ PDF via Browser-Druck) |
-| **Excel Export** (grün) | `.xlsx` | Alle Kategorien als Tabellenblätter für weitere Bearbeitung |
-| **Workshop-Export** (türkis) | `.xlsx` | Erweitertes Paket: Strukturanalyse + Cloud-Readiness-Auswertung |
-
-**JSON-Backup re-importieren:** Button „Import" → `.json`-Datei auswählen. Die App erkennt das Format automatisch und stellt den vollständigen Zustand wieder her.
+Das Skript stoppt Docker-Container und -Image, beendet laufende Prozesse und löscht optional den Projektordner. Details: [Deinstallation in der Feature-Dokumentation](docs/FEATURES.md#8-deinstallation).
 
 ---
 
 ## Funktionsübersicht
 
-| Funktion | Beschreibung |
+| Bereich | Funktion |
 |---|---|
-| **Schritt-für-Schritt-Assistent** | Geführter Ablauf: Cloud-Strategie → Unterlagen → 12 BSI-Kategorien → Zusammenfassung |
-| **Feldvorschläge (Combobox)** | Vorgefertigte Fachbegriffe je Kategorie (Plattformen, Protokolle u. v. m.) — freie Eingabe immer möglich |
-| **BSI-Kontexthilfe** | „Warum frage ich das?" + Interview-Leitfragen je Kategorie |
-| **Wen kann ich fragen?** | Ansprechpartner-Tipps je Kategorie für den Kundenkontakt |
-| **E-Mail-Vorlage** | Professionelle Anfrage-Mail für Kundendokumente (1-Klick-Kopieren) |
-| **Smart-Import (Excel)** | KI-gestützte Blatt-Erkennung mit manuellem Mapping-Dialog |
-| **Cloud-Readiness-Bewertung** | Automatischer Score (0–100) und 6R-Empfehlung je Objekt |
-| **Cloud-Dashboard** | KPIs, 6R-Verteilung, Bewertungstabelle, Souveränitäts-Hinweise |
-| **JSON-Backup & Re-Import** | Vollständige Datensicherung, geräteübergreifend portierbar |
-| **Consultant-Bericht (HTML)** | Druckbarer Bericht mit Branding, Tabellen und Cloud-Scoring |
-| **Workshop-Export (XLSX)** | Komplettpaket für den Cloud-Readiness-Workshop |
+| **Datenaufnahme** | Schritt-für-Schritt-Assistent (Wizard) + direkte Kategorie-Formulare |
+| **14 BSI-Kategorien** | Vollständiges BSI 200-2 Datenmodell inkl. Betriebssysteme + Schnittstellen |
+| **Feldtypen** | Text, Select, Zahl (mit Einheit), Datum, URL, Tabelle (MDS), Conditional showIf |
+| **Hardware-Felder** | Hersteller, Modell, S/N, CPU, RAM, HE, Strom, Management-IP — an 7 Kategorien |
+| **Wirtschaftlichkeit** | AfA (linear), Buchwert, TCO-Aggregation, Verträge, Kostenstellen |
+| **Objekt-Notizen** | Kommentar-Feed mit Timestamp + Autor je Objekt |
+| **Globale Suche** | `Ctrl+K` — Volltext über alle 14 Kategorien, Tastaturnavigation |
+| **Cloud-Readiness** | Score 0–100, 6R-Verteilung, SEAL-Level S0–S3, FinOps-Szenarien |
+| **Compliance** | NIS2-Check, EU AI Act Inventar, DORA IKT-Register, EnEfG/CO₂, SAM-Analyse |
+| **Analysen** | Infrastruktur-Landkarte, Schnittstellen-Graph, Schnittstellen-Matrix (n×n) |
+| **Berichte** | Executive Summary (Spider-Chart), Reifegradmodell, Vollständigkeits-Cockpit |
+| **Versionierung** | Snapshot-Versionierung + Delta-Vergleich |
+| **Import** | Excel mit 200+ Spalten-Aliasen (Fuzzy-Mapping) + Fehler-Recovery-Tabelle |
+| **Export** | JSON-Backup, HTML-Bericht, Excel (Standard + Workshop), AfA-Übersicht, Schnittstellen-Matrix |
+| **Verschlüsselung** | Optionale AES-256/GCM Datenverschlüsselung (PBKDF2, 310k Iterationen) |
+| **KI-Assistent** | Optional, BYOK, kein Default-Endpunkt, keine Netzwerkanfragen ohne Konfiguration |
 
 → Alle Funktionen im Detail: **[docs/FEATURES.md](docs/FEATURES.md)**
 
 ---
 
-## BSI-Kategorien
+## BSI-Kategorien (14)
 
-Geschäftsprozesse · Daten · Anwendungen · Datenträger · Server · Netzkomponenten · Netzverbindungen · Clients · ICS-Systeme · IoT-Systeme · Räume · Gebäude
+Geschäftsprozesse · Daten · Anwendungen · Server · Clients · Netzkomponenten · Netzverbindungen · Sicherheitskomponenten · ICS-Systeme · IoT-Systeme · Datenträger · Räume · **Betriebssysteme** · **Schnittstellen**
 
 ---
 
-## Datensicherheit
+## Datenpersistenz & Sicherheit
 
-- **Alle Daten bleiben lokal** im Browser (`localStorage`) — kein Backend, keine externe Datenübertragung
-- Optional **nur-localhost-Betrieb** (kein Netzwerk-Exposure)
-- Produktions-Webserver mit Security-Headern (nginx, siehe `nginx.conf`)
-- Geeignet für den Betrieb in einer isolierten VM
+- **Dual-Layer-Persistenz:** localStorage (Lesecache) + IndexedDB (primärer Speicher, robuster gegen Browser-Bereinigung, kein 5-MB-Limit)
+- **Auto-Save** bei jeder Zustandsänderung — kein manueller Speichern-Button; Statusanzeige im Header
+- **beforeunload-Warnung** wenn ein Speichervorgang noch läuft
+- **IDB-Recovery-Banner** wenn IndexedDB neuere Daten enthält als localStorage
+- **Optionale Verschlüsselung** (AES-256/GCM, PBKDF2 310k): Passwort beim Start, Daten im Storage verschlüsselt
+- **Alle Daten bleiben lokal** — kein Backend, keine externe Datenübertragung
+- Security-Header via nginx (CSP, HSTS, X-Frame-Options, …)
+
+---
+
+## Export-Formate
+
+| Format | Zweck | Re-importierbar |
+|---|---|---|
+| **JSON-Backup** | Vollständige Sicherung, geräteübergreifend | Ja |
+| **HTML-Bericht** | Druckbarer Consultant-Bericht (→ PDF via Browser) | Nein |
+| **Excel Export** | Alle 14 Kategorien als separate Tabellenblätter | Ja (mit Mapping) |
+| **Workshop-Export** | Erweitertes XLSX: Strukturanalyse + Cloud-Readiness | Ja (mit Mapping) |
+| **AfA-Übersicht** | Druckbare Asset-/Abschreibungs-Übersicht | Nein |
+| **Schnittstellen-Matrix** | Druckbare n×n-Datenfluss-Matrix | Nein |
+| **Compliance-Register** | EU AI Act CSV, DORA-Register CSV | Nein |
 
 ---
 
@@ -133,38 +140,77 @@ kill $(cat app.pid)      # stoppen (Linux/macOS)
 
 ## Technologie-Stack
 
-- **Frontend**: React + TypeScript + Vite
-- **Styling**: Tailwind CSS (HiSolutions Corporate Design)
-- **Excel**: SheetJS (xlsx)
-- **Persistenz**: localStorage (offline-fähig, kein Backend)
-- **Deployment**: Docker (nginx:alpine) oder Node.js (serve)
+| Schicht | Technologie |
+|---|---|
+| **Frontend** | React 18 + TypeScript + Vite |
+| **Styling** | Tailwind CSS (HiSolutions Design-Tokens) |
+| **Persistenz** | localStorage + IndexedDB (`idb`-Wrapper) |
+| **Verschlüsselung** | Web Crypto API (AES-256/GCM, PBKDF2) |
+| **Excel** | SheetJS (xlsx, dynamisch geladen) |
+| **Graphen** | Mermaid (lazy, securityLevel strict) |
+| **Tests** | Vitest (13 Tests) |
+| **Deployment** | Docker (nginx:alpine) oder Node.js (serve) |
 
 ---
 
 ## Projektstruktur
 
 ```
-├── install.sh / install.ps1     Automatische Installation (Linux/Win)
-├── uninstall.sh / uninstall.ps1 Deinstallation (Linux/Win)
-├── Dockerfile                   Container-Build (node → nginx)
-├── docker-compose.yml           Container-Orchestrierung
-├── nginx.conf                   Webserver + Security-Header
+├── install.sh / install.ps1       Automatische Installation
+├── uninstall.sh / uninstall.ps1   Deinstallation
+├── Dockerfile / docker-compose.yml / nginx.conf
 ├── docs/
-│   └── FEATURES.md              Vollständige Feature-Dokumentation
+│   ├── FEATURES.md                Vollständige Feature-Dokumentation
+│   ├── DATENMODELL_ERWEITERUNG.md Konzept + Umsetzungsstatus CMDB-Ausbau
+│   ├── EXPERT_REVIEW.md           Code-/Security-Review (2026-06-19)
+│   ├── IMPROVEMENT_PLAN.md        Verbesserungsmaßnahmen (alle umgesetzt)
+│   ├── CONSULTANT_FEATURE_IDEAS.md Backlog + regulatorische Analyse
+│   ├── IMPLEMENTATION_PLAN.md     12-Block-Umsetzungsplan (alle erledigt)
+│   └── DATAGERRY_VERGLEICH.md     Feature-Vergleich mit DATAGerry
 └── src/
-    ├── components/              UI-Komponenten (Wizard, Dashboard, Forms …)
-    ├── categories.ts            BSI-Kategorien, Felder, Hilfetexte, Vorschläge
-    ├── cloudReadiness.ts        Bewertungs-Engine (Score + 6R)
-    ├── store.ts                 localStorage-Persistenz
-    ├── types.ts                 TypeScript-Datenmodell
-    └── utils/
-        ├── export.ts            Excel-Export (Standard + Workshop)
-        ├── exportJSON.ts        JSON-Backup & Re-Import
-        ├── exportReport.ts      Consultant-Bericht (HTML)
-        ├── import.ts            Excel-Import mit Mapping
-        └── importAnalyzer.ts   Smart-Blatt-Erkennung
+    ├── types.ts                   TypeScript-Interfaces (BaseItem, CloudFields, …)
+    ├── categories.ts              Deklarative Kategorie-Definitionen (Felder, Hilfe, Vorschläge)
+    ├── cloudReadiness.ts          Heuristisches Scoring (assess / assessAll / SEAL-Level)
+    ├── store.ts                   Dual-Layer-Persistenz (localStorage + IDB)
+    ├── db.ts                      IndexedDB-Wrapper (idbSave / idbLoad / idbClear)
+    ├── crypto.ts                  AES-256/GCM-Verschlüsselung (PBKDF2)
+    ├── completeness.ts            Vollständigkeits-Berechnung
+    ├── wirtschaftlichkeit.ts      AfA-Berechnung + TCO-Aggregation
+    ├── maturity.ts                Reifegradmodell (6 Dimensionen, Spider-Chart)
+    ├── snapshotStore.ts           Snapshot-Versionierung + Delta
+    ├── compliance/
+    │   ├── nis2.ts                NIS2-Einstufungslogik + Gap-Analyse
+    │   └── euAiAct.ts             EU AI Act Shadow-AI-Heuristik
+    ├── integrations/
+    │   └── aiSuggest.ts           Optionaler KI-Assistent (BYOK, kein Default)
+    ├── utils/
+    │   ├── export.ts              Excel-Export (Standard + Workshop)
+    │   ├── exportJSON.ts          JSON-Backup & Re-Import
+    │   ├── exportReport.ts        Consultant-Bericht (HTML)
+    │   ├── import.ts              Excel-Import + Fehler-Recovery
+    │   ├── importAnalyzer.ts      Blatt-Erkennung + 200+ Spalten-Aliase (feldAliase.ts)
+    │   └── printHtml.ts           Zentrale sichere Print-Utility (esc() + openPrintWindow())
+    └── components/
+        ├── Wizard.tsx             Schritt-für-Schritt-Ersterfassung
+        ├── CategoryForm.tsx       Formular für einzelne Objekte
+        ├── CategoryList.tsx       Übersichtstabelle je Kategorie
+        ├── CloudDashboard.tsx     Cloud-Readiness-Auswertung
+        ├── GlobalSearch.tsx       Globale Suche (Ctrl+K, Modal)
+        ├── ObjektNotizen.tsx      Notizen-Feed je Objekt
+        ├── TableField.tsx         Multi-Data-Sections (Tabellenfelder)
+        ├── ImportWizard.tsx       Excel/JSON-Import + Fehler-Recovery
+        ├── VollstaendigkeitsCockpit.tsx Erfassungsfortschritt
+        ├── InfrastrukturLandkarte.tsx   Mermaid-Graph + Schnittstellen-Graph
+        ├── SchnittstellenMatrix.tsx     n×n-Datenfluss-Matrix
+        ├── ExecutiveSummary.tsx   Executive Summary + Spider-Chart
+        ├── NIS2Check.tsx          NIS2-Betroffenheits- und Gap-Analyse
+        ├── EuAiActInventar.tsx    EU AI Act Inventar + Shadow-AI
+        ├── DORARegister.tsx       DORA IKT-Drittparteien-Register
+        ├── NachhaltigkeitsModul.tsx  EnEfG/CO₂-Nachhaltigkeitsbewertung
+        ├── ErrorBoundary.tsx      Globale Fehlerbehandlung
+        └── ProjectView.tsx        Haupt-Navigation (Tabs + SubTabs)
 ```
 
 ---
 
-*Entwickelt für die Berater:innen der HiSolutions AG — BSI IT-Grundschutz Strukturanalyse & Cloud-Readiness in der Praxis.*
+*Entwickelt für die Berater:innen der HiSolutions AG — BSI IT-Grundschutz Strukturanalyse, Cloud-Readiness und regulatorische Compliance in der Praxis.*
