@@ -1,5 +1,6 @@
 import { CATEGORIES } from '../categories';
 import type { CategoryKey } from '../types';
+import { FELD_ALIASE } from './feldAliase';
 
 type XLSXModule = typeof import('xlsx');
 
@@ -89,6 +90,19 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
     'smart', 'raspberry', 'mqtt', 'zigbee', 'm2m', 'edge',
     'überwachung', 'monitoring', 'eingebettet', 'embedded',
   ],
+  betriebssysteme: [
+    'betriebssystem', 'os', 'operating system', 'windows', 'linux', 'ubuntu',
+    'debian', 'rhel', 'centos', 'suse', 'macos', 'kernel', 'distribution',
+    'distro', 'patch level', 'patchstand', 'lizenztyp', 'architektur',
+    'betriebssystem-version', 'os-version',
+  ],
+  schnittstellen: [
+    'schnittstelle', 'interface', 'integration', 'api', 'webservice', 'web service',
+    'rest', 'soap', 'protokoll', 'protocol', 'verbindung', 'datenfluss',
+    'quelle', 'ziel', 'source', 'target', 'destination', 'endpoint',
+    'middleware', 'message queue', 'kafka', 'rabbitmq', 'esb',
+    'firewall-regel', 'port', 'tcp', 'udp', 'verschlüsselung', 'authentifizierung',
+  ],
   raeume: [
     'raum', 'räume', 'serverraum', 'technikraum', 'verteilerraum',
     'mdf', 'idf', 'stockwerk', 'etage', 'fläche', 'zugang', 'zutritt',
@@ -102,6 +116,11 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
 };
 
 // ── Spaltenbasiertes Scoring (wie bisher, aber normalisiert) ────────────────
+// Erstellt eine schnelle Nachschlagetabelle: Feldschlüssel → alle Aliase (lowercase)
+const _ALIAS_BY_KEY: Record<string, string[]> = Object.fromEntries(
+  Object.entries(FELD_ALIASE).map(([k, v]) => [k, v.map(a => a.toLowerCase())])
+);
+
 function scoreByColumns(
   columns: string[],
   categoryKey: CategoryKey
@@ -110,11 +129,17 @@ function scoreByColumns(
   const matchedFields: string[] = [];
   let score = 0;
   for (const field of cat.fields) {
+    const fieldAliases = _ALIAS_BY_KEY[field.key] ?? [];
     const matched = columns.some(col => {
       const c = col.toLowerCase().trim();
       const l = field.label.toLowerCase();
       const k = field.key.toLowerCase();
-      return c === l || c === k || c.includes(l) || l.includes(c) || c.includes(k);
+      // Original matching: label/key exact or substring
+      if (c === l || c === k || c.includes(l) || l.includes(c) || c.includes(k)) return true;
+      // Alias matching: column matches any alias for this field
+      return fieldAliases.some(alias =>
+        c === alias || c.includes(alias) || (c.length >= 3 && alias.includes(c))
+      );
     });
     if (matched) {
       matchedFields.push(field.label);

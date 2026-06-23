@@ -2,6 +2,7 @@ import type { AppState, CategoryKey } from '../types';
 import { CATEGORIES } from '../categories';
 import { generateId, generateKuerzel } from '../store';
 import type { RowClassification } from './importAnalyzer';
+import { findeMapping } from './feldAliase';
 
 export async function importFromExcel(file: File, currentState: AppState): Promise<AppState> {
   const XLSX = await import('xlsx');
@@ -19,16 +20,21 @@ export async function importFromExcel(file: File, currentState: AppState): Promi
           if (!sheetName) continue;
           const ws = wb.Sheets[sheetName];
           const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: '' });
-          const fieldMap: Record<string, string> = {};
-          for (const f of cat.fields) { fieldMap[f.label] = f.key; }
+          const feldMap = buildErweiterterFeldMap(cat.fields);
+          const rowCols = rows.length > 0 ? Object.keys(rows[0]) : [];
+          const colToKey: Record<string, string | undefined> = {};
+          for (const col of rowCols) { colToKey[col] = resolveFieldKey(col, feldMap); }
           const imported = rows.map((row) => {
             const item: Record<string, unknown> = { id: generateId() };
-            for (const [label, key] of Object.entries(fieldMap)) {
-              const val = row[label];
+            for (const [col, key] of Object.entries(colToKey)) {
+              if (!key) continue;
+              const val = row[col];
               const fieldDef = cat.fields.find((f) => f.key === key);
               if (fieldDef?.type === 'multiref') {
                 item[key] = val ? String(val).split(',').map((s) => s.trim()).filter(Boolean) : [];
-              } else { item[key] = val ?? ''; }
+              } else {
+                if (!(key in item) || item[key] === '') { item[key] = val ?? ''; }
+              }
             }
             return item;
           }).filter((item) => item['kuerzel']);
@@ -47,6 +53,34 @@ export async function importFromExcel(file: File, currentState: AppState): Promi
   });
 }
 
+/**
+ * Baut eine Lookup-Map: alle möglichen Spaltennamen (Label + Aliase) → Feldschlüssel.
+ * Wird je Kategorie einmalig aufgebaut und für alle Zeilen verwendet.
+ */
+function buildErweiterterFeldMap(fields: { key: string; label: string }[]): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const f of fields) {
+    // Primäres Label (exakt, wie im Export/Template)
+    map[f.label] = f.key;
+    // Lowercase-Variante des Labels
+    map[f.label.toLowerCase()] = f.key;
+    // Feldschlüssel selbst als Spaltenname
+    map[f.key] = f.key;
+  }
+  return map;
+}
+
+/**
+ * Sucht den Feldschlüssel für einen Spaltenkopf aus einer Importzeile.
+ * Prüft zuerst den direkten Eintrag in der feldMap, dann fuzzy via FELD_ALIASE.
+ */
+function resolveFieldKey(spalte: string, feldMap: Record<string, string>): string | undefined {
+  if (feldMap[spalte] !== undefined) return feldMap[spalte];
+  const lower = spalte.toLowerCase().trim();
+  if (feldMap[lower] !== undefined) return feldMap[lower];
+  return findeMapping(spalte);
+}
+
 // Parst eine Tabelle (Zeilen aus XLSX oder CSV) in AppState-Einträge
 function importRows(
   rows: Record<string, unknown>[],
@@ -55,16 +89,25 @@ function importRows(
 ): Record<string, unknown>[] {
   const cat = CATEGORIES.find(c => c.key === categoryKey);
   if (!cat) return (currentState[categoryKey] as unknown as Record<string, unknown>[]);
-  const fieldMap: Record<string, string> = {};
-  for (const f of cat.fields) { fieldMap[f.label] = f.key; }
+  const feldMap = buildErweiterterFeldMap(cat.fields);
+  // Spalten der ersten Zeile ermitteln (für fuzzy Alias-Matching)
+  const rowCols = rows.length > 0 ? Object.keys(rows[0]) : [];
+  // Vorberechnete Spalte→Feldschlüssel-Zuordnung (einmalig pro Import)
+  const colToKey: Record<string, string | undefined> = {};
+  for (const col of rowCols) { colToKey[col] = resolveFieldKey(col, feldMap); }
+
   const imported = rows.map((row) => {
     const item: Record<string, unknown> = { id: generateId() };
-    for (const [label, key] of Object.entries(fieldMap)) {
-      const val = row[label];
+    for (const [col, key] of Object.entries(colToKey)) {
+      if (!key) continue;
+      const val = row[col];
       const fieldDef = cat.fields.find((f) => f.key === key);
       if (fieldDef?.type === 'multiref') {
         item[key] = val ? String(val).split(',').map((s) => s.trim()).filter(Boolean) : [];
-      } else { item[key] = val ?? ''; }
+      } else {
+        // Nicht überschreiben wenn schon ein Wert gesetzt (erstes Alias gewinnt)
+        if (!(key in item) || item[key] === '') { item[key] = val ?? ''; }
+      }
     }
     return item;
   }).filter((item) => item['kuerzel'] || item['name']);
@@ -157,20 +200,25 @@ function importRowsValidated(
   const cat = CATEGORIES.find(c => c.key === categoryKey);
   if (!cat) return { items: currentState[categoryKey] as unknown as Record<string, unknown>[], fehler: [] };
 
-  const fieldMap: Record<string, string> = {};
-  for (const f of cat.fields) { fieldMap[f.label] = f.key; }
+  const feldMap = buildErweiterterFeldMap(cat.fields);
+  const rowCols = rows.length > 0 ? Object.keys(rows[0]) : [];
+  const colToKey: Record<string, string | undefined> = {};
+  for (const col of rowCols) { colToKey[col] = resolveFieldKey(col, feldMap); }
 
   const validItems: Record<string, unknown>[] = [];
   const fehler: ImportFehler[] = [];
 
   rows.forEach((row, idx) => {
     const item: Record<string, unknown> = { id: generateId() };
-    for (const [label, key] of Object.entries(fieldMap)) {
-      const val = row[label];
+    for (const [col, key] of Object.entries(colToKey)) {
+      if (!key) continue;
+      const val = row[col];
       const fieldDef = cat.fields.find((f) => f.key === key);
       if (fieldDef?.type === 'multiref') {
         item[key] = val ? String(val).split(',').map((s) => s.trim()).filter(Boolean) : [];
-      } else { item[key] = val ?? ''; }
+      } else {
+        if (!(key in item) || item[key] === '') { item[key] = val ?? ''; }
+      }
     }
 
     const kuerzel = String(item['kuerzel'] ?? '').trim();
