@@ -433,7 +433,7 @@ export function buildArchiMateModel(state: AppState): ArchiMateModel {
     elements,
     relationships,
     views,
-    warnings: ctx.warnings,
+    warnings: [...new Set(ctx.warnings)], // dedupliziert, Reihenfolge stabil
   };
 }
 

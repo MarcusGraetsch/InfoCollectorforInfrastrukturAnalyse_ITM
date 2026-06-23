@@ -125,6 +125,18 @@ describe('buildArchiMateModel — relationship mapping', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
+  it('is referentially consistent — every relationship endpoint exists as an element', () => {
+    const elIds = new Set(model.elements.map(e => e.id));
+    for (const r of model.relationships) {
+      expect(elIds.has(r.source), `source ${r.source} missing`).toBe(true);
+      expect(elIds.has(r.target), `target ${r.target} missing`).toBe(true);
+    }
+  });
+
+  it('deduplicates warnings', () => {
+    expect(new Set(model.warnings).size).toBe(model.warnings.length);
+  });
+
   it('produces deterministic ids across runs', () => {
     const a = buildArchiMateModel(makeState());
     const b = buildArchiMateModel(makeState());
@@ -148,6 +160,17 @@ describe('buildArchiMateModel — views', () => {
     const v = model.views.find(x => x.type === 'application-cooperation')!;
     expect(v.elementIds).toContain('el-anwendungen-a1');
     expect(v.mermaid).toContain('<-->'); // bidirektionale Schnittstelle
+  });
+
+  it('technology-usage view groups infrastructure and contains the server', () => {
+    const v = model.views.find(x => x.type === 'technology-usage')!;
+    expect(v.elementIds).toContain('el-server-s1');
+    expect(v.mermaid).toContain('subgraph');
+  });
+
+  it('business-application-alignment view links process, app and data', () => {
+    const v = model.views.find(x => x.type === 'business-application-alignment')!;
+    expect(v.elementIds).toEqual(expect.arrayContaining(['el-geschaeftsprozesse-gp1', 'el-anwendungen-a1', 'el-daten-d1']));
   });
 });
 
@@ -182,10 +205,11 @@ describe('XML export (Open Exchange)', () => {
     expect(xml).toContain('xsi:type="Assignment"');
   });
 
-  it('does not crash on empty / minimal state', () => {
+  it('does not crash on empty / minimal state and omits an empty elements block', () => {
     const empty = { customerName: '', anwendungen: [] } as unknown as AppState;
     expect(() => buildArchiMateExchangeXml(empty)).not.toThrow();
     const x = buildArchiMateExchangeXml(empty);
     expect(x).toContain('<model');
+    expect(x).not.toContain('<elements>'); // kein leerer, schema-ungültiger Block
   });
 });
