@@ -102,6 +102,7 @@ export function createDefaultState(): AppState {
     iotSysteme: [],
     raeume: [],
     gebaeude: [],
+    iktDienstleister: [],
     nachweisStatus: {},
   };
 }
@@ -170,7 +171,7 @@ export function mergeWithDefault(partial: Partial<AppState> | null | undefined):
   const arrayKeys: (keyof AppState)[] = [
     'quelldokumente', 'liefergegenstaende', 'stakeholder', 'meetings', 'geschaeftsprozesse', 'daten', 'anwendungen', 'betriebssysteme', 'schnittstellen', 'datentraeger',
     'server', 'netzkomponenten', 'netzverbindungen', 'clients', 'icsSysteme',
-    'iotSysteme', 'raeume', 'gebaeude',
+    'iotSysteme', 'raeume', 'gebaeude', 'iktDienstleister',
   ];
   for (const key of arrayKeys) {
     if (!Array.isArray(merged[key])) {
