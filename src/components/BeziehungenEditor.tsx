@@ -5,6 +5,7 @@ import { generateId } from '../store';
 import {
   BEZIEHUNGS_TYPEN,
   TYP_LABEL,
+  VERBINDUNGSMEDIEN,
   objektLabel,
   kategorieLabel,
   beziehungenFuerObjekt,
@@ -42,6 +43,7 @@ export const BeziehungenEditor: React.FC<Props> = ({ state, beziehungen, onChang
   const [typ, setTyp] = useState<BeziehungsTyp>('kommuniziert');
   const [richtung, setRichtung] = useState<BeziehungsRichtung>('bi');
   const [protokoll, setProtokoll] = useState('');
+  const [verbindungsmedium, setVerbindungsmedium] = useState('');
   const [notiz, setNotiz] = useState('');
 
   const sichtbar: Beziehung[] = useMemo(() => {
@@ -78,12 +80,14 @@ export const BeziehungenEditor: React.FC<Props> = ({ state, beziehungen, onChang
       typ,
       richtung,
       ...(typ === 'kommuniziert' && protokoll.trim() ? { protokoll: protokoll.trim() } : {}),
+      ...(typ === 'physisch' && verbindungsmedium ? { verbindungsmedium } : {}),
       ...(notiz.trim() ? { notiz: notiz.trim() } : {}),
     };
     onChange(addBeziehung(beziehungen, neu));
     // Reset (Quelle im Inline-Modus beibehalten)
     setZielId('');
     setProtokoll('');
+    setVerbindungsmedium('');
     setNotiz('');
   }
 
@@ -115,6 +119,7 @@ export const BeziehungenEditor: React.FC<Props> = ({ state, beziehungen, onChang
                   {' '}
                   <span className="font-medium">{endpointLabel(b.zielKategorie, b.zielId)}</span>
                   {b.protokoll ? <span className="text-hi-slate/60"> · {b.protokoll}</span> : null}
+                  {b.verbindungsmedium ? <span className="text-hi-slate/60"> · {b.verbindungsmedium}</span> : null}
                   {b.notiz ? <span className="text-hi-slate/60 italic"> — {b.notiz}</span> : null}
                 </span>
                 <button
@@ -180,6 +185,16 @@ export const BeziehungenEditor: React.FC<Props> = ({ state, beziehungen, onChang
               value={protokoll}
               onChange={e => setProtokoll(e.target.value)}
             />
+          )}
+          {typ === 'physisch' && (
+            <select
+              className={inputCls}
+              value={verbindungsmedium}
+              onChange={e => setVerbindungsmedium(e.target.value)}
+            >
+              <option value="">— Medium (optional) —</option>
+              {VERBINDUNGSMEDIEN.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
           )}
         </div>
 

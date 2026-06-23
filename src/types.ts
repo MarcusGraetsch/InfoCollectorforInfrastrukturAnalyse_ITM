@@ -517,7 +517,8 @@ export interface Beziehung {
   zielId: string;
   typ: BeziehungsTyp;
   richtung: BeziehungsRichtung;
-  protokoll?: string;   // optional, only meaningful for 'kommuniziert'
+  protokoll?: string;        // optional, only meaningful for 'kommuniziert'
+  verbindungsmedium?: string; // optional, only meaningful for 'physisch'
   notiz?: string;
 }
 

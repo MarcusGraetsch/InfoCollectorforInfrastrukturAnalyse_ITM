@@ -1,6 +1,21 @@
 import type { AppState, CategoryKey, Beziehung, BeziehungsTyp } from '../types';
 import { CATEGORIES } from '../categories';
 
+export const VERBINDUNGSMEDIEN: string[] = [
+  'Kabel (Ethernet / LAN)',
+  'Glasfaser',
+  'USB',
+  'Seriell (RS232 / RS485)',
+  'WiFi / WLAN',
+  'Bluetooth',
+  'ZigBee',
+  'LoRaWAN',
+  'NFC',
+  'Mobilfunk (4G / 5G)',
+  'Funk / RF (proprietär)',
+  'Sonstige',
+];
+
 export const BEZIEHUNGS_TYPEN: { typ: BeziehungsTyp; label: string; defaultRichtung: 'uni' | 'bi'; farbe: string }[] = [
   { typ: 'kommuniziert', label: 'Kommuniziert mit',          defaultRichtung: 'bi',  farbe: '#0891b2' },
   { typ: 'physisch',     label: 'Physisch verbunden mit',    defaultRichtung: 'uni', farbe: '#7c3aed' },
