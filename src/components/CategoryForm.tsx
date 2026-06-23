@@ -6,6 +6,13 @@ import { generateId, generateKuerzel } from '../store';
 import { MultiSelect } from './MultiSelect';
 import { ObjektNotizen } from './ObjektNotizen';
 import { TableField } from './TableField';
+import { ComponentPicker } from './ComponentPicker';
+import { autofillFormFields } from '../utils/componentCatalog';
+
+const CATALOG_CATEGORIES = new Set([
+  'anwendungen', 'server', 'clients', 'betriebssysteme',
+  'netzkomponenten', 'sicherheitskomponenten', 'icsSysteme', 'iotSysteme', 'datentraeger',
+]);
 
 interface TableRow { [key: string]: string }
 
@@ -131,6 +138,8 @@ function buildDefaultItem(def: CategoryDef, state: AppState): Record<string, unk
 
 export const CategoryForm: React.FC<Props> = ({ categoryDef, state, editId, onSave, onCancel }) => {
   const [form, setForm] = useState<Record<string, unknown>>({});
+  const [showPicker, setShowPicker] = useState(false);
+  const [autofillToast, setAutofillToast] = useState<string | null>(null);
 
   useEffect(() => {
     if (editId) {
@@ -358,6 +367,45 @@ export const CategoryForm: React.FC<Props> = ({ categoryDef, state, editId, onSa
           <p className="text-xs text-hi-slate">{categoryDef.label}</p>
         </div>
       </div>
+
+      {CATALOG_CATEGORIES.has(categoryDef.key) && (
+        <div className="mb-4">
+          <button
+            type="button"
+            onClick={() => setShowPicker(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-hi-accent/40 text-hi-accent rounded-lg text-sm font-semibold hover:bg-hi-accent/5 hover:border-hi-accent transition-colors shadow-sm"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+            </svg>
+            Aus Komponentenkatalog befüllen
+          </button>
+          {autofillToast && (
+            <p className="mt-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-1.5">
+              {autofillToast}
+            </p>
+          )}
+        </div>
+      )}
+
+      {showPicker && (
+        <ComponentPicker
+          categoryKey={categoryDef.key}
+          onSelect={(fields) => {
+            const { merged, filled } = autofillFormFields(form, fields);
+            setForm(merged);
+            setShowPicker(false);
+            if (filled.length > 0) {
+              setAutofillToast(`${filled.length} Feld(er) befüllt: ${filled.join(', ')}`);
+              setTimeout(() => setAutofillToast(null), 5000);
+            } else {
+              setAutofillToast('Keine neuen Felder — alle bereits ausgefüllt.');
+              setTimeout(() => setAutofillToast(null), 3000);
+            }
+          }}
+          onClose={() => setShowPicker(false)}
+        />
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-4">{renderFieldGroup(basisFields)}</div>
