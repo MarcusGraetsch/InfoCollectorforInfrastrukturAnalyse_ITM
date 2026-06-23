@@ -108,8 +108,9 @@ describe('componentCatalog', () => {
       const hardwareEntries = COMPONENT_CATALOG.filter(e => e.kind === 'hardware');
       expect(hardwareEntries.length).toBeGreaterThan(0);
       for (const e of hardwareEntries) {
-        const hasServerOrClients = e.categoryTargets.includes('server') || e.categoryTargets.includes('clients') || e.categoryTargets.includes('netzkomponenten');
-        expect(hasServerOrClients, `${e.id} should target server/clients/netzkomponenten`).toBe(true);
+        const hasServerOrClients = e.categoryTargets.includes('server') || e.categoryTargets.includes('clients')
+          || e.categoryTargets.includes('netzkomponenten') || e.categoryTargets.includes('iotSysteme') || e.categoryTargets.includes('icsSysteme');
+        expect(hasServerOrClients, `${e.id} should target a hardware-bearing category (server/clients/netzkomponenten/iotSysteme/icsSysteme)`).toBe(true);
         expect(e.categoryTargets.includes('anwendungen'), `${e.id} should NOT target anwendungen`).toBe(false);
       }
     });
