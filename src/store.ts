@@ -102,6 +102,7 @@ export function createDefaultState(): AppState {
     iotSysteme: [],
     raeume: [],
     gebaeude: [],
+    nachweisStatus: {},
   };
 }
 
@@ -175,6 +176,11 @@ export function mergeWithDefault(partial: Partial<AppState> | null | undefined):
     if (!Array.isArray(merged[key])) {
       (merged as unknown as Record<string, unknown>)[key] = [];
     }
+  }
+
+  // nachweisStatus: optionales Record (kein Array)
+  if (!merged.nachweisStatus || typeof merged.nachweisStatus !== 'object') {
+    merged.nachweisStatus = {};
   }
 
   return merged;

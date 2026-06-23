@@ -58,6 +58,28 @@ Konzept + Status: `docs/DATENMODELL_ERWEITERUNG.md` (Abschnitt 9 = Umsetzungssta
 
 ---
 
+## Cloud-Souveränität & Compliance (umgesetzt 2026-06-23)
+
+Konzept: `docs/SOUVERAENITAET_FEATURES_KONZEPT.md` (Features A–D umgesetzt).
+
+- **`src/compliance/souveraenitaet.ts`** — (A) `assessSouveraenitaet()` liefert eine
+  mehrdimensionale Scorecard (6 Dimensions-Scores, deterministisch aus vorhandenen
+  Daten) + (B) `pruefeSouveraenitaet()` als Souveränitäts-Washing-Regel-Engine
+  (Verdikt fail/warn/pass/unklar). Erweitert `SouveraenitaetsBewertung.tsx`
+  (Scorecard + Spider-Chart + Washing-Tabelle über der bestehenden SEAL-Tabelle).
+- **`src/compliance/nachweise.ts`** — (C) statischer `NACHWEIS_KATALOG`
+  (Anforderung→Nachweis). Komponente `NachweisKatalog.tsx`, Status persistiert in
+  neuem optionalem `AppState.nachweisStatus` (Record, nicht Array; in
+  `createDefaultState` + `mergeWithDefault`, NICHT in `arrayKeys`). Update via
+  `onUpdateNachweise` in App.tsx (Muster wie `onUpdateNIS2`).
+- **`src/compliance/quellen.ts`** — (D) statisches `QUELLEN_REGISTER` (5 Ebenen,
+  offline, ISO nur Metadaten) + `ZEITSTRAHL`. Komponente `QuellenBibliothek.tsx`.
+- **Neue Subtabs** in ProjectView-Gruppe „Compliance & Regulatorik":
+  `nachweise` und `quellen` (Reihenfolge: nis2, euaiact, souveraenitaet,
+  nachweise, quellen, nachhaltigkeit, dora).
+
+---
+
 ## Entwicklungsrichtung: Von der Datenaufnahme zum Beratungs-Workflow-Tool
 
 Das Tool begann als **strukturierte Datenaufnahme** für BSI-Strukturanalysen. Die natürliche nächste Ebene ist ein **leichtgewichtiges Projektmanagement** für Cloud-Strategie, -Transformation und Audits — ohne externe Tools, direkt im Beratungskontext nutzbar.
