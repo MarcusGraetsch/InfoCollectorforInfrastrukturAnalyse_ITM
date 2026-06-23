@@ -169,3 +169,27 @@ Die wertvollsten DATAGerry-Ideen die wir übernehmen sollten:
 1. **Globale Suche** — eliminiert den wichtigsten Usability-Pain
 2. **Import-Fehlerbehandlung** — macht das Tool produktionsreif für echte Kundensituationen
 3. **Notizen-Feed** — schließt die Workshop-Protokoll-Lücke elegant
+
+---
+
+## Umgesetzte Features (2026-06-22)
+
+Alle vier priorisierten DATAGerry-Features aus Abschnitt 3 (Rang 1–4) wurden umgesetzt:
+
+| Feature | Rang | Umsetzung | Status |
+|---|---|---|---|
+| **Globale Volltext-Suche** (`Ctrl+K`) | 1 | `src/components/GlobalSearch.tsx` | ✅ Umgesetzt |
+| **Import Fehler-Recovery** | 2 (war Rang 3) | `ImportWizard.tsx` + `import.ts` | ✅ Umgesetzt |
+| **Objekt-Notizen-Feed** | 3 (war Rang 4) | `ObjektNotizen.tsx` + `BaseItem.notizen[]` | ✅ Umgesetzt |
+| **Multi-Data-Sections** | 4 (war Rang 2) | `TableField.tsx` + FieldType `'table'` | ✅ Umgesetzt |
+
+Die Feature-Matrix (Abschnitt 2) hat sich dadurch verändert:
+
+| Feature | Vorher | Nachher |
+|---|---|---|
+| Full-Text-Suche | ❌ | ✅ |
+| Repeating Field Sets (MDS) | ❌ | ✅ |
+| Import Fehler-Recovery | ✅ (XLSX + JSON, kein Rollback) → teilweise | ✅ mit Validierungstabelle + CSV-Download |
+| Objekt-Kommentare / Notizen-Feed | ❌ | ✅ |
+
+Verbleibende DATAGerry-Vorteile (die für uns nicht relevant oder nicht offline-umsetzbar sind): Custom Object Type Editor (UI), REST API, Mandantenfähigkeit, Workflow-Automation (Open Celium), Feld-Level Audit-Log (Rang 5 im Vergleich — mittelfristig interessant).

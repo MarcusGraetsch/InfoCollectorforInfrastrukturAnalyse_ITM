@@ -1,302 +1,603 @@
 # Feature-Dokumentation — IT Strukturanalyse · Cloud-Readiness Suite
 
-Vollständige Beschreibung aller Funktionen der Applikation. Zielgruppe: Berater:innen der HiSolutions AG, die das Tool im Kundeneinsatz verwenden.
+Vollständige Beschreibung aller Funktionen. Zielgruppe: Berater:innen der HiSolutions AG im Kundeneinsatz.
+
+**Stand: 2026-06-22**
 
 ---
 
 ## Inhaltsverzeichnis
 
-1. [Schritt-für-Schritt-Assistent (Wizard)](#1-schritt-für-schritt-assistent-wizard)
-2. [Detailansicht](#2-detailansicht)
-3. [Cloud-Readiness-Dashboard](#3-cloud-readiness-dashboard)
-4. [Feldvorschläge (Combobox / Schnellauswahl)](#4-feldvorschläge-combobox--schnellauswahl)
-5. [BSI-Kontexthilfe & Interview-Leitfaden](#5-bsi-kontexthilfe--interview-leitfaden)
-6. [Wen kann ich fragen? — Ansprechpartner-Tipps](#6-wen-kann-ich-fragen--ansprechpartner-tipps)
-7. [E-Mail-Vorlage (Dokumentenanforderung)](#7-e-mail-vorlage-dokumentenanforderung)
-8. [Excel-Import mit Smart-Mapping](#8-excel-import-mit-smart-mapping)
-9. [Excel-Export & Workshop-Paket](#9-excel-export--workshop-paket)
-10. [JSON-Backup & Re-Import](#10-json-backup--re-import)
-11. [Consultant-Bericht (HTML)](#11-consultant-bericht-html)
-12. [Deinstallation](#12-deinstallation)
+1. [Datenerfassung](#1-datenerfassung)
+   - 1.1 Schritt-für-Schritt-Assistent (Wizard)
+   - 1.2 Direkte Kategorie-Formulare
+   - 1.3 Globale Suche (Ctrl+K)
+   - 1.4 Feldtypen
+   - 1.5 Objekt-Notizen
+2. [Kategorien & Datenmodell](#2-kategorien--datenmodell)
+   - 2.1 Übersicht der 14 Kategorien
+   - 2.2 Hardware-Felder (Mixin, 7 Kategorien)
+   - 2.3 Wirtschaftlichkeits-Felder (Mixin, 8 Kategorien)
+   - 2.4 Software-Tiefe + 8 typabhängige Feldsätze (Anwendungen)
+   - 2.5 Betriebssysteme (eigene Kategorie)
+   - 2.6 Schnittstellen (App-zu-App-Kommunikation)
+   - 2.7 Multi-Data-Sections (Tabellenfelder)
+3. [Analysen & Dashboards](#3-analysen--dashboards)
+4. [Import / Export](#4-import--export)
+5. [Datenpersistenz & Sicherheit](#5-datenpersistenz--sicherheit)
+6. [Tastaturkürzel & Tipps](#6-tastaturkürzel--tipps)
+7. [BSI-Kontexthilfe & E-Mail-Vorlage](#7-bsi-kontexthilfe--e-mail-vorlage)
+8. [Deinstallation](#8-deinstallation)
 
 ---
 
-## 1. Schritt-für-Schritt-Assistent (Wizard)
+## 1. Datenerfassung
+
+### 1.1 Schritt-für-Schritt-Assistent (Wizard)
 
 **Aufruf:** Tab „Assistent" (Standard beim Start)
 
-Der Wizard führt Berater:innen strukturiert durch die gesamte Aufnahme — von der Strategie-Rahmung bis zur Abschluss-Zusammenfassung:
+Der Wizard führt durch die gesamte Ersterfassung in fester Reihenfolge:
 
 | Schritt | Inhalt |
 |---|---|
-| **Begrüßung** | Projektname (Kundenname), Einstieg, E-Mail-Vorlage |
-| **Cloud-Strategie-Rahmen** | Geschäftliches Ziel, Cloud-Treiber (Mehrfachwahl), Zielumgebung, Zeithorizont, Notizen |
-| **Gelieferte Unterlagen** | Erfassung der vom Kunden bereitgestellten Dokumente (Name, Art, Datum, Auswertungsstatus) |
-| **12 BSI-Kategorien** | Jeweils Datenaufnahme mit Kontexthilfe (BSI-Begründung, Interview-Fragen, Ansprechpartner-Tipps) |
+| **Begrüßung** | Projektname (Kundenname), E-Mail-Vorlage |
+| **Cloud-Strategie-Rahmen** | Geschäftliches Ziel, Cloud-Treiber, Zielumgebung, Zeithorizont |
+| **Gelieferte Unterlagen** | Vom Kunden bereitgestellte Dokumente (Name, Art, Datum, Status) |
+| **14 BSI-Kategorien** | Datenaufnahme mit Kontexthilfe je Kategorie |
 | **Zusammenfassung** | Cloud-Readiness-Übersicht, Links zu Dashboard und Export |
 
-> **Hinweis:** Alle Eingaben werden sofort in `localStorage` gespeichert — kein separater Speichern-Button nötig.
+Alle Eingaben werden sofort automatisch gespeichert — kein Speichern-Button nötig.
 
 ---
 
-## 2. Detailansicht
+### 1.2 Direkte Kategorie-Formulare
 
-**Aufruf:** Tab „Detailansicht"
+**Aufruf:** Tab „Detailansicht" → Kategorie auswählen
 
-Tabellarische Übersicht aller erfassten Einträge je BSI-Kategorie. Funktionen:
-
-- **Neue Einträge anlegen** (Button „+ Neu")
-- **Bestehende Einträge bearbeiten** (Stift-Icon)
-- **Einträge löschen** (Mülleimer-Icon, mit Bestätigung)
-- **Kürzel** (z. B. `GP-001`, `S-003`) werden automatisch generiert
-
-Das Formular unterstützt folgende Feldtypen:
-- Freitext mit Datalist-Vorschlägen (Combobox)
-- Textarea mit Schnellauswahl-Buttons
-- Einfach-Dropdown (Select)
-- Mehrfach-Verknüpfung (MultiSelect, z. B. Anwendungen → Server)
+Tabellarische Übersicht aller Einträge je Kategorie mit:
+- Neue Einträge anlegen (Button „+ Neu")
+- Bestehende Einträge bearbeiten (Stift-Icon)
+- Einträge löschen (Mülleimer-Icon, mit Bestätigung)
+- Automatisch generierte Kürzel (z. B. `S-001`, `IF-003`, `OS-007`)
 
 ---
 
-## 3. Cloud-Readiness-Dashboard
+### 1.3 Globale Suche (Ctrl+K)
+
+**Aufruf:** `Ctrl+K` oder Suchsymbol im Header
+
+Modal-Overlay mit Volltext-Suche über alle 14 Kategorie-Arrays:
+
+- Sucht gleichzeitig in allen Felder-Werten aller Objekte
+- Ergebnisse gruppiert nach Kategorie mit farbigen Badges
+- Tastaturnavigation mit `↑` / `↓` / `Enter` (öffnet Objekt direkt)
+- Maximum 50 Ergebnisse, sofortiges Filtern beim Tippen
+- `Escape` schließt das Modal
+
+---
+
+### 1.4 Feldtypen
+
+| Typ | Darstellung | Besonderheit |
+|---|---|---|
+| `text` | Eingabefeld mit Datalist-Vorschlägen (Combobox) | Freie Eingabe immer möglich |
+| `textarea` | Mehrzeiliges Feld mit Schnellauswahl-Buttons | Klick auf Vorschlag befüllt das Feld |
+| `select` | Einfach-Dropdown | Vordefinierte Optionen |
+| `multiref` | Mehrfach-Verknüpfung zu anderen Kategorien | Generiert automatisch lesbare Labels |
+| `number` | Zahlenfeld mit Einheiten-Suffix | Einheiten: W, kW, V, GB, HE, €, Jahre … |
+| `date` | Natives Datumfeld | Speicherung als ISO-String `YYYY-MM-DD` |
+| `url` | URL-Eingabe mit „Öffnen ↗"-Link | Validierung `https?://` |
+| `table` | Wiederholbare Zeilengruppen (Multi-Data-Sections) | Inline-Tabelleneditor, JSON-Array im Store |
+
+**Conditional Fields (`showIf`):** Felder können typabhängig ein-/ausgeblendet werden (z. B. Datenbank-Felder nur wenn `typ = 'Datenbank'`). Versteckte Felder behalten ihren Wert und zählen nicht als „fehlend" in der Vollständigkeits-Berechnung.
+
+**Collapsible Sektionen:** Formularfelder sind in einklappbare Blöcke gruppiert (z. B. „Technische Details", „Wirtschaftlichkeit & Vertrag") — die Übersicht bleibt auch bei vielen Feldern gewahrt.
+
+**Feldvorschläge:** Textfelder mit Combobox-Vorschlägen decken gängige Bezeichnungen ab (Plattformen, Protokolle, Hersteller, Normen). Eigene Eingaben sind immer möglich.
+
+---
+
+### 1.5 Objekt-Notizen
+
+An jedem Objekt-Formular befindet sich ein ausklappbarer Notizen-Bereich:
+
+- Kommentar-Feed mit Timestamp und optionalem Autorfeld
+- Neuen Kommentar hinzufügen ohne das Formular zu speichern
+- Einzelne Notizen löschen (Bestätigung)
+- Ideal für Workshop-Protokoll-Einträge: „Laut Herrn Müller läuft hier noch ein Legacy-Prozess"
+
+Notizen werden in `BaseItem.notizen[]` gespeichert und erscheinen in JSON-Backups und HTML-Berichten.
+
+---
+
+## 2. Kategorien & Datenmodell
+
+### 2.1 Übersicht der 14 Kategorien
+
+| Kürzel | Kategorie | Besonderheiten |
+|---|---|---|
+| `GP` | Geschäftsprozesse | Basis für Schutzbedarfsvererbung |
+| `D` | Daten | Datenkategorien, Schutzbedarf |
+| `A` | Anwendungen | Software-Tiefe, 8 typabh. Feldsätze, AfA, Cloud-Readiness |
+| `S` | Server | Hardware-Felder, AfA, Cloud-Readiness, Netzwerk-Interfaces (MDS) |
+| `C` | Clients | Hardware-Felder, AfA, Cloud-Readiness |
+| `NK` | Netzkomponenten | Hardware-Felder, AfA |
+| `NV` | Netzverbindungen | Protokolle, Bandbreite, Verschlüsselung |
+| `SK` | Sicherheitskomponenten | Hardware-Felder, AfA |
+| `ICS` | ICS-Systeme | Hardware-Felder, AfA, Cloud-Readiness |
+| `IOT` | IoT-Systeme | Hardware-Felder, AfA, Cloud-Readiness |
+| `DT` | Datenträger | Hardware-Felder, AfA |
+| `R` | Räume | Gebäude-/RZ-Infrastruktur |
+| `OS` | Betriebssysteme | Eigene Kategorie, wiederverwendbar, multiref von Server/Client |
+| `SS` | Schnittstellen | App-zu-App-Kommunikation, Protokoll, Port, Verschlüsselung |
+
+**Cloud-Readiness-Kategorien** (erhalten heuristischen Score): Anwendungen, Server, Clients, ICS-Systeme, IoT-Systeme.
+
+---
+
+### 2.2 Hardware-Felder (Mixin)
+
+Angehängt an: Server, Clients, Netzkomponenten, Sicherheitskomponenten, ICS-Systeme, IoT-Systeme, Datenträger.
+
+| Feld | Typ | Einheit |
+|---|---|---|
+| Hersteller | text (Combobox) | Dell, HPE, Cisco, Lenovo … |
+| Modell / Typ | text | |
+| Seriennummer | text | |
+| Inventar-/Asset-Nummer | text | für Anlagenbuchhaltung |
+| Produktivnahme-Datum | date | für AfA-Beginn |
+| Management-IP | text | |
+| Redundanz | select | Ja / Nein / Unklar |
+| Formfaktor | select | Rack / Tower / Blade / Virtuell / Mobil / Embedded |
+| Höheneinheiten | number | HE |
+| Stromverbrauch (typ.) | number | W |
+| Leistungsaufnahme (max.) | number | kW |
+| Versorgungsspannung | text | V |
+| Redundante Netzteile | select | Ja / Nein / Unklar |
+| **Technische Details** (einklappbar) | | |
+| CPU (Typ / Kerne) | text | |
+| Arbeitsspeicher | number | GB |
+| Speicher / Kapazität | text | |
+| Rack / Standort-Detail | text | |
+
+Software-Support-Ende ist ebenfalls vorhanden (date).
+
+---
+
+### 2.3 Wirtschaftlichkeits-Felder (Mixin)
+
+Angehängt an: alle Hardware-Kategorien + Anwendungen.
+
+| Feld | Typ | Einheit |
+|---|---|---|
+| Anschaffungsdatum | date | AfA-Startdatum |
+| Anschaffungspreis (netto) | number | € |
+| Abschreibungsdauer | number | Jahre |
+| Jährl. Betriebskosten | number | € |
+| Wartungsvertrag | select | Ja / Nein / Unklar |
+| Wartungskosten / Jahr | number | € |
+| Vertragsbeginn / -ende | date | |
+| Kündigungsfrist | text | |
+| Support-Ende (EoL/EoS) | date | |
+| Kostenstelle | text | |
+
+**Automatische AfA-Berechnung** (`src/wirtschaftlichkeit.ts`): Linearer Buchwert und Restlaufzeit werden aus Anschaffungsdatum, -preis und Abschreibungsdauer berechnet. Sichtbar in der druckbaren AfA-Übersicht und im TCO-Modul.
+
+**TCO-Aggregation:** Das TCO-Modul bietet „Aus Objektdaten übernehmen" — liest die Ist-Kosten aller Objekte nicht-destruktiv in die TCO-Erfassung ein (Single Source of Truth).
+
+---
+
+### 2.4 Software-Tiefe + typabhängige Feldsätze (Anwendungen)
+
+Zusätzliche Basis-Felder:
+
+| Feld | Typ |
+|---|---|
+| Hersteller / Anbieter | text (Combobox) |
+| Produktname | text |
+| Version | text |
+| Update-Zyklus | select |
+| Link Betriebshandbuch | url |
+| Link Repository | url |
+| Link Hersteller / Produkt | url |
+
+**8 typabhängige Feldsätze** (eingeblendet via `showIf: { field: 'typ', equals: [...] }`):
+
+| Typ | Zusatz-Felder |
+|---|---|
+| **Datenbank** | DB-Modell, DB-Produkt, Version, Backup-Strategie, Backup-Ort, Replikation, HA-Setup |
+| **Webserver / Backend** | Server-Software, TLS-Version, Exponierte Ports, Reverse Proxy / WAF |
+| **Betriebssystem-nah** | OS-Version, Patch-Level, Kernel, Support-Ende, Edition |
+| **Middleware** | Middleware-Typ, Protokolle, Anzahl Endpunkte/Flows |
+| **ERP / CRM** | Aktive Module, Customizing-Grad, Mandanten, Angebundene Systeme |
+| **Monitoring / Security** | Kategorie (SIEM/EDR/…), Abdeckung, Log-Aufbewahrung |
+| **Backup-Software** | Produkt, RPO, RTO, 3-2-1-Regel, Offsite-Kopie |
+| **Virtualisierung / Hypervisor** | Produkt, Cluster-Knoten, Anzahl VMs, Live-Migration |
+
+---
+
+### 2.5 Betriebssysteme (eigene Kategorie, Präfix `OS`)
+
+Betriebssysteme werden als **eigenständige, wiederverwendbare IT-Components** geführt — analog zu LeanIX „IT Component". Damit kann ein OS-Objekt von mehreren Servern und Clients referenziert werden.
+
+Felder: Hersteller, Version, Kernel, Support-Ende, Patch-Level, Lizenztyp, Architektur + vollständige Wirtschaftlichkeits-Felder.
+
+Beziehung: `Server.betriebssystem → [OS-001]`, `Client.betriebssystem → [OS-002]`
+
+Ergebnis: In der Infrastruktur-Landkarte ist die Kette **Server A → OS x → Apps a, b, c** sichtbar.
+
+---
+
+### 2.6 Schnittstellen (App-zu-App-Kommunikation, Präfix `SS`)
+
+Typisierte Kommunikationsbeziehungen zwischen Anwendungen — analog zu LeanIX „Interface Fact Sheet".
+
+| Feld | Typ | Optionen / Hinweis |
+|---|---|---|
+| Quell-Anwendung | multiref | → `anwendungen` |
+| Ziel-Anwendung | multiref | → `anwendungen` |
+| Richtung | select | Unidirektional / Bidirektional |
+| Initiator | select | Quelle / Ziel / Beide |
+| Protokoll | text (Combobox) | HTTPS/REST, gRPC, JDBC, AMQP, Kafka, SFTP, MQTT, OPC UA … |
+| Port(s) | text | |
+| Übertragungsart | select | Synchron / Asynchron / Batch |
+| Frequenz | select | Echtzeit / Stündlich / Täglich / Nächtlich / On Demand |
+| Datenfluss (welche Daten?) | textarea | |
+| Verknüpfte Datenobjekte | multiref | → `daten` |
+| Verschlüsselung | select | TLS 1.3 / TLS 1.2 / mTLS / VPN / Keine / Unklar |
+| Authentifizierung | select | OAuth2 / API-Key / mTLS / Zertifikat / Basic Auth / Keine / Unklar |
+| Firewall-Regel / Voraussetzungen | textarea | |
+| Status | select | Aktiv / Inaktiv / In Planung / Außer Betrieb |
+
+---
+
+### 2.7 Multi-Data-Sections (Tabellenfelder)
+
+Wiederholbare Zeilengruppen pro Objekt — FieldType `table` in `categories.ts`.
+
+Aktuell eingesetzt bei:
+
+**Server — Netzwerk-Interfaces:**
+| Spalte | Beschreibung |
+|---|---|
+| Interface-Name | eth0, ens3, bond0 … |
+| IP-Adresse | IPv4 oder IPv6 |
+| MAC-Adresse | |
+| VLAN | |
+| Typ | Management / Produktion / Backup / iDRAC |
+
+**Anwendungen — Lizenzen:**
+| Spalte | Beschreibung |
+|---|---|
+| Lizenztyp | Einzelplatz / Named-User / Core / Site / OEM … |
+| Anzahl | |
+| Ablaufdatum | |
+| Anbieter / Lizenzgeber | |
+
+---
+
+## 3. Analysen & Dashboards
+
+### Cloud-Readiness-Dashboard
 
 **Aufruf:** Tab „Cloud-Readiness"
 
-Automatische Bewertung aller cloud-relevanten Objekte (Anwendungen, Server, Clients, ICS-/IoT-Systeme):
+Automatische Bewertung aller cloud-relevanten Objekte (Anwendungen, Server, Clients, ICS, IoT).
 
 | Anzeige | Beschreibung |
 |---|---|
 | **KPI-Kacheln** | Gesamtanzahl, Hoch/Mittel/Niedrig, Souveräne Cloud erforderlich, Ø Score |
-| **6R-Verteilung** | Kreisdiagramm der empfohlenen Migrationsstrategien |
-| **Bewertungstabelle** | Score, Level, 6R-Empfehlung, Souveränitätsbedarf, Begründung je Objekt |
+| **6R-Verteilung** | Kreisdiagramm (Rehost / Replatform / Repurchase / Refactor / Retire / Retain) |
+| **SEAL-Level** | Souveränitäts-Bewertung S0–S3 (S0=keine Anforderung, S3=Gaia-X/C5 + BYOK) |
+| **FinOps-Szenarien** | Konservativ / Realistisch / Optimistisch mit Szenario-Vergleichstabelle |
+| **Bewertungstabelle** | Score, Level, 6R, SEAL, Souveränitätsbedarf, Begründung je Objekt |
 
-**Scoring-Logik (0–100):**
-
-| Level | Score | Bedeutung |
-|---|---|---|
-| Hoch | ≥ 70 | Cloud-fähig, direkte Migration empfohlen |
-| Mittel | 45–69 | Bedingt geeignet, Modernisierung sinnvoll |
-| Niedrig | < 45 | Erheblicher Aufwand — Retain/Retire prüfen |
-
-Die Cloud-Readiness-Felder je Objekt (Bereitstellung, Schutzbedarf, Lizenzierbarkeit, Migrationskomplexität, Lebenszyklus, Internet-Fähigkeit, Datensouveränität) werden im Formular unter „Cloud-Readiness — Workshop-Vorbereitung" eingegeben.
-
-> Die Empfehlungen sind heuristische Vorschläge zur Workshop-Vorbereitung und ersetzen keine detaillierte Migrationsanalyse.
+Scoring-Logik (0–100): ≥70 = Hoch · 45–69 = Mittel · <45 = Niedrig. `Unklar`-Werte sind neutral (kein Punktabzug) — sie markieren offene Fragen.
 
 ---
 
-## 4. Feldvorschläge (Combobox / Schnellauswahl)
+### Vollständigkeits-Cockpit
 
-Viele Felder bieten vorausgefüllte Fachbegriffe an, damit Berater:innen gängige Bezeichnungen schnell auswählen können. Eigene Eingaben sind immer möglich.
+**Aufruf:** Gruppe „Projektsteuerung" → Tab „Fortschritt"
 
-**Textfelder (Combobox):** Beim Tippen erscheinen passende Vorschläge aus einer Datalist-Liste (Browser-nativ). Beispiele:
+Gesamtfortschritts-Balken + Kategorie-Kacheln (Ampel-Farbe: Grün ≥80 % · Gelb 40–79 % · Rot <40 %).
 
-| Kategorie | Feld | Beispiel-Vorschläge |
-|---|---|---|
-| Server | Plattform | Windows Server 2022, Ubuntu Server 22.04 LTS, VMware ESXi 8.0, Proxmox VE 8 |
-| Netzkomponenten | Plattform | Cisco Catalyst, Fortinet FortiGate, Palo Alto, Check Point, pfSense |
-| Netzverbindungen | Protokolle | HTTPS/TLS 1.3, VPN (IPSec/IKEv2), MPLS, SD-WAN, LDAP/LDAPS, Modbus TCP |
-| Clients | Plattform | Windows 11 Pro, macOS 15, Ubuntu Desktop, iOS 18, Android 15, Zero Client |
-| ICS-Systeme | Plattform | Siemens SIMATIC S7, Allen-Bradley/Rockwell, Beckhoff TwinCAT, AVEVA |
-| IoT-Systeme | Plattform | Siemens IOT2040, KNX/EIB, Azure IoT Hub, AWS IoT Greengrass |
-
-**Textarea-Felder (Schnellauswahl-Buttons):** Klick auf einen vorgeschlagenen Begriff befüllt das Feld — danach kann der Text frei erweitert werden. Beispiele: Schutzbedarfskategorie, Bereitstellungsform, Migrationskomplexität.
+Zeigt je Kategorie: Anzahl Einträge, Einträge mit `Unklar`-Feldern, Felder ohne Wert. Button „Zur Fragenliste →" springt direkt zur Interview-Fragenliste. Druckbar.
 
 ---
 
-## 5. BSI-Kontexthilfe & Interview-Leitfaden
+### Infrastruktur-Landkarte + Schnittstellen-Graph
 
-**Position:** Rechte Seitenleiste im Wizard bei jeder BSI-Kategorie
+**Aufruf:** Gruppe „Analyse & Strategie" → Tab „Infrastruktur-Landkarte"
 
-Jede Kategorie besitzt eine eingebaute Hilfe mit vier Abschnitten:
+Mermaid-basierte Graphen in mehreren Modi:
+- **Kategorien-Übersicht:** alle Einträge und Relationen
+- **Server → Anwendungen:** welche Apps laufen auf welchen Servern
+- **Schnittstellen-Graph:** gerichteter App-zu-App-Graph, Kantenfarbe nach Verschlüsselung (rot = „Keine", grün = TLS/mTLS)
 
-| Abschnitt | Inhalt |
-|---|---|
-| **Einleitung** | Was ist diese Kategorie im BSI-Sinne? |
-| **Warum (BSI)** | Welche BSI-Anforderung steckt dahinter? |
-| **Warum (Cloud)** | Warum ist das für die Cloud-Readiness relevant? |
-| **Interview-Fragen** | Konkrete Fragen für das Gespräch mit dem Kunden |
+Mermaid läuft mit `securityLevel: 'strict'` — Node-Labels werden vor Einbau escaped.
 
 ---
 
-## 6. Wen kann ich fragen? — Ansprechpartner-Tipps
+### Schnittstellen-Matrix (n×n)
 
-**Position:** Im Hilfe-Panel jeder BSI-Kategorie (amber-farbiger Abschnitt)
+**Aufruf:** Gruppe „Analyse & Strategie" → Tab „Schnittstellen-Matrix"
 
-Für jede Kategorie werden typische Ansprechpartner beim Kunden mit konkreten Gesprächstipps genannt. Beispiele:
-
-- **Geschäftsprozesse** → Prozessverantwortliche, Fachbereichsleitung, QM-Beauftragter
-- **Server** → IT-Infrastruktur-Team, Systemadministrator, Rechenzentrumsbetreiber
-- **ICS-Systeme** → OT-Verantwortlicher, Anlagenbetreiber, Maschinenbauer / Lieferant
-- **Gebäude** → Facility Management, Gebäudeverantwortlicher, Haustechnik
-
-Diese Tipps helfen besonders bei Erstkontakt oder wenn unklar ist, wer im Unternehmen die richtigen Informationen hat.
+Druckbare HTML-Tabelle: Zeilen = Quell-Anwendung, Spalten = Ziel-Anwendung, Zellen markiert wo eine Schnittstelle existiert (Protokoll-Kürzel, Tooltip mit Details). Kein Chart-Framework nötig. Optimal für Reviews mit dem Kunden.
 
 ---
 
-## 7. E-Mail-Vorlage (Dokumentenanforderung)
+### Executive Summary + Spider-Chart
 
-**Aufruf:** Button „E-Mail-Vorlage" im Einstiegsschritt des Wizards
+Überblick für Managementpräsentationen:
 
-Erzeugt eine professionelle deutsche E-Mail an den Kunden mit der Bitte, Unterlagen vor dem Workshop bereitzustellen. Die Vorlage enthält:
-
-- Personalisierung mit dem eingetragenen Kundennamen
-- Neun konkrete Dokumentenkategorien (Netzpläne, Inventarlisten, Richtlinien usw.)
-- Verweis auf vertrauliche Behandlung
-- HiSolutions-Briefkopf-Stil
-
-**Verwendung:** Vorlage anzeigen → „In Zwischenablage kopieren" → in E-Mail-Client einfügen.
+- Reifegradmodell in 6 Dimensionen (Strategie & Wirtschaftlichkeit, Personal & Kompetenz, Governance & Compliance, Plattform & Infrastruktur, Sicherheit, Betrieb)
+- SVG-Spider-Chart (kein Chart-Framework), 5 Stufen
+- Benchmark-Linie (statisch, branchentypisch Mittelstand 2026)
+- Jede Dimension anklickbar → Erklärung mit Ableitung aus Projektdaten
+- Druckbar über Print-Button
 
 ---
 
-## 8. Excel-Import mit Smart-Mapping
+### AfA / TCO-Übersicht
+
+- Lineare AfA-Berechnung: Buchwert, Restwert, Restlaufzeit je Objekt
+- Druckbare Asset-/AfA-Tabelle über alle Hardware-Kategorien
+- TCO-Modul mit Szenario-Vergleich (Konservativ / Realistisch / Optimistisch)
+- AI/GenAI-Kostenblock (Token-/Inferenzkosten als eigene Position)
+- „Aus Objektdaten übernehmen" — non-destruktive Übernahme der Ist-Kosten
+
+---
+
+### NIS2-Compliance-Check
+
+5-Schritt-Stepper (Sektor → Größe → KRITIS → Einstufung → Gap-Analyse):
+
+- Automatische Einstufung: Besonders wichtig / Wichtig / Nicht betroffen
+- Gap-Analyse: 10 Mindestmaßnahmen nach Art. 21 NIS2 / §30 BSIG
+- Ampel-Zusammenfassung + Druckbericht mit Datum und Kundenname
+
+---
+
+### EU AI Act Inventar
+
+- Shadow-AI-Heuristik: erkennt wahrscheinliche KI-Systeme anhand von Schlüsselwörtern in Anwendungsfeldern
+- KI-System-Klassifizierung inline in der Tabelle (Verboten / Hoch / Begrenzt / Minimal)
+- Felder: Risikoklasse, Rolle (Anbieter/Betreiber), Trainingsdaten, menschliche Aufsicht, Logging
+- CSV-Register-Export (EU AI Act Pflichtfelder)
+
+---
+
+### DORA IKT-Register
+
+- Erfassung von IKT-Drittdienstleistern (Anbieter, Leistung, Kritikalität, Substituierbarkeit, Sitzland, Exit-Strategie)
+- Verknüpfbar mit Anwendungen und Servern
+- „Aus Anwendungsdaten ableiten" — liest vorhandene `lizenzAnbieter`-Werte aus
+- CSV-Export im Format des BaFin-Informationsregisters
+
+---
+
+### EnEfG / CO₂ Nachhaltigkeitsmodul
+
+- CO₂-Schätzung je Server (kW × PUE × Betriebsstunden × Strommix-Faktor)
+- On-Prem vs. Cloud CO₂-Vergleich (Balkendiagramm, CSS-basiert)
+- EnEfG-Pflicht-Banner wenn Gesamtleistung > 300 kW
+- Anpassbare Richtwerte (kW/Server, PUE, Strommix)
+- CSRD-tauglicher Export (Print-Window)
+
+---
+
+### SAM-Analyse (Software Asset Management)
+
+- Soll-/Ist-Abgleich: lizenzierte vs. eingesetzte Instanzen
+- Audit-Risiko-Ampel (Microsoft / Oracle / SAP / Adobe = hohes Risiko)
+- True-Up-Schätzung: Delta × durchschnittlicher Lizenzpreis
+
+---
+
+### Snapshot-Versionierung + Delta-Vergleich
+
+- Snapshots mit Datum-Stempel und frei wählbarem Label
+- Delta-Ansicht zwischen zwei Snapshots: neu (grün) / geändert (gelb) / entfernt (rot)
+- Einzelexport eines Snapshots als JSON (Archiv)
+- Maximum 10 Snapshots (älteste werden mit Warnung gelöscht)
+
+---
+
+### Souveränitätsbewertung (SEAL-Level)
+
+- S0: keine Souveränitätsanforderung
+- S1: EU-Jurisdiktion erforderlich
+- S2: EU-Jurisdiktion + eigene Schlüssel (BYOK/HYOK)
+- S3: S2 + Gaia-X-Zertifizierung / C5-Testat
+
+Sichtbar im Cloud-Dashboard (KPI-Karte, Filter) und in der Zielbild-Ansicht.
+
+---
+
+## 4. Import / Export
+
+### Excel-Import
 
 **Aufruf:** Button „Import" im Header (`.xlsx` oder `.xls`)
 
-Der Import-Assistent erkennt automatisch, welche Tabellenblätter welchen BSI-Kategorien entsprechen:
-
-1. **Analyse:** Die App prüft Spaltennamen gegen die Felder jeder Kategorie
-2. **Konfidenz-Anzeige:** Jedes Blatt erhält ein Konfidenz-Badge (grün ≥ 50 %, gelb ≥ 25 %, rot < 25 %)
-3. **Manuelles Mapping:** Über ein Dropdown kann die Zuordnung je Blatt korrigiert oder deaktiviert werden
-4. **Merge-Strategie:** Bestehende Einträge mit gleichem Kürzel werden aktualisiert, neue werden hinzugefügt
-
-**Geeignet für:** Bestehende Kundenlisten aus Vorab-Fragebögen, Export aus CMDB-Systemen, vorausgefüllte Vorlagen.
+1. **Analyse:** Spaltennamen werden gegen alle Felder aller 14 Kategorien geprüft
+2. **Fuzzy-Mapping:** `feldAliase.ts` enthält 60+ Felder mit je 3–5 deutschen und englischen Aliasen (200+ Aliase gesamt) — erkennt z. B. „Hostname", „Servername", „Server Name" alle als `name`
+3. **Konfidenz-Anzeige:** Grün ≥50 % · Gelb ≥25 % · Rot <25 %
+4. **Manuelles Mapping:** Zuordnung je Blatt über Dropdown korrigierbar
+5. **Fehler-Recovery:** Nach dem Import: Validierungstabelle mit fehlgeschlagenen Zeilen (Feld, Problem), valide Zeilen werden trotzdem importiert, Fehler-Zeilen als CSV downloadbar
+6. **Merge-Strategie:** Gleiche Kürzel → Update, neue Kürzel → hinzufügen
 
 ---
 
-## 9. Excel-Export & Workshop-Paket
+### Excel-Export
 
-**Aufruf:** Buttons „Excel Export" und „Workshop-Export" im Header
+**Aufruf:** Button „Excel Export" (grün)
 
-### Excel Export (grün)
-Alle 12 Kategorien als separate Tabellenblätter plus Übersichtsblatt. Geeignet für Weiterverarbeitung in Excel.
+Alle 14 Kategorien als separate Tabellenblätter + Übersichtsblatt. Neue Felder erscheinen automatisch (deklarative Engine).
 
-### Workshop-Export (türkis)
-Erweitertes XLSX-Paket für den Cloud-Readiness-Workshop:
+---
+
+### Workshop-Export
+
+**Aufruf:** Button „Workshop-Export" (türkis)
+
+Erweitertes XLSX-Paket:
 
 | Tabellenblatt | Inhalt |
 |---|---|
 | Übersicht | Kundendaten, Kategorien-Zusammenfassung |
-| Cloud-Strategie | Geschäftliches Ziel, Treiber, Zielumgebung, Zeithorizont |
-| Cloud-Readiness | Score, Level, 6R-Empfehlung, Souveränitätsbedarf je Objekt |
-| Readiness-Summary | KPIs: Durchschnittsscore, Verteilung, 6R-Disposition |
+| Cloud-Strategie | Ziel, Treiber, Zielumgebung, Zeithorizont |
+| Cloud-Readiness | Score, Level, 6R, SEAL je Objekt |
+| Readiness-Summary | KPIs, Verteilung, 6R-Disposition |
 | Unterlagen | Erfasste Quelldokumente mit Status |
-| + alle 12 Kategorien | Vollständige Strukturanalyse-Daten |
+| + alle 14 Kategorien | Vollständige Strukturanalyse-Daten |
 
 ---
 
-## 10. JSON-Backup & Re-Import
+### JSON-Backup & Re-Import
 
-**Aufruf:** Button „JSON-Backup" (indigo) im Header
+**Aufruf:** Button „JSON-Backup" (indigo)
 
-### Backup exportieren
-
-Erstellt eine vollständige, versionierte Sicherungsdatei aller erfassten Daten:
-
+Vollständige, versionierte Sicherungsdatei:
 ```
 IT-Strukturanalyse-Backup_<Kunde>_<Datum>.json
 ```
 
-Das JSON-Format ist stabil und selbstbeschreibend:
+Format mit `version`, `exportDate`, `customerName` und vollständigem `state`. Re-Import: Button „Import" → `.json`-Datei auswählen — Format wird automatisch erkannt.
 
-```json
-{
-  "version": "1.0",
-  "exportDate": "2025-11-15T09:30:00.000Z",
-  "customerName": "Muster GmbH",
-  "state": { ... vollständiger AppState ... }
-}
-```
-
-**Anwendungsfälle:**
-- Regelmäßige Sicherung während laufender Projekte
-- Übergabe zwischen Berater:innen oder Geräten
-- Sicherung vor der Deinstallation
-- Archivierung nach Projektabschluss
-
-### Backup re-importieren
-
-Dieselbe JSON-Datei kann auf einer beliebigen (Neu-)Installation wiederhergestellt werden:
-
-**Aufruf:** Button „Import" im Header → `.json`-Datei auswählen
-
-Die App erkennt das JSON-Format automatisch und stellt den vollständigen Zustand (alle Kategorien, Cloud-Strategie, Kundenname) wieder her.
-
-> **Wichtig:** Der Import überschreibt den aktuellen Zustand vollständig. Vorher ggf. einen eigenen Backup anlegen.
+> Der Import überschreibt den aktuellen Zustand vollständig. Vorher eigenes Backup anlegen.
 
 ---
 
-## 11. Consultant-Bericht (HTML)
+### HTML Consultant-Bericht
 
-**Aufruf:** Button „Bericht (HTML)" (violett) im Header
+**Aufruf:** Button „Bericht (HTML)" (violett)
 
-Erzeugt einen druckbaren, selbst-enthaltenen HTML-Bericht für IT- und Security-Consultants:
+Selbst-enthaltener, druckbarer HTML-Report:
+- Deckblatt mit HiSolutions-Branding
+- KPI-Kacheln, 6R-Disposition
+- Cloud-Readiness-Tabelle (farbkodiert)
+- Alle Einträge je Kategorie
+- Objekt-Notizen je Objekt
+- `Strg+P` → „Als PDF speichern"
 
-```
-IT-Strukturanalyse-Bericht_<Kunde>_<Datum>.html
-```
+---
 
-### Inhalt des Berichts
+### Druckbare Spezialansichten
 
-| Abschnitt | Beschreibung |
+| Ansicht | Aufruf |
 |---|---|
-| **Deckblatt** | Kundenname, Erstellungsdatum, HiSolutions-Branding |
-| **Gesamtübersicht** | KPI-Kacheln (Gesamtanzahl, Hoch/Mittel/Niedrig) |
-| **Kategorien-Tabelle** | Alle 12 BSI-Kategorien mit Anzahl Einträge |
-| **6R-Disposition** | Welche Strategie wird wie oft empfohlen |
-| **Cloud-Readiness-Tabelle** | Score, Level, 6R, Souveränitätsbedarf je Objekt (farbkodiert) |
-| **Detailtabellen** | Alle Einträge je BSI-Kategorie mit allen Feldern |
+| **AfA-/Asset-Übersicht** | Button in TCO-Modul |
+| **Schnittstellen-Matrix** | Button in Schnittstellen-Matrix-Tab |
+| **NIS2-Bericht** | Button in NIS2-Check |
+| **CO₂/EnEfG-Kennzahlen** | Button in Nachhaltigkeitsmodul |
+| **EU AI Act Register** | CSV-Export in EuAiActInventar |
 
-### Drucken / PDF erstellen
-
-1. HTML-Datei im Browser öffnen (Doppelklick)
-2. `Strg+P` / `Cmd+P` → „Als PDF speichern"
-3. Seitenumbrüche sind optimiert (CSS `@media print`, `page-break-before`)
-
-### Unterschied zum Excel-Export
-
-| | Excel-Export | Consultant-Bericht (HTML) |
-|---|---|---|
-| **Zielgruppe** | Analyst:innen, weitere Bearbeitung | Präsentation, Archivierung |
-| **Format** | XLSX (Excel) | HTML → PDF |
-| **Lesbarkeit** | Tabellenkalkulation | Dokumenten-Layout mit Branding |
-| **Druckbar** | Begrenzt | Optimiert für Druck |
-| **Re-importierbar** | Ja (mit Mapping) | Nein |
+Alle Druckausgaben nutzen die zentrale `printHtml()`-Utility mit eingebautem XSS-Escaping und einheitlichem HiSolutions-Header/Fußzeile.
 
 ---
 
-## 12. Deinstallation
+## 5. Datenpersistenz & Sicherheit
+
+### Dual-Layer-Persistenz
+
+| Schicht | Technologie | Zweck |
+|---|---|---|
+| **Primär** | IndexedDB (`it-sa-db`) | Robuster Hauptspeicher, kein 5-MB-Limit, resistent gegen Browser-Bereinigung |
+| **Cache** | localStorage | Schneller synchroner Lesecache für initialen App-Start |
+
+`loadState()` ist synchron (aus localStorage). `loadStateFromIDB()` wird beim App-Start aufgerufen und gewinnt, wenn IndexedDB einen neueren Stand enthält (`lastUpdated`-Vergleich) → Recovery-Banner im UI.
+
+### Auto-Save & Statusanzeige
+
+- Jede Zustandsänderung → sofortiges asynchrones Schreiben in beide Schichten
+- Header zeigt: „Speichern…" (Spinner) → „✓ Gespeichert" → „⚠ Speicherfehler"
+- `beforeunload`-Warnung wenn ein Speichervorgang noch läuft
+
+### Optionale At-Rest-Verschlüsselung
+
+- AES-256/GCM + PBKDF2 (310.000 Iterationen), implementiert via Web Crypto API
+- Opt-in: Passwort bei Ersteinrichtung festlegen
+- Entsperr-Screen beim App-Start wenn Verschlüsselung aktiv
+- JSON-Export bleibt im Klartext (nur Browserspeicher ist verschlüsselt)
+
+### Snapshot-Versionierung
+
+Snapshots werden in separatem localStorage-Key `it-sa-snapshots` gespeichert (nicht im Haupt-AppState). Delta-Vergleich auf Kategorieebene (hinzugefügt / geändert / entfernt).
+
+### Daten vollständig löschen
+
+„Alle Daten löschen" entfernt:
+- Alle `it-strukturanalyse*` localStorage-Keys
+- Den IndexedDB-Store `it-sa-db`
+- Den KI-Konfigurations-Key
+
+---
+
+## 6. Tastaturkürzel & Tipps
+
+| Kürzel | Funktion |
+|---|---|
+| `Ctrl+K` | Globale Suche öffnen |
+| `↑` / `↓` | Navigation in Suchergebnissen |
+| `Enter` | Suchergebnis öffnen |
+| `Escape` | Suche / Modal schließen |
+
+**Tipps:**
+- Alle Felder mit Wert `Unklar` werden im Vollständigkeits-Cockpit als offene Punkte geführt
+- Objekt-Notizen eignen sich als Workshop-Protokoll-Ersatz (Timestamp + Autor)
+- Der JSON-Backup enthält alle Daten — regelmäßig exportieren, besonders vor Gerätewechsel
+- Der Workshop-Export enthält alles für den Kunden-Workshop in einer Datei
+
+---
+
+## 7. BSI-Kontexthilfe & E-Mail-Vorlage
+
+### BSI-Kontexthilfe
+
+Jede Kategorie hat eine eingebaute Hilfe im Wizard (rechte Seitenleiste):
+
+| Abschnitt | Inhalt |
+|---|---|
+| Einleitung | Was ist diese Kategorie im BSI-Sinne? |
+| Warum (BSI) | Welche BSI-Anforderung steckt dahinter? |
+| Warum (Cloud) | Relevanz für Cloud-Readiness |
+| Interview-Fragen | Konkrete Fragen für das Kundengespräch |
+| Ansprechpartner-Tipps | Wer hat die richtigen Informationen? |
+
+### E-Mail-Vorlage (Dokumentenanforderung)
+
+**Aufruf:** Button „E-Mail-Vorlage" im Einstiegsschritt
+
+Professionelle deutsche E-Mail mit Kundennamen, neun Dokumentenkategorien und HiSolutions-Stil. „In Zwischenablage kopieren" → direkt in E-Mail-Client einfügen.
+
+---
+
+## 8. Deinstallation
+
+**Vor der Deinstallation Daten sichern** (JSON-Backup-Button im Header).
 
 ### Linux / macOS / WSL
-
 ```bash
 cd InfoCollectorforInfrastrukturAnalyse_ITM
 ./uninstall.sh
 ```
 
 ### Windows (PowerShell)
-
 ```powershell
 cd InfoCollectorforInfrastrukturAnalyse_ITM
 powershell -ExecutionPolicy Bypass -File .\uninstall.ps1
 ```
 
-### Was das Skript macht
+Das Skript:
+1. Erinnert an Datensicherung (Bestätigung erforderlich)
+2. Stoppt Node.js-Prozess (`app.pid`) und Docker-Container/Image
+3. Löscht optional den Projektordner (Standard: Nein)
 
-Das Deinstallations-Skript führt drei interaktive Schritte aus:
-
-**Schritt 1 — Datensicherung (Bestätigung erforderlich)**
-Das Skript hält an und erinnert daran, Daten zu sichern, bevor alles gelöscht wird. Es listet die drei Exportmethoden auf (JSON-Backup, HTML-Bericht, Excel) und fragt nach Bestätigung.
-
-**Schritt 2 — Prozesse & Docker bereinigen**
-- Stoppt einen laufenden Node.js-Prozess (via `app.pid`)
-- Stoppt und entfernt den Docker-Container `strukturanalyse`
-- Entfernt das Docker-Image `hisolutions-strukturanalyse`
-
-**Schritt 3 — Projektordner (optional)**
-Fragt, ob der gesamte Projektordner gelöscht werden soll. Standardantwort: Nein.
-
-> **Hinweis:** Browser-localStorage wird durch das Skript nicht berührt — dieser gehört zum Browser und nicht zur App-Installation. Nach einer Deinstallation und Neuinstallation sind die Daten im Browser noch vorhanden, bis der Browser-Cache geleert wird.
+> Browser-localStorage und IndexedDB gehören zum Browser und werden durch das Skript nicht berührt. Nach Deinstallation und Neuinstallation sind die Daten im Browser noch vorhanden, bis der Browser-Cache manuell geleert wird.
 
 ---
 
-*HiSolutions AG · IT Strukturanalyse · Cloud-Readiness Suite*
+*HiSolutions AG · IT Strukturanalyse · Cloud-Readiness Suite · Stand 2026-06-22*

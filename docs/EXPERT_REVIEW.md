@@ -1,9 +1,38 @@
 # Experten-Review — IT Strukturanalyse (HiSolutions AG)
 
-**Reviewdatum:** 2026-06-19
+**Reviewdatum:** 2026-06-19 · **Aktualisiert:** 2026-06-22
 **Branch:** `claude/dazzling-ride-04upm4`
 **Reviewumfang:** Gesamte Codebasis (`src/`, Build-/Deployment-Konfiguration, Docker/nginx)
 **Lenses:** (1) Software-/Code-Architektur · (2) Cybersecurity · (3) UI/UX-Design
+
+---
+
+## Status-Übersicht (Stand 2026-06-22)
+
+| Finding | Bereich | Schweregrad | Status |
+|---|---|---|---|
+| **SEC-01** | Stored XSS in Print-Exporten | Hoch | ✅ **Behoben** — `safePrint.ts` mit `esc()`, alle Komponenten migriert |
+| **SEC-02** | Mermaid `securityLevel: 'loose'` | Hoch | ✅ **Behoben** — auf `'strict'` geändert, Node-Labels escaped |
+| **SEC-03** | CSP `unsafe-inline` | Mittel | ⚠️ **Teilweise** — `script-src` ohne `unsafe-inline`; `style-src` behält es zunächst |
+| **SEC-04** | CSV-Formel-Injection | Mittel | ✅ **Behoben** — `neutralizeFormula()` implementiert, prefix `'` bei `=,+,-,@,\|` |
+| **SEC-05** | Klartext-Speicherung | Mittel | ✅ **Behoben** — optionale AES-256/GCM-Verschlüsselung implementiert; `clearState()` vollständig |
+| **SEC-06** | KI-Assistent (Review) | Niedrig | ✅ **Behoben** — `AbortController` 5s-Timeout; Datenschutz-Hinweis im Settings-Panel |
+| **SEC-07** | Dependency-Scanning | Mittel | Offen — `npm audit` in CI wünschenswert, kein Dependabot |
+| **SEC-08** | `target="_blank"` ohne `noopener` | Niedrig | ✅ **Behoben** — zentrale Print-Utility berücksichtigt das |
+| **ARCH-01** | Kein Test-Setup | Hoch | ✅ **Behoben** — Vitest eingerichtet, 13 Tests vorhanden |
+| **ARCH-02** | Untypisierte State-Mutationen | Mittel | Offen — Casts reduziert, vollständige Typisierung ausstehend |
+| **ARCH-03** | Import-Validierung fehlt | Mittel | ✅ **Behoben** — ImportWizard mit Fehler-Recovery + Validierungstabelle |
+| **ARCH-04** | Keine Error Boundary | Mittel | ✅ **Behoben** — `ErrorBoundary.tsx` implementiert |
+| **ARCH-05** | Bundle-Splitting | Niedrig | Offen — Mermaid und schwere Tabs noch nicht lazy |
+| **ARCH-06** | Print-Code dupliziert | Niedrig | ✅ **Behoben** — zentrale `printHtml.ts` + `esc()` |
+| **ARCH-07** | Veraltete Dokumentation | Niedrig | ✅ **Behoben** — alle Docs auf Stand 2026-06-22 gebracht |
+| **UX-01** | Navigations-Überladung | Mittel | Offen — Tab-Leiste weiter gewachsen; Navigation-Redesign ausstehend |
+| **UX-02** | Empty States uneinheitlich | Niedrig | Teilweise — einige neue Module haben gute Leerzustände |
+| **UX-03** | Onboarding | Niedrig | Teilweise — Vollständigkeits-Cockpit hilft, aber kein expliziter Erststart-Guide |
+| **UX-04** | Druck-/Print-Layouts | Niedrig | ✅ **Behoben** — zentrale Print-Utility mit einheitlichem Branding |
+| **UX-05** | Responsiveness | Niedrig | Offen |
+| **UX-06** | Barrierefreiheit (WCAG) | Mittel | Offen |
+| **UX-07** | Datenspeicher-Transparenz | Niedrig | ✅ **Behoben** — Datenspeicher-Info-Bereich vorhanden |
 
 ---
 

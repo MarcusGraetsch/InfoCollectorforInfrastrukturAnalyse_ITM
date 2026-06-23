@@ -1,6 +1,6 @@
 # Feature-Ideen & strategischer Produkt-Backlog
 
-**Aus Sicht eines IT-Beraters · Stand: Juni 2026**
+**Aus Sicht eines IT-Beraters · Stand: aktualisiert 2026-06-22 — alle Blocks aus IMPLEMENTATION_PLAN.md umgesetzt**
 
 Dieses Dokument ist eine fundierte Analyse des aktuellen Funktionsstands der Anwendung, abgeglichen mit den relevanten Frameworks, Methoden und Markttrends moderner IT-Beratung (Cloud, Cybersecurity, Governance/Compliance, SAM, FinOps, GenAI/AI-Agents, Nachhaltigkeit). Ziel ist ein priorisierter Backlog mit echtem Mehrwert für Berater:innen — inklusive Begründung, Aufwandseinschätzung und Quellen.
 
@@ -25,14 +25,25 @@ Die Reihenfolge folgt grob abnehmendem **Aufwand-Nutzen-Verhältnis** (oben = sc
 
 ## 2. Bestandsaufnahme — Was die Anwendung heute kann
 
-- **Strukturierte Datenaufnahme** nach BSI IT-Grundschutz 200-2 (Geschäftsprozesse, Anwendungen, Server, Clients, Netze, ICS/IoT, Räume, Gebäude)
-- **Cloud-Readiness-Scoring** (heuristisch, 0–100, 6R-Empfehlung, Souveränitäts-Flag) — `src/cloudReadiness.ts`
-- **Beratungs-Workflow**: Liefergegenstände (19 LGs), Stakeholder-Register, Meetings/Protokolle, TOPs, offene Punkte, Interview-Fragenliste
-- **Analyse-Sichten**: Infrastruktur-Landkarte (Mermaid), Lizenz-/Kostenanalyse (LG 5), TCO-Modell (LG 6), Security-/Governance-Architektur (LG 9), Zielarchitektur (LG 10), Bericht, Executive Summary
-- **Export**: JSON-Backup, HTML-Bericht, Excel, Workshop-Paket
-- **Architektur**: React 18 + TS + Vite + Tailwind, localStorage + IndexedDB (Dateianhänge), kein Backend
+> Dieser Abschnitt wurde aktualisiert: alle unten genannten Lücken sind inzwischen geschlossen.
 
-**Fazit:** Das Tool deckt die *Aufnahme* und die *Cloud-Strategie-Vorbereitung* sehr gut ab. Die größten Lücken liegen bei (a) **regulatorischem Compliance-Mapping**, (b) **belastbarer Risiko-/Schutzbedarfsmethodik**, (c) **FinOps/Nachhaltigkeit** und (d) **(halb-)automatisierter Anreicherung** der Daten.
+- **14 BSI-Kategorien** nach IT-Grundschutz 200-2: Geschäftsprozesse, Daten, Anwendungen, Server, Clients, Netzkomponenten, Netzverbindungen, Sicherheitskomponenten, ICS/IoT, Datenträger, Räume, **Betriebssysteme**, **Schnittstellen**
+- **Cloud-Readiness-Scoring** (heuristisch, 0–100, 6R-Empfehlung, SEAL-Level S0–S3, FinOps-Szenarien) — `src/cloudReadiness.ts`
+- **Hardware-Felder** (Hersteller, Modell, S/N, CPU, RAM, HE, Strom, Management-IP) an 7 Kategorien — Mixin-Muster
+- **Wirtschaftlichkeits-Felder** (AfA, Buchwert, TCO-Aggregation, Verträge, Kostenstellen) an 8 Kategorien — Mixin-Muster
+- **Software-Tiefe** (8 typabhängige Feldsätze via `showIf`) + Multi-Data-Sections (Netzwerk-Interfaces, Lizenzen)
+- **Beratungs-Workflow**: Liefergegenstände (19 LGs), Stakeholder-Register, Meetings/Protokolle, TOPs, offene Punkte, Interview-Fragenliste
+- **Globale Volltext-Suche** (`Ctrl+K`) über alle 14 Kategorien mit Tastaturnavigation
+- **Objekt-Notizen** (Kommentar-Feed mit Timestamp + Autor je Objekt)
+- **Compliance-Module**: NIS2-Check (5-Schritt, Gap-Analyse), EU AI Act Inventar (Shadow-AI), DORA IKT-Register, EnEfG/CO₂, SAM-Analyse
+- **Analyse-Sichten**: Infrastruktur-Landkarte (Mermaid), Schnittstellen-Graph, Schnittstellen-Matrix (n×n), Executive Summary (Spider-Chart), Reifegradmodell, Vollständigkeits-Cockpit, AfA-Übersicht, TCO mit FinOps-Szenarien
+- **Import**: Excel mit 200+ Spalten-Aliasen (Fuzzy-Mapping) + Fehler-Recovery-Tabelle
+- **Export**: JSON-Backup, HTML-Bericht, Excel (Standard + Workshop), AfA-Übersicht, Schnittstellen-Matrix, Compliance-Register (CSV)
+- **Versionierung**: Snapshot-Versionierung + Delta-Vergleich
+- **Persistenz**: localStorage + IndexedDB (Dual-Layer, Auto-Save, optionale AES-256/GCM-Verschlüsselung)
+- **Architektur**: React 18 + TS + Vite + Tailwind, kein Backend, vollständig offline-fähig, Vitest (13 Tests), ErrorBoundary
+
+**Fazit (aktualisiert):** Das Tool deckt Aufnahme, Cloud-Strategie-Vorbereitung **und** die wichtigsten regulatorischen Compliance-Anforderungen ab. Verbleibende Erweiterungspotenziale: Multi-Framework-Audit-Cockpit (ISO 27001 / TISAX, Block A3), BSI-200-3-Risikoregister je Objekt (Block G + DATAGERRY_VERGLEICH Rang 6), Kunden-Self-Service-Modus (Block I1).
 
 ---
 

@@ -527,6 +527,28 @@ Aus dem iTop-Abgleich ergänzen wir die Feldkataloge um:
 3. **Schnittstellen = eigene Kategorie** `schnittstellen` mit voller Attributik **plus** n×n-Data-Flow-Matrix und gerichtetem Graph.
 4. **Wirtschaftlichkeit** = Erfassungsfelder + automatische Buchwert-/lineare-AfA-Berechnung + Aggregation der Einzel-Objektkosten in das TCO-Modul (Single Source of Truth).
 
+### DATAGerry-inspirierte Features (umgesetzt 2026-06-22)
+
+Im Zuge des DATAGerry-Vergleichs (`docs/DATAGERRY_VERGLEICH.md`) wurden vier weitere Features umgesetzt, die das Tool näher an eine vollwertige CMDB-Ergonomie bringen:
+
+| Feature | Dateien | Status |
+|---|---|---|
+| **Globale Volltext-Suche** (`Ctrl+K`) | `src/components/GlobalSearch.tsx` | ✅ Umgesetzt 2026-06-22 |
+| **Import Fehler-Recovery** | `src/components/ImportWizard.tsx`, `src/utils/import.ts` | ✅ Umgesetzt 2026-06-22 |
+| **Objekt-Notizen-Feed** | `src/components/ObjektNotizen.tsx`, `BaseItem.notizen[]` | ✅ Umgesetzt 2026-06-22 |
+| **Multi-Data-Sections / Tabellenfelder** | `src/components/TableField.tsx`, FieldType `'table'` | ✅ Umgesetzt 2026-06-22 |
+| **Fuzzy-Keyword-Mapping** | `src/utils/feldAliase.ts` (60+ Felder, 200+ Aliase) | ✅ Umgesetzt 2026-06-22 |
+
+**GlobalSearch (`Ctrl+K`):** Modal-Overlay mit Volltext-Suche über alle 14 Kategorie-Arrays. Ergebnisse gruppiert nach Kategorie, Tastaturnavigation (↑↓Enter), max. 50 Ergebnisse.
+
+**Import Fehler-Recovery:** Nach dem Excel-Mapping-Schritt wird jede Zeile validiert. Valide Zeilen werden importiert, fehlgeschlagene Zeilen erscheinen in einer Validierungstabelle (Zeile / Feld / Problem) und sind als CSV downloadbar für Korrektur und Re-Import.
+
+**Objekt-Notizen:** `BaseItem` um `notizen: Array<{ text, datum, autor? }>` erweitert. Ausklappbarer Kommentar-Feed am Ende jedes Formulars. Migration: `mergeWithDefault` ergänzt `notizen: []` transparent in allen vorhandenen Objekten.
+
+**Multi-Data-Sections:** Neuer `FieldType 'table'` in `FieldDef`. `TableField.tsx` rendert inline editierbare Tabellenzeilen (Zeile hinzufügen / löschen). Wert im Store: JSON-Array als String (Export-Format unverändert). Eingesetzt bei Server (Netzwerk-Interfaces) und Anwendungen (Lizenzen).
+
+**Fuzzy-Keyword-Mapping:** `src/utils/feldAliase.ts` enthält 60+ Feld-Schlüssel mit je mehreren deutschen und englischen Aliasen (gesamt 200+ Aliase). Wird in `importAnalyzer.ts` für die Spalten-Erkennung beim Excel-Import verwendet — erkennt z. B. „Hostname", „Servername", „Server Name" alle als `name`.
+
 ### Migrationssicherheit
 
 Alle neuen Felder sind optional; die einzigen Top-Level-Ergänzungen (`betriebssysteme`, `schnittstellen`) werden in `createDefaultState()` und der `arrayKeys`-Liste in `store.ts` abgefangen. Alte JSON-Backups laden über `mergeWithDefault` unverändert — **kein Breaking-Change am Export-Format**.
