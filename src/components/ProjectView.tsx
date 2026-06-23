@@ -25,12 +25,13 @@ import { VersionControl } from './VersionControl';
 import { DORARegister } from './DORARegister';
 import { countItemsWithOpenFields } from '../cloudFields';
 import { EncryptionSettings } from './EncryptionSettings';
+import { KatalogUebersicht } from './KatalogUebersicht';
 
 type SubTab =
   | 'liefergegenstaende' | 'cockpit' | 'stakeholder' | 'meetings' | 'tops'
   | 'fragenliste' | 'landkarte' | 'schnittstellen' | 'beziehungen' | 'lizenz' | 'tco' | 'security' | 'zielarchitektur'
   | 'nis2' | 'euaiact' | 'souveraenitaet' | 'nachweise' | 'quellen' | 'nachhaltigkeit' | 'dora'
-  | 'bericht' | 'executive' | 'snapshots' | 'einstellungen';
+  | 'bericht' | 'executive' | 'snapshots' | 'einstellungen' | 'katalog';
 
 interface Props {
   state: AppState;
@@ -84,6 +85,8 @@ const GROUPS = [
         icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg> },
       { key: 'zielarchitektur' as SubTab, label: 'Zielarchitektur (LG 10)',
         icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg> },
+      { key: 'katalog' as SubTab, label: 'Komponentenkatalog',
+        icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg> },
     ],
   },
   {
@@ -289,6 +292,7 @@ export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeh
         {subTab === 'bericht'            && <InfrastrukturBericht state={state} />}
         {subTab === 'executive'          && <ExecutiveSummary state={state} />}
         {subTab === 'einstellungen'      && <EncryptionSettings onReload={onReload} />}
+        {subTab === 'katalog'            && <KatalogUebersicht />}
       </div>
     </div>
   );

@@ -60,6 +60,53 @@ export function buildCatalogAutofill(
   return { merged, filled };
 }
 
+export interface CatalogStats {
+  total: number;
+  byKind: { kind: ComponentKind; count: number }[];
+  openSource: number;
+  proprietary: number;
+  oeffentlicherSektor: number;
+  souveraen: number;       // tags include 'souverän' or de-relevante Cloud
+  byRelevance: { de: number; eu: number; global: number; unspecified: number };
+  ki: number;              // kind === 'ai'
+  hardware: number;
+  cloud: number;
+}
+
+/** Aggregated, deterministic stats over the whole catalog (for the overview view). */
+export function getCatalogStats(): CatalogStats {
+  const kinds = new Map<ComponentKind, number>();
+  let openSource = 0, proprietary = 0, oeffentlicherSektor = 0, souveraen = 0;
+  const byRelevance = { de: 0, eu: 0, global: 0, unspecified: 0 };
+  for (const e of COMPONENT_CATALOG) {
+    kinds.set(e.kind, (kinds.get(e.kind) ?? 0) + 1);
+    const lic = (e.defaultFields.lizenzart ?? e.defaultFields.lizenztyp ?? '').toLowerCase();
+    if (lic.includes('open source') || lic.includes('open-source') || lic.includes('open weights') || lic.includes('offener standard')) openSource++;
+    else if (lic) proprietary++;
+    if (e.oeffentlicherSektor) oeffentlicherSektor++;
+    if ((e.tags ?? []).includes('souverän')) souveraen++;
+    if (e.relevance === 'de') byRelevance.de++;
+    else if (e.relevance === 'eu') byRelevance.eu++;
+    else if (e.relevance === 'global') byRelevance.global++;
+    else byRelevance.unspecified++;
+  }
+  const byKind = [...kinds.entries()]
+    .map(([kind, count]) => ({ kind, count }))
+    .sort((a, b) => b.count - a.count);
+  return {
+    total: COMPONENT_CATALOG.length,
+    byKind,
+    openSource,
+    proprietary,
+    oeffentlicherSektor,
+    souveraen,
+    byRelevance,
+    ki: kinds.get('ai') ?? 0,
+    hardware: kinds.get('hardware') ?? 0,
+    cloud: kinds.get('cloud') ?? 0,
+  };
+}
+
 export function normalizeText(s: string): string {
   return s.toLowerCase().replace(/[\s\-_.]+/g, ' ').trim();
 }

@@ -30,6 +30,8 @@ const KIND_LABELS: { kind: ComponentKind | 'all'; label: string }[] = [
   { kind: 'iot', label: 'IoT' },
   { kind: 'middleware', label: 'Middleware' },
   { kind: 'devops', label: 'DevOps' },
+  { kind: 'ai', label: 'KI / AI' },
+  { kind: 'vdi', label: 'VDI' },
   { kind: 'hardware', label: 'Hardware' },
   { kind: 'cloud', label: 'Cloud/Hyperscaler' },
 ];
@@ -50,12 +52,12 @@ const CATEGORY_RELEVANT_KINDS: Record<string, ComponentKind[]> = {
   server:           ['hardware', 'virtualization'],
   clients:          ['hardware', 'os'],
   betriebssysteme:  ['os'],
-  anwendungen:      ['database', 'webserver', 'appserver', 'iam', 'container', 'monitoring', 'backup', 'middleware', 'devops', 'security', 'office', 'erp', 'crm', 'cloud'],
+  anwendungen:      ['database', 'webserver', 'appserver', 'iam', 'container', 'monitoring', 'backup', 'middleware', 'devops', 'security', 'office', 'erp', 'crm', 'ai', 'vdi', 'cloud'],
   netzkomponenten:  ['network', 'security'],
   sicherheitskomponenten: ['security', 'iam', 'network'],
   datentraeger:     ['storage', 'backup'],
   icsSysteme:       ['ics'],
-  iotSysteme:       ['iot', 'os'],
+  iotSysteme:       ['iot', 'os', 'hardware'],
 };
 
 export const ComponentPicker: React.FC<ComponentPickerProps> = ({ categoryKey, onSelect, onClose }) => {
