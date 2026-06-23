@@ -2,12 +2,20 @@ export type Status = 'Aktiv' | 'Inaktiv' | 'In Planung' | 'Außer Betrieb';
 export type JaNein = 'Ja' | 'Nein';
 export type ProzessArt = 'Kernprozess' | 'Unterstützungsprozess';
 
+export interface ObjektNotiz {
+  id: string;
+  text: string;
+  datum: string; // ISO date string
+  autor?: string;
+}
+
 export interface BaseItem {
   id: string;
   kuerzel: string;
   name: string;
   erlaeuterung: string;
   tags: string;
+  notizen?: ObjektNotiz[];
 }
 
 // Block 4 — CIA-Triade & Schutzbedarfsvererbung
@@ -44,6 +52,52 @@ export interface CloudFields {
   gaixZertifiziert?: 'Ja' | 'Nein' | 'Geplant' | 'Unklar';
 }
 
+/**
+ * Technische Hardware-/Asset-Attribute (LeanIX IT-Component / iTop PhysicalDevice).
+ * Wird per `extends` an Server, Client, Netzkomponente, ICS, IoT, Datenträger gemischt.
+ * Alle Felder optional → keine Migration nötig.
+ */
+export interface HardwareFields {
+  hersteller?: string;
+  modell?: string;
+  seriennummer?: string;
+  inventarnummer?: string;       // iTop asset_number
+  managementIp?: string;         // iTop managementip
+  stromverbrauch?: string;       // W
+  hoeheneinheiten?: string;      // HE
+  formfaktor?: string;
+  standortDetail?: string;
+  redundanz?: string;            // iTop redundancy (redundante Netzteile / HA)
+  // Technische Tiefe (collapsible "Technische Details")
+  cpu?: string;
+  ram?: string;                  // GB
+  speicher?: string;
+  leistungsaufnahmeMax?: string; // kW
+  spannung?: string;             // V
+}
+
+/**
+ * Betriebswirtschaftliche Attribute (AfA, Verträge, Betriebskosten).
+ * Wird an alle HW-Kategorien + Anwendungen gemischt. Alle Felder optional.
+ */
+export interface WirtschaftlichkeitFields {
+  anschaffungsdatum?: string;       // ISO YYYY-MM-DD — AfA-Beginn
+  produktivnahmeDatum?: string;     // iTop move2production
+  anschaffungspreis?: string;       // €
+  abschreibungsdauer?: string;      // Jahre
+  buchwert?: string;                // € — kann automatisch berechnet werden (Phase 7)
+  betriebskostenJahr?: string;      // €
+  wartungsvertrag?: string;         // Ja/Nein/Unklar
+  wartungskostenJahr?: string;      // €
+  vertragsbeginn?: string;          // ISO Datum
+  // vertragsende existiert bereits an Anwendung — hier ergänzt für HW-Kategorien
+  vertragsende?: string;            // ISO Datum
+  kuendigungsfrist?: string;
+  supportEnde?: string;             // EoL/EoS (Hersteller)
+  softwareSupportEnde?: string;     // iTop software_end_of_support
+  kostenstelle?: string;
+}
+
 export interface Geschaeftsprozess extends BaseItem {
   status: Status;
   prozessArt: ProzessArt | '';
@@ -62,7 +116,7 @@ export interface Datum extends BaseItem {
   anwendungen: string[];
 }
 
-export interface Anwendung extends BaseItem, CloudFields {
+export interface Anwendung extends BaseItem, CloudFields, WirtschaftlichkeitFields {
   status: Status;
   typ: string;
   verantwortlicher: string;
@@ -73,7 +127,49 @@ export interface Anwendung extends BaseItem, CloudFields {
   lizenzAnbieter?: string;
   lizenzmodell?: string;
   lizenzkosten?: string;
-  vertragsende?: string;
+  // vertragsende kommt aus WirtschaftlichkeitFields (ISO-String, abwärtskompatibel)
+  // Phase 3 — Software-Tiefe
+  hersteller?: string;
+  produktname?: string;
+  version?: string;
+  updateZyklus?: string;
+  linkBetriebshandbuch?: string;
+  linkRepository?: string;
+  linkHersteller?: string;
+  // Phase 3 — typabhängige Felder (conditional via showIf auf `typ`)
+  dbTyp?: string;
+  dbVersion?: string;
+  dbBackupStrategie?: string;
+  dbBackupOrt?: string;
+  dbReplikation?: string;
+  dbHochverfuegbarkeit?: string;
+  webServerSoftware?: string;
+  webTlsVersion?: string;
+  webPorts?: string;
+  webReverseProxy?: string;
+  osVersion?: string;
+  osPatchLevel?: string;
+  osKernel?: string;
+  osSupportEnde?: string;
+  osEdition?: string;
+  middlewareTyp?: string;
+  middlewareProtokolle?: string;
+  middlewareEndpunkte?: string;
+  erpModule?: string;
+  customizingGrad?: string;
+  mandanten?: string;
+  monitoringKategorie?: string;
+  monitoringAbdeckung?: string;
+  monitoringLogRetention?: string;
+  backupProdukt?: string;
+  backupRpo?: string;
+  backupRto?: string;
+  backup321?: string;
+  backupOffsite?: string;
+  hypervisorProdukt?: string;
+  virtClusterKnoten?: string;
+  virtVmAnzahl?: string;
+  virtLiveMigration?: string;
   // EU AI Act (Block 5) — alle optional
   istKISystem?: boolean;
   aiRisikoklasse?: 'Verboten' | 'Hoch' | 'Begrenzt' | 'Minimal' | 'Kein KI' | 'Unklar';
@@ -84,7 +180,7 @@ export interface Anwendung extends BaseItem, CloudFields {
   aiNotizen?: string;
 }
 
-export interface Datentraeger extends BaseItem {
+export interface Datentraeger extends BaseItem, HardwareFields, WirtschaftlichkeitFields {
   status: Status;
   anzahl: string;
   verantwortlicher: string;
@@ -93,7 +189,7 @@ export interface Datentraeger extends BaseItem {
   anwendungen: string[];
 }
 
-export interface Server extends BaseItem, CloudFields {
+export interface Server extends BaseItem, CloudFields, HardwareFields, WirtschaftlichkeitFields {
   status: Status;
   anzahl: string;
   plattform: string;
@@ -104,9 +200,11 @@ export interface Server extends BaseItem, CloudFields {
   netzverbindungen: string[];
   raeume: string[];
   gebaeude: string[];
+  // Phase 4 — referenzierte Betriebssysteme (IT-Component)
+  betriebssysteme?: string[];
 }
 
-export interface Netzkomponente extends BaseItem {
+export interface Netzkomponente extends BaseItem, HardwareFields, WirtschaftlichkeitFields {
   status: Status;
   anzahl: string;
   plattform: string;
@@ -130,7 +228,20 @@ export interface Netzverbindung extends BaseItem {
   gebaeude: string[];
 }
 
-export interface Client extends BaseItem, CloudFields {
+export interface Client extends BaseItem, CloudFields, HardwareFields, WirtschaftlichkeitFields {
+  status: Status;
+  anzahl: string;
+  plattform: string;
+  verantwortlicher: string;
+  benutzer: string;
+  itSysteme: string[];
+  netzverbindungen: string[];
+  raeume: string[];
+  gebaeude: string[];
+  betriebssysteme?: string[];
+}
+
+export interface ICSSystem extends BaseItem, CloudFields, HardwareFields, WirtschaftlichkeitFields {
   status: Status;
   anzahl: string;
   plattform: string;
@@ -142,7 +253,7 @@ export interface Client extends BaseItem, CloudFields {
   gebaeude: string[];
 }
 
-export interface ICSSystem extends BaseItem, CloudFields {
+export interface IoTSystem extends BaseItem, CloudFields, HardwareFields, WirtschaftlichkeitFields {
   status: Status;
   anzahl: string;
   plattform: string;
@@ -154,16 +265,43 @@ export interface ICSSystem extends BaseItem, CloudFields {
   gebaeude: string[];
 }
 
-export interface IoTSystem extends BaseItem, CloudFields {
+/**
+ * Schnittstelle / Kommunikationsbeziehung zwischen Anwendungen (Decision 3,
+ * LeanIX-"Interface"). quellAnwendung/zielAnwendung sind multiref → anwendungen
+ * (Engine-konform; primär wird der erste Eintrag verwendet).
+ */
+export interface Schnittstelle extends BaseItem {
   status: Status;
-  anzahl: string;
-  plattform: string;
-  verantwortlicher: string;
-  benutzer: string;
-  itSysteme: string[];
-  netzverbindungen: string[];
-  raeume: string[];
-  gebaeude: string[];
+  quellAnwendung: string[];
+  zielAnwendung: string[];
+  protokoll: string;
+  ports: string;
+  richtung: string;            // Unidirektional / Bidirektional
+  initiator: string;           // Quelle / Ziel / Beide
+  synchronitaet: string;       // Synchron / Asynchron / Batch
+  frequenz: string;
+  datenfluss: string;
+  verschluesselung: string;
+  authentifizierung: string;
+  firewallRegel: string;
+  voraussetzungen: string;
+  daten?: string[];
+}
+
+/**
+ * Betriebssystem als eigene, wiederverwendbare IT-Component (Decision 1,
+ * analog iTop OSFamily/OSVersion). Wird von Servern/Clients per multiref
+ * referenziert → ermöglicht "Server A → OS x → Apps a,b,c".
+ */
+export interface Betriebssystem extends BaseItem, WirtschaftlichkeitFields {
+  status: Status;
+  hersteller?: string;
+  version?: string;
+  kernel?: string;
+  // supportEnde kommt aus WirtschaftlichkeitFields
+  patchLevel?: string;
+  lizenztyp?: string;
+  architektur?: string;
 }
 
 export interface Raum extends BaseItem {
@@ -345,6 +483,8 @@ export interface AppState {
   geschaeftsprozesse: Geschaeftsprozess[];
   daten: Datum[];
   anwendungen: Anwendung[];
+  betriebssysteme: Betriebssystem[];
+  schnittstellen: Schnittstelle[];
   datentraeger: Datentraeger[];
   server: Server[];
   netzkomponenten: Netzkomponente[];

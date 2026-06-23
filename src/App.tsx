@@ -1,6 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import type { AppState, CategoryKey } from './types';
-import { loadState, saveState, createDefaultState, clearState, generateId, mergeWithDefault } from './store';
+import { loadState, saveState, loadStateFromIDB, createDefaultState, clearState, generateId, mergeWithDefault } from './store';
+import { idbSave } from './db';
 import { isEncrypted, decryptData, encryptData } from './crypto';
 import { CATEGORIES, CATEGORY_MAP } from './categories';
 import { AppHeader } from './components/AppHeader';
@@ -12,13 +13,15 @@ import { CloudDashboard } from './components/CloudDashboard';
 import { exportToExcel, exportWorkshopPackage } from './utils/export';
 import { exportToJSON, importFromJSON } from './utils/exportJSON';
 import { exportConsultantReport } from './utils/exportReport';
-import { importFromExcelWithMapping, importClassifiedRows } from './utils/import';
+import { importFromExcelWithMappingValidated, importClassifiedRows } from './utils/import';
+import type { ImportFehler } from './utils/import';
 import { ImportWizard } from './components/ImportWizard';
 import { EmailTemplate } from './components/EmailTemplate';
 import { CloudReadinessWizard } from './components/CloudReadinessWizard';
 import { OffenePunkte } from './components/OffenePunkte';
 import { ProjectView } from './components/ProjectView';
 import { AIAssistantSettings } from './components/AIAssistantSettings';
+import { GlobalSearch } from './components/GlobalSearch';
 import type { Liefergegenstand, Meeting, Stakeholder, Anwendung, TCODaten } from './types';
 import type { RowClassification } from './utils/importAnalyzer';
 import type { CloudFields } from './types';
@@ -95,11 +98,77 @@ function App() {
   const [showEmailTemplate, setShowEmailTemplate] = useState(false);
   const [cloudWizardTargetId, setCloudWizardTargetId] = useState<string | null>(null);
   const [showAISettings, setShowAISettings] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [idbRecoveryUsed, setIdbRecoveryUsed] = useState(false);
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+  const [importFehler, setImportFehler] = useState<ImportFehler[]>([]);
+  const [importErfolgreich, setImportErfolgreich] = useState<number>(0);
+  const [showImportResult, setShowImportResult] = useState(false);
+
+  // IDB hydration: on mount, check if IndexedDB has newer data than localStorage
+  useEffect(() => {
+    if (locked) return;
+    loadStateFromIDB().then(idbState => {
+      if (!idbState) return;
+      setState(prev => {
+        const localTs = prev.lastUpdated ?? '';
+        const idbTs = idbState.lastUpdated ?? '';
+        if (idbTs > localTs) {
+          setIdbRecoveryUsed(true);
+          return idbState;
+        }
+        return prev;
+      });
+    });
+  }, []); // runs once on mount
+
+  // beforeunload warning when a save is in flight
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (saveStatus === 'saving') {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [saveStatus]);
+
+  // Global search shortcut: Ctrl+K / Cmd+K
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowGlobalSearch(true);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  const saveWithStatus = useCallback((newState: AppState) => {
+    setSaveStatus('saving');
+    const json = JSON.stringify({ ...newState, lastUpdated: new Date().toISOString() });
+    // synchronous localStorage write (fast read cache)
+    try {
+      const id = localStorage.getItem('it-strukturanalyse-install-id');
+      if (id) localStorage.setItem(`it-strukturanalyse-data-${id}`, json);
+    } catch {
+      // ignore quota errors here; saveState handles alerting
+    }
+    idbSave(json)
+      .then(() => {
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus('idle'), 2000);
+      })
+      .catch(() => setSaveStatus('error'));
+  }, []);
 
   const updateState = useCallback((updater: (prev: AppState) => AppState) => {
     setState((prev) => {
       const next = updater(prev);
       saveState(next);
+      saveWithStatus(next);
       // If encryption is active, re-encrypt after writing plaintext
       if (isEncrypted()) {
         const sessionPw = sessionStorage.getItem(SESSION_PW_KEY);
@@ -118,7 +187,7 @@ function App() {
       }
       return next;
     });
-  }, []);
+  }, [saveWithStatus]);
 
   const handleCategoryChange = (key: CategoryKey) => {
     setActiveCategory(key);
@@ -208,12 +277,14 @@ function App() {
   const handleImportConfirm = async (mapping: Record<string, CategoryKey | null>) => {
     if (!importFile) return;
     try {
-      const newState = await importFromExcelWithMapping(importFile, mapping, state);
+      const { newState, erfolgreich, fehler } = await importFromExcelWithMappingValidated(importFile, mapping, state);
       const withDoc = addQuelldokument(newState, importFile.name, 'Excel');
       setState(withDoc);
       saveState(withDoc);
       setImportFile(null);
-      alert('Import erfolgreich!');
+      setImportErfolgreich(erfolgreich);
+      setImportFehler(fehler);
+      setShowImportResult(true);
     } catch (err) {
       alert('Import fehlgeschlagen: ' + String(err));
       setImportFile(null);
@@ -286,6 +357,24 @@ function App() {
   return (
     <div className="h-screen flex flex-col bg-hi-gray">
       {showAISettings && <AIAssistantSettings onClose={() => setShowAISettings(false)} />}
+      {showGlobalSearch && (
+        <GlobalSearch
+          state={state}
+          onClose={() => setShowGlobalSearch(false)}
+          onNavigate={(categoryKey, _itemId) => {
+            setActiveCategory(categoryKey);
+            setMode('detail');
+            setView('list');
+            setEditId(null);
+          }}
+        />
+      )}
+      {idbRecoveryUsed && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center justify-between text-sm text-amber-800">
+          <span>ℹ️ Daten wurden aus dem persistenten Speicher (IndexedDB) wiederhergestellt — möglicherweise neuer als der zuletzt angezeigte Stand.</span>
+          <button onClick={() => setIdbRecoveryUsed(false)} className="ml-4 text-amber-600 hover:text-amber-900">✕</button>
+        </div>
+      )}
       <AppHeader
         state={state}
         mode={mode}
@@ -297,6 +386,8 @@ function App() {
         onExportJSON={handleExportJSON}
         onExportReport={handleExportReport}
         onAISettings={() => setShowAISettings(true)}
+        onSearch={() => setShowGlobalSearch(true)}
+        saveStatus={saveStatus}
         onClearData={() => {
           clearState();           // entfernt Installations-ID + Daten-Key
           setState(createDefaultState()); // frisches Default-Objekt setzen
@@ -429,6 +520,13 @@ function App() {
           onCancel={() => setImportFile(null)}
         />
       )}
+      {showImportResult && (
+        <ImportResultModal
+          erfolgreich={importErfolgreich}
+          fehler={importFehler}
+          onClose={() => setShowImportResult(false)}
+        />
+      )}
       {cloudWizardTargetId !== null && (
         <CloudReadinessWizard
           state={state}
@@ -443,6 +541,103 @@ function App() {
           onClose={() => setShowEmailTemplate(false)}
         />
       )}
+    </div>
+  );
+}
+
+function ImportResultModal({ erfolgreich, fehler, onClose }: {
+  erfolgreich: number;
+  fehler: ImportFehler[];
+  onClose: () => void;
+}) {
+  const downloadCsv = () => {
+    if (fehler.length === 0) return;
+    const headers = Object.keys(fehler[0].originalRow ?? {});
+    const rows = fehler.map(f => {
+      const vals = headers.map(h => {
+        const v = String(f.originalRow[h] ?? '');
+        return v.includes(',') || v.includes('"') ? `"${v.replace(/"/g, '""')}"` : v;
+      });
+      vals.push(`"${f.fehler}"`);
+      return vals.join(',');
+    });
+    const csv = [[...headers, 'Fehlergrund'].join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'import-fehler.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col overflow-hidden">
+        <div className="bg-hi-navy px-6 py-4 flex items-center justify-between">
+          <h2 className="text-white font-bold text-lg">Import abgeschlossen</h2>
+          <button onClick={onClose} className="text-white/60 hover:text-white">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div className="flex gap-3">
+            <div className="flex-1 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center">
+              <p className="text-2xl font-bold text-emerald-700">{erfolgreich}</p>
+              <p className="text-xs text-emerald-600 font-medium mt-1">Zeilen importiert</p>
+            </div>
+            {fehler.length > 0 && (
+              <div className="flex-1 rounded-xl border border-red-200 bg-red-50 p-4 text-center">
+                <p className="text-2xl font-bold text-red-700">{fehler.length}</p>
+                <p className="text-xs text-red-600 font-medium mt-1">Zeilen fehlgeschlagen</p>
+              </div>
+            )}
+          </div>
+          {fehler.length > 0 && (
+            <>
+              <div className="overflow-x-auto rounded-xl border border-gray-200">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="text-left px-4 py-2 text-xs font-semibold text-hi-navy">Zeile</th>
+                      <th className="text-left px-4 py-2 text-xs font-semibold text-hi-navy">Kürzel / Name</th>
+                      <th className="text-left px-4 py-2 text-xs font-semibold text-hi-navy">Fehlergrund</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {fehler.map((f, i) => (
+                      <tr key={i} className="border-t border-gray-100">
+                        <td className="px-4 py-2 text-gray-500 font-mono text-xs">{f.zeile}</td>
+                        <td className="px-4 py-2 text-gray-700">{f.kuerzel || '—'}</td>
+                        <td className="px-4 py-2 text-red-700 text-xs">{f.fehler}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <button
+                onClick={downloadCsv}
+                className="flex items-center gap-2 px-4 py-2 bg-hi-navy text-white rounded-lg text-sm font-semibold hover:bg-hi-navy/80 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Fehler-Zeilen als CSV herunterladen
+              </button>
+            </>
+          )}
+        </div>
+        <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-5 py-2 bg-hi-accent text-white rounded-lg text-sm font-bold hover:bg-orange-600 transition-colors"
+          >
+            Schließen
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

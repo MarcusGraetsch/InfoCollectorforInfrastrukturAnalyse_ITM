@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import type { AppState, TCODaten, TCOSzenario } from '../types';
 import { esc, openPrintWindow, printHeader, printFooter } from '../utils/safePrint';
+import { summiereObjektkosten } from '../wirtschaftlichkeit';
 
 interface Props {
   state: AppState;
@@ -46,6 +47,27 @@ export const TCOModell: React.FC<Props> = ({ state, onUpdate }) => {
   const [showSchätzPreview, setShowSchätzPreview] = useState(false);
   const [showAIKosten, setShowAIKosten] = useState(false);
   const [schätzWerte, setSchätzWerte] = useState<null | { lizenzen: number; hardware: number; raumEnergie: number; wartung: number; cloudInfrastruktur: number; lizenzenSaaS: number; }>(null);
+  const [showObjektkosten, setShowObjektkosten] = useState(false);
+
+  // Decision 4 — aggregierte Ist-Kosten aus den per-Objekt erfassten Wirtschaftlichkeitsdaten.
+  const objektkosten = useMemo(() => summiereObjektkosten(state), [state]);
+
+  const übernehmeObjektkosten = () => {
+    const o = objektkosten;
+    const updated: TCODaten = {
+      ...tco,
+      istkostenOnPrem: {
+        ...tco.istkostenOnPrem,
+        // Hardware-Abschreibung/Jahr = Summe lineare AfA; Fallback: Anschaffung/Jahr existiert nicht → AfA
+        hardware: o.jahresAfaGesamt > 0 ? `${Math.round(o.jahresAfaGesamt)} €` : tco.istkostenOnPrem.hardware,
+        lizenzen: o.lizenzkostenJahr > 0 ? `${Math.round(o.lizenzkostenJahr)} €` : tco.istkostenOnPrem.lizenzen,
+        wartung: o.wartungskostenJahr > 0 ? `${Math.round(o.wartungskostenJahr)} €` : tco.istkostenOnPrem.wartung,
+        sonstiges: o.betriebskostenJahr > 0 ? `${Math.round(o.betriebskostenJahr)} €` : tco.istkostenOnPrem.sonstiges,
+      },
+    };
+    onUpdate(updated);
+    setShowObjektkosten(false);
+  };
 
   const berechneSchätzung = () => {
     const anwendungen = state.anwendungen ?? [];
@@ -154,6 +176,30 @@ export const TCOModell: React.FC<Props> = ({ state, onUpdate }) => {
       'h2{font-size:13px;margin-top:20px;border-bottom:1px solid #e5e7eb;padding-bottom:4px}');
   };
 
+  const handlePrintAfa = () => {
+    const o = objektkosten;
+    const rows = o.zeilen.map(z => `<tr>
+      <td>${esc(z.kuerzel)} ${esc(z.name)}</td>
+      <td>${esc(z.categoryLabel)}</td>
+      <td style="text-align:right;font-family:monospace">${z.anschaffungspreis > 0 ? `${z.anschaffungspreis.toLocaleString('de-DE')} €` : '–'}</td>
+      <td style="text-align:right;font-family:monospace">${z.buchwert ? `${z.buchwert.buchwert.toLocaleString('de-DE')} €` : '–'}</td>
+      <td style="text-align:right;font-family:monospace">${z.buchwert ? `${z.buchwert.jahresAfa.toLocaleString('de-DE')} €` : '–'}</td>
+      <td style="text-align:right;font-family:monospace">${z.buchwert ? (z.buchwert.abgeschrieben ? 'abgeschrieben' : `${z.buchwert.restlaufzeit} J.`) : '–'}</td>
+    </tr>`).join('');
+    const body = `${printHeader('Asset- & AfA-Übersicht', state.customerName)}
+      <p style="font-size:11px;color:#666">Lineare Abschreibung aus Anschaffungsdatum, -preis und Abschreibungsdauer. Objekte mit Restlaufzeit 0 sind Reinvestitions-Kandidaten.</p>
+      <table><thead><tr><th>Objekt</th><th>Kategorie</th><th style="text-align:right">Anschaffung</th><th style="text-align:right">Buchwert</th><th style="text-align:right">AfA/Jahr</th><th style="text-align:right">Restlaufzeit</th></tr></thead>
+      <tbody>${rows}
+      <tr style="font-weight:700;background:#f9fafb"><td colspan="2">Summe</td>
+      <td style="text-align:right;font-family:monospace">${o.anschaffungGesamt.toLocaleString('de-DE')} €</td>
+      <td style="text-align:right;font-family:monospace">${o.buchwertGesamt.toLocaleString('de-DE')} €</td>
+      <td style="text-align:right;font-family:monospace">${o.jahresAfaGesamt.toLocaleString('de-DE')} €</td>
+      <td></td></tr>
+      </tbody></table>
+      ${printFooter()}`;
+    openPrintWindow(`Asset-AfA-Übersicht — ${state.customerName || 'Kunde'}`, body);
+  };
+
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -165,6 +211,10 @@ export const TCOModell: React.FC<Props> = ({ state, onUpdate }) => {
           <button onClick={berechneSchätzung} className="flex items-center gap-1.5 px-3 py-2 text-xs bg-teal-50 text-teal-700 border border-teal-200 rounded-lg hover:bg-teal-100">
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
             Aus Infrastrukturdaten schätzen
+          </button>
+          <button onClick={() => setShowObjektkosten(true)} className="flex items-center gap-1.5 px-3 py-2 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-100">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+            Aus Objektdaten übernehmen
           </button>
           <button onClick={() => setShowLogik(s => !s)} className="flex items-center gap-1.5 px-3 py-2 text-xs bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100">
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
@@ -218,6 +268,55 @@ export const TCOModell: React.FC<Props> = ({ state, onUpdate }) => {
                 <button onClick={() => setShowSchätzPreview(false)} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Abbrechen</button>
                 <button onClick={übernehmeSchätzung} className="flex items-center gap-2 px-4 py-2 bg-hi-navy text-white rounded-lg text-sm font-medium hover:bg-hi-navy/90">
                   Werte übernehmen
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showObjektkosten && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowObjektkosten(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100">
+              <div>
+                <h3 className="text-lg font-bold text-hi-navy">Ist-Kosten aus Objektdaten</h3>
+                <p className="text-xs text-gray-500 mt-0.5">{objektkosten.zeilen.length} Objekte mit erfassten Wirtschaftlichkeitsdaten</p>
+              </div>
+              <button onClick={() => setShowObjektkosten(false)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-xs text-gray-500">Aggregiert aus den per-Objekt erfassten Feldern (Anschaffung, AfA, Betriebs-, Wartungs- und Lizenzkosten). Single Source of Truth — nur Felder mit Wert &gt; 0 werden übernommen, bestehende Eingaben bleiben sonst erhalten.</p>
+              <div className="space-y-2 text-sm">
+                {([
+                  ['Hardware / Abschreibung (Σ lineare AfA / Jahr)', objektkosten.jahresAfaGesamt],
+                  ['Lizenzen / Software (Σ aus Anwendungen)', objektkosten.lizenzkostenJahr],
+                  ['Wartung / Support (Σ / Jahr)', objektkosten.wartungskostenJahr],
+                  ['Sonstige Betriebskosten (Σ / Jahr)', objektkosten.betriebskostenJahr],
+                ] as [string, number][]).map(([l, v]) => (
+                  <div key={l} className="flex items-center justify-between gap-2">
+                    <span className="text-gray-600 flex-1">{l}</span>
+                    <span className="font-mono font-medium text-hi-navy w-32 text-right">{v > 0 ? `${v.toLocaleString('de-DE')} €` : '–'}</span>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-100 text-xs text-gray-500">
+                  <span className="flex-1">Asset-Buchwert gesamt (informativ)</span>
+                  <span className="font-mono w-32 text-right">{objektkosten.buchwertGesamt > 0 ? `${objektkosten.buchwertGesamt.toLocaleString('de-DE')} €` : '–'}</span>
+                </div>
+                <div className="flex items-center justify-between gap-2 text-xs text-gray-500">
+                  <span className="flex-1">Anschaffung gesamt (CAPEX, informativ)</span>
+                  <span className="font-mono w-32 text-right">{objektkosten.anschaffungGesamt > 0 ? `${objektkosten.anschaffungGesamt.toLocaleString('de-DE')} €` : '–'}</span>
+                </div>
+              </div>
+              {objektkosten.zeilen.length === 0 && (
+                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">Noch keine Objekte mit Wirtschaftlichkeitsdaten erfasst. Tragen Sie Anschaffungspreis, AfA-Dauer und Betriebskosten an Servern/Anwendungen ein.</p>
+              )}
+              <div className="flex gap-3 justify-end">
+                <button onClick={() => setShowObjektkosten(false)} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Abbrechen</button>
+                <button onClick={übernehmeObjektkosten} disabled={objektkosten.zeilen.length === 0} className="flex items-center gap-2 px-4 py-2 bg-hi-navy text-white rounded-lg text-sm font-medium hover:bg-hi-navy/90 disabled:opacity-40">
+                  In Ist-Kosten übernehmen
                 </button>
               </div>
             </div>
@@ -416,6 +515,58 @@ export const TCOModell: React.FC<Props> = ({ state, onUpdate }) => {
           <p className="text-xs text-center text-gray-400 mt-2">Bitte geben Sie Kostenwerte ein um den Vergleich zu berechnen.</p>
         )}
       </div>
+
+      {/* Decision 4 — Asset-/AfA-Übersicht */}
+      {objektkosten.zeilen.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block" />
+              Asset- & AfA-Übersicht <span className="text-gray-400 font-normal">(lineare Abschreibung)</span>
+            </h3>
+            <button onClick={handlePrintAfa} className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-gray-50 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-100">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2z" /></svg>
+              Drucken
+            </button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-left text-gray-500 border-b border-gray-200">
+                  <th className="py-1.5 pr-3 font-semibold">Objekt</th>
+                  <th className="py-1.5 pr-3 font-semibold">Kategorie</th>
+                  <th className="py-1.5 pr-3 font-semibold text-right">Anschaffung</th>
+                  <th className="py-1.5 pr-3 font-semibold text-right">Buchwert</th>
+                  <th className="py-1.5 pr-3 font-semibold text-right">AfA/Jahr</th>
+                  <th className="py-1.5 pr-3 font-semibold text-right">Restlaufzeit</th>
+                </tr>
+              </thead>
+              <tbody>
+                {objektkosten.zeilen.map(z => (
+                  <tr key={`${z.category}-${z.id}`} className="border-b border-gray-50">
+                    <td className="py-1.5 pr-3"><span className="font-mono text-hi-accent">{z.kuerzel}</span> {z.name}</td>
+                    <td className="py-1.5 pr-3 text-gray-500">{z.categoryLabel}</td>
+                    <td className="py-1.5 pr-3 text-right font-mono">{z.anschaffungspreis > 0 ? `${z.anschaffungspreis.toLocaleString('de-DE')} €` : '–'}</td>
+                    <td className="py-1.5 pr-3 text-right font-mono">{z.buchwert ? `${z.buchwert.buchwert.toLocaleString('de-DE')} €` : '–'}</td>
+                    <td className="py-1.5 pr-3 text-right font-mono">{z.buchwert ? `${z.buchwert.jahresAfa.toLocaleString('de-DE')} €` : '–'}</td>
+                    <td className="py-1.5 pr-3 text-right font-mono">{z.buchwert ? (z.buchwert.abgeschrieben ? <span className="text-red-600">abgeschrieben</span> : `${z.buchwert.restlaufzeit} J.`) : '–'}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="font-semibold text-hi-navy border-t border-gray-200">
+                  <td className="py-1.5 pr-3" colSpan={2}>Summe</td>
+                  <td className="py-1.5 pr-3 text-right font-mono">{objektkosten.anschaffungGesamt.toLocaleString('de-DE')} €</td>
+                  <td className="py-1.5 pr-3 text-right font-mono">{objektkosten.buchwertGesamt.toLocaleString('de-DE')} €</td>
+                  <td className="py-1.5 pr-3 text-right font-mono">{objektkosten.jahresAfaGesamt.toLocaleString('de-DE')} €</td>
+                  <td className="py-1.5 pr-3"></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <p className="text-xs text-gray-500">Buchwert linear berechnet aus Anschaffungsdatum, -preis und Abschreibungsdauer. Objekte mit Restlaufzeit 0 / „abgeschrieben" sind Reinvestitions-Kandidaten.</p>
+        </div>
+      )}
 
       {/* Notizen */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">

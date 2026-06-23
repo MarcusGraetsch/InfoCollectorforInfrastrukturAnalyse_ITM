@@ -1,6 +1,8 @@
 import type { CategoryKey } from './types';
 
-export type FieldType = 'text' | 'textarea' | 'select' | 'multiref';
+export type FieldType =
+  | 'text' | 'textarea' | 'select' | 'multiref'
+  | 'number' | 'date' | 'url' | 'table';
 
 export interface FieldDef {
   key: string;
@@ -12,8 +14,40 @@ export interface FieldDef {
   refCategory?: CategoryKey;
   tooltip?: string;
   required?: boolean;
-  /** 'basis' = BSI-Strukturanalyse, 'cloud' = Cloud-Readiness-Zusatz */
-  group?: 'basis' | 'cloud';
+  /**
+   * Visuelle Gruppierung im Formular:
+   * 'basis' = BSI-Strukturanalyse, 'cloud' = Cloud-Readiness-Zusatz,
+   * 'hardware' = Technik/Hardware, 'wirtschaft' = Wirtschaftlichkeit/Vertrag.
+   */
+  group?: 'basis' | 'cloud' | 'hardware' | 'wirtschaft';
+  /** Einheiten-Suffix für number-Felder (z.B. 'W', '€', 'GB', 'HE', 'Jahre'). */
+  unit?: string;
+  /** Minimalwert für number-Felder. */
+  min?: number;
+  /** Schrittweite für number-Felder. */
+  step?: number;
+  /** Platzhalter im Eingabefeld. */
+  placeholder?: string;
+  /**
+   * Optionale Unter-Sektion (collapsible). Felder mit gleichem `section`-Wert
+   * werden in einem einklappbaren Block zusammengefasst — z.B. "Technische Details".
+   */
+  section?: string;
+  /** Feld nur anzeigen, wenn ein anderes Feld einen der Werte hat (Conditional Field). */
+  showIf?: { field: string; equals: string[] };
+  /** Spalten-Definitionen für type='table' (1:N wiederholbare Feldgruppen). */
+  tableColumns?: Array<{ key: string; label: string; type?: 'text' | 'select'; options?: string[] }>;
+}
+
+/**
+ * Prüft, ob ein Feld unter den aktuellen Formularwerten sichtbar ist.
+ * Felder ohne `showIf` sind immer sichtbar. Versteckte Felder behalten ihren
+ * Wert (rein UI-seitige Sichtbarkeit) und werden nicht als "fehlend" gezählt.
+ */
+export function isFieldVisible(field: FieldDef, form: Record<string, unknown>): boolean {
+  if (!field.showIf) return true;
+  const current = String(form[field.showIf.field] ?? '');
+  return field.showIf.equals.includes(current);
 }
 
 /** Erklärende Hilfe für den durchführenden Mitarbeiter (BSI-orientiert). */
@@ -263,6 +297,117 @@ export const CLOUD_FIELDS: FieldDef[] = [
   },
 ];
 
+/**
+ * Hardware-/Asset-Felder (Decision 2): Basics immer sichtbar, tiefe Technik
+ * (CPU/RAM/Disk/Netzteile) in einem einklappbaren Block "Technische Details".
+ * Angehängt an Server, Clients, Netzkomponenten, ICS, IoT, Datenträger.
+ */
+export const HARDWARE_FIELDS: FieldDef[] = [
+  { key: 'hersteller', label: 'Hersteller', type: 'text', group: 'hardware', suggestions: ['Dell', 'HPE', 'Lenovo', 'Fujitsu', 'Cisco', 'Supermicro', 'IBM', 'Huawei', 'Apple', 'Microsoft'], tooltip: 'Gerätehersteller (Asset-Stammdatum, iTop brand_id)' },
+  { key: 'modell', label: 'Modell / Typ', type: 'text', group: 'hardware', tooltip: 'z.B. „PowerEdge R750" (iTop model_id)' },
+  { key: 'seriennummer', label: 'Seriennummer', type: 'text', group: 'hardware', tooltip: 'Seriennummer / S/N des Geräts' },
+  { key: 'inventarnummer', label: 'Inventar-/Asset-Nummer', type: 'text', group: 'hardware', tooltip: 'Für die Anlagenbuchhaltung (iTop asset_number)' },
+  { key: 'stromverbrauch', label: 'Stromverbrauch (typ.)', type: 'number', unit: 'W', min: 0, group: 'hardware', tooltip: 'Typische Leistungsaufnahme — Grundlage für Energiekosten/Nachhaltigkeit' },
+  { key: 'hoeheneinheiten', label: 'Höheneinheiten', type: 'number', unit: 'HE', min: 0, group: 'hardware', tooltip: 'Rack-Höheneinheiten (iTop nb_u)' },
+  { key: 'managementIp', label: 'Management-IP', type: 'text', group: 'hardware', tooltip: 'IP der Management-Schnittstelle (iLO/iDRAC/IPMI, iTop managementip)' },
+  { key: 'formfaktor', label: 'Formfaktor', type: 'select', options: ['Rack', 'Tower', 'Blade', 'Virtuell', 'Mobil', 'Embedded'], group: 'hardware', tooltip: 'Bauform des Geräts' },
+  { key: 'redundanz', label: 'Redundanz / Netzteile', type: 'select', options: ['Keine', 'Redundante Netzteile', 'HA / Cluster', 'Unklar'], group: 'hardware', tooltip: 'Redundanzgrad (iTop redundancy)' },
+  { key: 'standortDetail', label: 'Rack / Standort-Detail', type: 'text', group: 'hardware', tooltip: 'z.B. „Rack 4, HE 12–13"' },
+  // ── Technische Details (einklappbar) ──
+  { key: 'cpu', label: 'CPU (Typ / Kerne)', type: 'text', group: 'hardware', section: 'Technische Details', tooltip: 'z.B. „2× Xeon Gold 6338, 64C"' },
+  { key: 'ram', label: 'Arbeitsspeicher', type: 'number', unit: 'GB', min: 0, group: 'hardware', section: 'Technische Details', tooltip: 'Hauptspeicher in GB' },
+  { key: 'speicher', label: 'Speicher / Kapazität', type: 'text', group: 'hardware', section: 'Technische Details', tooltip: 'z.B. „2× 1,92 TB SSD RAID1"' },
+  { key: 'leistungsaufnahmeMax', label: 'Leistungsaufnahme (max.)', type: 'number', unit: 'kW', min: 0, step: 0.1, group: 'hardware', section: 'Technische Details', tooltip: 'Maximale Leistungsaufnahme' },
+  { key: 'spannung', label: 'Versorgungsspannung', type: 'text', group: 'hardware', section: 'Technische Details', tooltip: 'z.B. 230 / 400 V' },
+];
+
+/**
+ * Wirtschaftlichkeits-/Vertragsfelder (Decision 4). Angehängt an alle
+ * HW-Kategorien + Anwendungen. Anschaffungsdatum/-preis/Abschreibungsdauer
+ * sind Grundlage für die AfA-Berechnung (Phase 7).
+ */
+export const WIRTSCHAFTLICHKEIT_FIELDS: FieldDef[] = [
+  { key: 'anschaffungsdatum', label: 'Anschaffungsdatum', type: 'date', group: 'wirtschaft', tooltip: 'Kaufdatum — Beginn der linearen AfA' },
+  { key: 'produktivnahmeDatum', label: 'Produktivnahme', type: 'date', group: 'wirtschaft', tooltip: 'Datum der Inbetriebnahme (iTop move2production)' },
+  { key: 'anschaffungspreis', label: 'Anschaffungspreis (netto)', type: 'number', unit: '€', min: 0, group: 'wirtschaft', tooltip: 'Netto-Anschaffungspreis — Basis für AfA und TCO' },
+  { key: 'abschreibungsdauer', label: 'Abschreibungsdauer', type: 'number', unit: 'Jahre', min: 0, group: 'wirtschaft', tooltip: 'Nutzungsdauer für lineare AfA (Server/PC üblich 3–5 J.)' },
+  { key: 'buchwert', label: 'Aktueller Buchwert', type: 'number', unit: '€', min: 0, group: 'wirtschaft', tooltip: 'Kann aus Anschaffung + AfA automatisch berechnet werden (AfA-Übersicht)' },
+  { key: 'betriebskostenJahr', label: 'Betriebskosten / Jahr', type: 'number', unit: '€', min: 0, group: 'wirtschaft', tooltip: 'Laufende Betriebskosten pro Jahr — fließen in TCO Ist-Summe' },
+  { key: 'wartungsvertrag', label: 'Wartungsvertrag', type: 'select', options: ['Ja', 'Nein', 'Unklar'], group: 'wirtschaft', tooltip: 'Besteht ein Wartungsvertrag?' },
+  { key: 'wartungskostenJahr', label: 'Wartungskosten / Jahr', type: 'number', unit: '€', min: 0, group: 'wirtschaft', tooltip: 'Jährliche Wartungs-/Supportkosten' },
+  { key: 'vertragsbeginn', label: 'Vertragsbeginn', type: 'date', group: 'wirtschaft', tooltip: 'Beginn des Wartungs-/Lizenzvertrags' },
+  { key: 'vertragsende', label: 'Vertragsende', type: 'date', group: 'wirtschaft', tooltip: 'Ende des Vertrags' },
+  { key: 'kuendigungsfrist', label: 'Kündigungsfrist', type: 'text', group: 'wirtschaft', tooltip: 'z.B. „3 Monate zum Quartalsende"' },
+  { key: 'supportEnde', label: 'Support-Ende (EoL/EoS)', type: 'date', group: 'wirtschaft', tooltip: 'Herstellersupport-Ende (iTop model_end_of_support)' },
+  { key: 'softwareSupportEnde', label: 'Software-Support-Ende', type: 'date', group: 'wirtschaft', tooltip: 'End-of-Support der Software (iTop software_end_of_support)' },
+  { key: 'kostenstelle', label: 'Kostenstelle', type: 'text', group: 'wirtschaft', tooltip: 'Kostenstelle für das Controlling' },
+];
+
+/**
+ * Erweiterte Software-Felder für Anwendungen (Phase 3). Hersteller/Version/Links
+ * sind immer sichtbar; die typabhängigen Feldsätze werden via `showIf` auf das
+ * bestehende `typ`-Select ein-/ausgeblendet. Die equals-Werte entsprechen exakt
+ * den Optionen des `typ`-Feldes.
+ */
+export const SOFTWARE_FIELDS: FieldDef[] = [
+  { key: 'hersteller', label: 'Hersteller / Anbieter', type: 'text', group: 'basis', suggestions: ['Microsoft', 'SAP', 'Oracle', 'Atlassian', 'Adobe', 'Salesforce', 'IBM', 'VMware', 'Red Hat', 'Google'], tooltip: 'Software-Hersteller / Anbieter' },
+  { key: 'produktname', label: 'Produktname', type: 'text', group: 'basis', tooltip: 'Offizieller Produktname' },
+  { key: 'version', label: 'Version', type: 'text', group: 'basis', tooltip: 'z.B. „2024 R2", „15.6.1"' },
+  { key: 'updateZyklus', label: 'Update-Zyklus', type: 'select', options: ['Kontinuierlich', 'Monatlich', 'Quartalsweise', 'Jährlich', 'Bei Bedarf', 'Unklar'], group: 'basis', tooltip: 'Wie häufig wird die Software aktualisiert?' },
+  { key: 'linkBetriebshandbuch', label: 'Link Betriebshandbuch', type: 'url', group: 'basis', tooltip: 'Verweis auf das Betriebshandbuch / die Doku' },
+  { key: 'linkRepository', label: 'Link Repository', type: 'url', group: 'basis', tooltip: 'Git-/Artefakt-Repository' },
+  { key: 'linkHersteller', label: 'Link Hersteller/Produkt', type: 'url', group: 'basis', tooltip: 'Produkt-/Doku-Website des Herstellers' },
+
+  // a) Datenbank
+  { key: 'dbTyp', label: 'DB-Modell', type: 'select', options: ['Relational', 'NoSQL (Dokument)', 'Key-Value', 'Graph', 'Zeitreihen', 'Spaltenorientiert'], group: 'basis', section: 'Datenbank-Details', showIf: { field: 'typ', equals: ['Datenbank / Datenhaltung'] }, tooltip: 'Datenbankmodell' },
+  { key: 'dbVersion', label: 'DB-Produkt / Version', type: 'text', group: 'basis', section: 'Datenbank-Details', suggestions: ['PostgreSQL', 'Oracle', 'MS SQL Server', 'MySQL/MariaDB', 'MongoDB', 'Redis'], showIf: { field: 'typ', equals: ['Datenbank / Datenhaltung'] }, tooltip: 'DB-Produkt und Version' },
+  { key: 'dbBackupStrategie', label: 'Backup-Strategie', type: 'select', options: ['Full täglich', 'Inkrementell', 'Dump', 'Snapshot', 'Keine', 'Unklar'], group: 'basis', section: 'Datenbank-Details', showIf: { field: 'typ', equals: ['Datenbank / Datenhaltung'] } },
+  { key: 'dbBackupOrt', label: 'Backup-Ort', type: 'text', group: 'basis', section: 'Datenbank-Details', suggestions: ['NAS', 'Band', 'Cloud', 'Offsite'], showIf: { field: 'typ', equals: ['Datenbank / Datenhaltung'] } },
+  { key: 'dbReplikation', label: 'Replikation', type: 'select', options: ['Keine', 'Master-Replica', 'Multi-Master', 'Log-Shipping', 'Unklar'], group: 'basis', section: 'Datenbank-Details', showIf: { field: 'typ', equals: ['Datenbank / Datenhaltung'] } },
+  { key: 'dbHochverfuegbarkeit', label: 'HA-/Cluster-Setup', type: 'select', options: ['Keines', 'Failover-Cluster', 'Always-On', 'Patroni', 'Unklar'], group: 'basis', section: 'Datenbank-Details', showIf: { field: 'typ', equals: ['Datenbank / Datenhaltung'] } },
+
+  // b) Webserver / Backend
+  { key: 'webServerSoftware', label: 'Server-Software', type: 'select', options: ['nginx', 'Apache HTTP', 'IIS', 'Caddy', 'Tomcat', 'Node.js', 'Sonstiges'], group: 'basis', section: 'Web-/Backend-Details', showIf: { field: 'typ', equals: ['Web-Applikation (Browser-basiert)', 'Server-Dienst / Backend-Service'] } },
+  { key: 'webTlsVersion', label: 'TLS-Version', type: 'select', options: ['TLS 1.3', 'TLS 1.2', 'gemischt', 'kein TLS', 'Unklar'], group: 'basis', section: 'Web-/Backend-Details', showIf: { field: 'typ', equals: ['Web-Applikation (Browser-basiert)', 'Server-Dienst / Backend-Service'] } },
+  { key: 'webPorts', label: 'Exponierte Ports', type: 'text', group: 'basis', section: 'Web-/Backend-Details', placeholder: '80, 443', showIf: { field: 'typ', equals: ['Web-Applikation (Browser-basiert)', 'Server-Dienst / Backend-Service'] } },
+  { key: 'webReverseProxy', label: 'Reverse Proxy / WAF', type: 'text', group: 'basis', section: 'Web-/Backend-Details', showIf: { field: 'typ', equals: ['Web-Applikation (Browser-basiert)', 'Server-Dienst / Backend-Service'] } },
+
+  // c) Betriebssystem-nahe Software
+  { key: 'osVersion', label: 'OS-Version', type: 'text', group: 'basis', section: 'Betriebssystem-Details', showIf: { field: 'typ', equals: ['OS-nahe Software / Treiber'] } },
+  { key: 'osPatchLevel', label: 'Patch-Level / Build', type: 'text', group: 'basis', section: 'Betriebssystem-Details', showIf: { field: 'typ', equals: ['OS-nahe Software / Treiber'] } },
+  { key: 'osKernel', label: 'Kernel-Version', type: 'text', group: 'basis', section: 'Betriebssystem-Details', showIf: { field: 'typ', equals: ['OS-nahe Software / Treiber'] } },
+  { key: 'osSupportEnde', label: 'OS-Support-Ende', type: 'date', group: 'basis', section: 'Betriebssystem-Details', showIf: { field: 'typ', equals: ['OS-nahe Software / Treiber'] } },
+  { key: 'osEdition', label: 'Edition / Architektur', type: 'text', group: 'basis', section: 'Betriebssystem-Details', placeholder: 'Datacenter x64', showIf: { field: 'typ', equals: ['OS-nahe Software / Treiber'] } },
+
+  // d) Middleware / Integration
+  { key: 'middlewareTyp', label: 'Middleware-Typ', type: 'select', options: ['Message Broker', 'ESB', 'API-Gateway', 'ETL', 'App-Server', 'iPaaS'], group: 'basis', section: 'Middleware-Details', showIf: { field: 'typ', equals: ['Middleware / Integration'] } },
+  { key: 'middlewareProtokolle', label: 'Protokolle', type: 'text', group: 'basis', section: 'Middleware-Details', placeholder: 'AMQP, JMS, Kafka, SOAP, REST', showIf: { field: 'typ', equals: ['Middleware / Integration'] } },
+  { key: 'middlewareEndpunkte', label: 'Anzahl Endpunkte/Flows', type: 'number', min: 0, group: 'basis', section: 'Middleware-Details', showIf: { field: 'typ', equals: ['Middleware / Integration'] } },
+
+  // e) ERP / CRM
+  { key: 'erpModule', label: 'Aktive Module', type: 'text', group: 'basis', section: 'ERP/CRM-Details', placeholder: 'FI/CO, MM, SD, HR …', showIf: { field: 'typ', equals: ['ERP / CRM (Geschäftssoftware)'] } },
+  { key: 'customizingGrad', label: 'Customizing-Grad', type: 'select', options: ['Standard', 'Mittel', 'Stark angepasst', 'Unklar'], group: 'basis', section: 'ERP/CRM-Details', showIf: { field: 'typ', equals: ['ERP / CRM (Geschäftssoftware)'] } },
+  { key: 'mandanten', label: 'Anzahl Mandanten', type: 'number', min: 0, group: 'basis', section: 'ERP/CRM-Details', showIf: { field: 'typ', equals: ['ERP / CRM (Geschäftssoftware)'] } },
+
+  // f) Monitoring / Security
+  { key: 'monitoringKategorie', label: 'Kategorie', type: 'select', options: ['SIEM', 'EDR/AV', 'Firewall-Mgmt', 'Monitoring', 'Vuln-Scan', 'IAM'], group: 'basis', section: 'Monitoring/Security-Details', showIf: { field: 'typ', equals: ['Sicherheits-/Monitoring-Tool'] } },
+  { key: 'monitoringAbdeckung', label: 'Abdeckung', type: 'text', group: 'basis', section: 'Monitoring/Security-Details', placeholder: 'alle Server + Clients', showIf: { field: 'typ', equals: ['Sicherheits-/Monitoring-Tool'] } },
+  { key: 'monitoringLogRetention', label: 'Log-Aufbewahrung', type: 'text', group: 'basis', section: 'Monitoring/Security-Details', placeholder: 'z.B. 90 Tage', showIf: { field: 'typ', equals: ['Sicherheits-/Monitoring-Tool'] } },
+
+  // g) Backup-Software
+  { key: 'backupProdukt', label: 'Produkt', type: 'text', group: 'basis', section: 'Backup-Details', suggestions: ['Veeam', 'Veritas', 'Commvault', 'Bareos'], showIf: { field: 'typ', equals: ['Backup-Software'] } },
+  { key: 'backupRpo', label: 'RPO (Recovery Point)', type: 'text', group: 'basis', section: 'Backup-Details', showIf: { field: 'typ', equals: ['Backup-Software'] } },
+  { key: 'backupRto', label: 'RTO (Recovery Time)', type: 'text', group: 'basis', section: 'Backup-Details', showIf: { field: 'typ', equals: ['Backup-Software'] } },
+  { key: 'backup321', label: '3-2-1-Regel erfüllt', type: 'select', options: ['Ja', 'Teilweise', 'Nein', 'Unklar'], group: 'basis', section: 'Backup-Details', showIf: { field: 'typ', equals: ['Backup-Software'] } },
+  { key: 'backupOffsite', label: 'Offsite-/Air-Gap-Kopie', type: 'select', options: ['Ja', 'Nein', 'Unklar'], group: 'basis', section: 'Backup-Details', showIf: { field: 'typ', equals: ['Backup-Software'] } },
+
+  // h) Virtualisierung / Hypervisor
+  { key: 'hypervisorProdukt', label: 'Hypervisor', type: 'select', options: ['VMware vSphere', 'Hyper-V', 'Proxmox VE', 'Nutanix AHV', 'KVM', 'Citrix'], group: 'basis', section: 'Virtualisierung-Details', showIf: { field: 'typ', equals: ['Virtualisierung / Hypervisor'] } },
+  { key: 'virtClusterKnoten', label: 'Cluster-Knoten', type: 'number', min: 0, group: 'basis', section: 'Virtualisierung-Details', showIf: { field: 'typ', equals: ['Virtualisierung / Hypervisor'] } },
+  { key: 'virtVmAnzahl', label: 'Anzahl VMs', type: 'number', min: 0, group: 'basis', section: 'Virtualisierung-Details', showIf: { field: 'typ', equals: ['Virtualisierung / Hypervisor'] } },
+  { key: 'virtLiveMigration', label: 'Live-Migration', type: 'select', options: ['Ja', 'Nein', 'Unklar'], group: 'basis', section: 'Virtualisierung-Details', showIf: { field: 'typ', equals: ['Virtualisierung / Hypervisor'] } },
+];
+
 export const CATEGORIES: CategoryDef[] = [
   {
     key: 'geschaeftsprozesse',
@@ -321,10 +466,12 @@ export const CATEGORIES: CategoryDef[] = [
           'Middleware / Integration',
           'Entwicklungs-/DevOps-Tool',
           'Sicherheits-/Monitoring-Tool',
+          'Backup-Software',
+          'Virtualisierung / Hypervisor',
           'OS-nahe Software / Treiber',
           'Sonstiges',
         ],
-        tooltip: 'Art der Anwendung – hilft bei der Einordnung und Cloud-Eignung',
+        tooltip: 'Art der Anwendung – hilft bei der Einordnung und Cloud-Eignung. Je nach Typ erscheinen zusätzliche Detailfelder.',
       },
       STATUS_FIELD,
       { key: 'verantwortlicher', label: 'Verantwortlich/Administrator', type: 'text', tooltip: 'Technisch verantwortliche Person oder Rolle', suggestions: ['IT-Administration', 'Application Owner', 'Fachbereichsleitung', 'IT-Leitung / CIO', 'Externes RZ / Dienstleister', 'DevOps-Team'] },
@@ -333,6 +480,62 @@ export const CATEGORIES: CategoryDef[] = [
       { key: 'anwendungen', label: 'Abhängige Anwendungen', type: 'multiref', refCategory: 'anwendungen', tooltip: 'Andere Anwendungen von denen diese abhängt' },
       { key: 'itSysteme', label: 'IT-Systeme', type: 'multiref', refCategory: 'server', tooltip: 'Server und Systeme auf denen die Anwendung läuft' },
       { key: 'netzverbindungen', label: 'Netzverbindungen', type: 'multiref', refCategory: 'netzverbindungen', tooltip: 'Genutzte Netzverbindungen' },
+      {
+        key: 'lizenzen',
+        label: 'Lizenzen',
+        type: 'table',
+        tableColumns: [
+          { key: 'typ', label: 'Lizenztyp', type: 'select', options: ['Perpetual', 'Subscription', 'OEM', 'Open Source', 'Freeware', 'Sonstige'] },
+          { key: 'anzahl', label: 'Anzahl', type: 'text' },
+          { key: 'ablauf', label: 'Ablaufdatum', type: 'text' },
+          { key: 'anbieter', label: 'Anbieter', type: 'text' },
+        ],
+      },
+    ],
+  },
+  {
+    key: 'betriebssysteme',
+    label: 'Betriebssysteme',
+    prefix: 'OS',
+    fields: [
+      { key: 'kuerzel', label: 'Kürzel', type: 'text', tooltip: 'Eindeutiges Kürzel, z.B. OS-001', required: true },
+      { key: 'name', label: 'Name', type: 'text', tooltip: 'Bezeichnung des Betriebssystems, z.B. „Windows Server 2022 Datacenter"', required: true, suggestions: ['Windows Server 2022', 'Windows Server 2019', 'Windows 11 Pro', 'Ubuntu Server 24.04 LTS', 'Ubuntu Server 22.04 LTS', 'Red Hat Enterprise Linux 9', 'SUSE Linux Enterprise 15', 'Debian 12', 'VMware ESXi 8.0', 'macOS 15 Sequoia'] },
+      { key: 'erlaeuterung', label: 'Erläuterung', type: 'textarea', tooltip: 'Beschreibung / Einsatzzweck des Betriebssystems' },
+      STATUS_FIELD,
+      { key: 'hersteller', label: 'Hersteller', type: 'text', suggestions: ['Microsoft', 'Canonical', 'Red Hat', 'SUSE', 'Debian', 'VMware', 'Apple', 'Oracle'], tooltip: 'OS-Hersteller (iTop OSFamily)' },
+      { key: 'version', label: 'Version', type: 'text', tooltip: 'OS-Version / Release (iTop OSVersion)' },
+      { key: 'kernel', label: 'Kernel-Version', type: 'text', tooltip: 'Kernel-/Build-Version' },
+      { key: 'patchLevel', label: 'Patch-Level', type: 'text', tooltip: 'Aktueller Patch-/Update-Stand' },
+      { key: 'architektur', label: 'Architektur', type: 'select', options: ['x86-64', 'ARM64', 'x86 (32-bit)', 'Sonstige'], tooltip: 'Prozessor-Architektur' },
+      { key: 'lizenztyp', label: 'Lizenztyp', type: 'select', options: ['Proprietär (Volumenlizenz)', 'Proprietär (OEM)', 'Subscription', 'Open Source (frei)', 'Open Source (Support-Abo)', 'Unklar'], tooltip: 'Lizenzmodell des OS' },
+      { key: 'supportEnde', label: 'Support-Ende (EoL)', type: 'date', tooltip: 'End-of-Life / End-of-Support des OS' },
+      TAGS_FIELD,
+    ],
+  },
+  {
+    key: 'schnittstellen',
+    label: 'Schnittstellen / Kommunikation',
+    prefix: 'SS',
+    fields: [
+      { key: 'kuerzel', label: 'Kürzel', type: 'text', tooltip: 'Eindeutiges Kürzel, z.B. SS-001', required: true },
+      { key: 'name', label: 'Name', type: 'text', tooltip: 'Bezeichnung der Schnittstelle', required: true },
+      { key: 'erlaeuterung', label: 'Erläuterung / Zweck', type: 'textarea', tooltip: 'Wozu dient die Schnittstelle?' },
+      STATUS_FIELD,
+      { key: 'quellAnwendung', label: 'Quell-Anwendung', type: 'multiref', refCategory: 'anwendungen', tooltip: 'Sendende/initiierende Anwendung (Quelle des Datenflusses)' },
+      { key: 'zielAnwendung', label: 'Ziel-Anwendung', type: 'multiref', refCategory: 'anwendungen', tooltip: 'Empfangende Anwendung (Ziel des Datenflusses)' },
+      { key: 'richtung', label: 'Richtung', type: 'select', options: ['Unidirektional', 'Bidirektional'], tooltip: 'Datenflussrichtung' },
+      { key: 'initiator', label: 'Initiator', type: 'select', options: ['Quelle', 'Ziel', 'Beide'], tooltip: 'Wer baut die Verbindung auf?' },
+      { key: 'protokoll', label: 'Protokoll', type: 'text', suggestions: ['HTTPS/REST', 'gRPC', 'SOAP', 'JDBC', 'AMQP', 'Kafka', 'SFTP', 'MQTT', 'OPC UA', 'GraphQL', 'WebSocket'], tooltip: 'Kommunikationsprotokoll' },
+      { key: 'ports', label: 'Port(s)', type: 'text', placeholder: '443, 8443', tooltip: 'Verwendete Ports' },
+      { key: 'synchronitaet', label: 'Übertragungsart', type: 'select', options: ['Synchron', 'Asynchron', 'Batch'], tooltip: 'Synchron / Asynchron / Batch' },
+      { key: 'frequenz', label: 'Frequenz', type: 'select', options: ['Echtzeit', 'Minütlich', 'Stündlich', 'Täglich', 'Nächtlich', 'On Demand', 'Unklar'], tooltip: 'Wie oft fließen Daten?' },
+      { key: 'datenfluss', label: 'Datenfluss (welche Daten?)', type: 'textarea', tooltip: 'Welche Daten werden übertragen?' },
+      { key: 'daten', label: 'Verknüpfte Datenobjekte', type: 'multiref', refCategory: 'daten', tooltip: 'Übertragene Datenobjekte (optional)' },
+      { key: 'verschluesselung', label: 'Verschlüsselung', type: 'select', options: ['TLS 1.3', 'TLS 1.2', 'mTLS', 'VPN', 'Keine', 'Unklar'], tooltip: 'Transportverschlüsselung — "Keine" ist ein Sicherheitsrisiko' },
+      { key: 'authentifizierung', label: 'Authentifizierung', type: 'select', options: ['OAuth2', 'API-Key', 'mTLS', 'Zertifikat', 'Basic Auth', 'Keine', 'Unklar'], tooltip: 'Authentifizierungsverfahren' },
+      { key: 'firewallRegel', label: 'Firewall-Regel', type: 'textarea', tooltip: 'Benötigte Firewall-Freischaltungen' },
+      { key: 'voraussetzungen', label: 'Voraussetzungen', type: 'textarea', tooltip: 'Weitere Voraussetzungen / Abhängigkeiten' },
+      TAGS_FIELD,
     ],
   },
   {
@@ -391,11 +594,25 @@ export const CATEGORIES: CategoryDef[] = [
       { key: 'verantwortlicher', label: 'Verantwortlich/Administrator', type: 'text', tooltip: 'Systemadministrator oder zuständige Rolle', suggestions: ['Systemadministrator', 'IT-Leitung', 'DevOps-Team', 'Externes RZ / Managed Service', 'Cloud-Team', 'Fachbereichsleitung'] },
       { key: 'benutzer', label: 'Benutzer', type: 'text', tooltip: 'Nutzergruppen des Servers', suggestions: ['IT-Administration', 'Alle Mitarbeiter (Dienste)', 'Anwendungsnutzer', 'Entwickler', 'Externe Dienstleister'] },
       TAGS_FIELD,
+      { key: 'betriebssysteme', label: 'Betriebssysteme', type: 'multiref', refCategory: 'betriebssysteme', tooltip: 'Auf dem Server installierte Betriebssysteme (wiederverwendbare IT-Component)' },
       { key: 'anwendungen', label: 'Anwendungen', type: 'multiref', refCategory: 'anwendungen', tooltip: 'Auf dem Server betriebene Anwendungen' },
       { key: 'itSysteme', label: 'IT-Systeme', type: 'multiref', refCategory: 'server', tooltip: 'Verknüpfte IT-Systeme' },
       { key: 'netzverbindungen', label: 'Netzverbindungen', type: 'multiref', refCategory: 'netzverbindungen', tooltip: 'Netzverbindungen des Servers' },
       { key: 'raeume', label: 'Räume', type: 'multiref', refCategory: 'raeume', tooltip: 'Aufstellungsort (Raum)' },
       { key: 'gebaeude', label: 'Gebäude', type: 'multiref', refCategory: 'gebaeude', tooltip: 'Aufstellungsort (Gebäude)' },
+      {
+        key: 'netzwerkInterfaces',
+        label: 'Netzwerk-Interfaces',
+        type: 'table',
+        section: 'Technische Details',
+        tableColumns: [
+          { key: 'name', label: 'Interface', type: 'text' },
+          { key: 'ip', label: 'IP-Adresse', type: 'text' },
+          { key: 'mac', label: 'MAC-Adresse', type: 'text' },
+          { key: 'vlan', label: 'VLAN', type: 'text' },
+          { key: 'typ', label: 'Typ', type: 'select', options: ['Ethernet', 'WiFi', 'Fiber', 'iDRAC/iLO', 'Sonstige'] },
+        ],
+      },
     ],
   },
   {
@@ -466,6 +683,7 @@ export const CATEGORIES: CategoryDef[] = [
       { key: 'verantwortlicher', label: 'Verantwortlich/Administrator', type: 'text', tooltip: 'Zuständige Person oder Rolle', suggestions: ['Client-Management', 'IT-Helpdesk / Support', 'IT-Administration', 'Managed Service Provider', 'IT-Leitung'] },
       { key: 'benutzer', label: 'Benutzer', type: 'text', tooltip: 'Nutzergruppen des Clients', suggestions: ['Alle Mitarbeiter', 'Außendienst / Mobile Worker', 'Home-Office-Mitarbeiter', 'Führungskräfte', 'Produktion / Fertigung', 'IT-Abteilung', 'Externe Dienstleister'] },
       TAGS_FIELD,
+      { key: 'betriebssysteme', label: 'Betriebssysteme', type: 'multiref', refCategory: 'betriebssysteme', tooltip: 'Auf dem Client installierte Betriebssysteme' },
       { key: 'itSysteme', label: 'IT-Systeme', type: 'multiref', refCategory: 'server', tooltip: 'Verknüpfte IT-Systeme' },
       { key: 'netzverbindungen', label: 'Netzverbindungen', type: 'multiref', refCategory: 'netzverbindungen', tooltip: 'Netzverbindungen des Clients' },
       { key: 'raeume', label: 'Räume', type: 'multiref', refCategory: 'raeume', tooltip: 'Aufstellungsort (Raum)' },
@@ -543,6 +761,13 @@ export const CATEGORIES: CategoryDef[] = [
   },
 ];
 
+// Software-Tiefe + typabhängige Felder an Anwendungen anhängen (Phase 3).
+for (const cat of CATEGORIES) {
+  if (cat.key === 'anwendungen') {
+    cat.fields.push(...SOFTWARE_FIELDS.map((f) => ({ ...f })));
+  }
+}
+
 // Cloud-Readiness-Felder an die cloud-relevanten Kategorien anhängen.
 const CLOUD_RELEVANT: CategoryKey[] = [
   'anwendungen',
@@ -554,6 +779,22 @@ const CLOUD_RELEVANT: CategoryKey[] = [
 for (const cat of CATEGORIES) {
   if (CLOUD_RELEVANT.includes(cat.key)) {
     cat.fields.push(...CLOUD_FIELDS.map((f) => ({ ...f })));
+  }
+}
+
+// Hardware-/Wirtschaftlichkeits-Mixins anhängen (Phase 2, Decision 2 + 4).
+const HARDWARE_RELEVANT: CategoryKey[] = [
+  'server', 'clients', 'netzkomponenten', 'icsSysteme', 'iotSysteme', 'datentraeger',
+];
+const WIRTSCHAFT_RELEVANT: CategoryKey[] = [
+  'server', 'clients', 'netzkomponenten', 'icsSysteme', 'iotSysteme', 'datentraeger', 'anwendungen',
+];
+for (const cat of CATEGORIES) {
+  if (HARDWARE_RELEVANT.includes(cat.key)) {
+    cat.fields.push(...HARDWARE_FIELDS.map((f) => ({ ...f })));
+  }
+  if (WIRTSCHAFT_RELEVANT.includes(cat.key)) {
+    cat.fields.push(...WIRTSCHAFTLICHKEIT_FIELDS.map((f) => ({ ...f })));
   }
 }
 
@@ -618,6 +859,44 @@ const HELP: Partial<Record<CategoryKey, CategoryHelp>> = {
       { rolle: 'IT-Leitung / CIO', tipps: ['Überblick über die gesamte Anwendungslandschaft', 'Kennt Lizenzverträge und Upgrade-Roadmap'] },
       { rolle: 'Anwendungsverantwortliche', tipps: ['Detailwissen zu Schnittstellen und Abhängigkeiten', 'Wissen über Customizing und besondere Betriebsanforderungen'] },
       { rolle: 'Fachbereiche (Key User)', tipps: ['Können Funktionsumfang und Kritikalität aus Nutzersicht beschreiben', 'Wissen oft von Schatten-IT oder parallelen Excel-Lösungen'] },
+    ],
+  },
+  betriebssysteme: {
+    intro:
+      'Betriebssysteme werden als wiederverwendbare IT-Komponenten geführt und von Servern/Clients referenziert. So lässt sich ein OS einmal pflegen (Version, Support-Ende) und an vielen Systemen verlinken.',
+    bsiWhy:
+      'Der Lebenszyklus des Betriebssystems (Support-Ende, Patch-Level) ist grundschutzrelevant: veraltete OS ohne Sicherheitsupdates sind ein zentrales Risiko und betreffen alle darauf laufenden Anwendungen.',
+    cloudWhy:
+      'Das OS bestimmt Migrationspfade (z.B. End-of-Life-Windows-Server → Neubeschaffung statt Lift&Shift) und Lizenzfragen (BYOL, OS-Subscription in der Cloud).',
+    interviewQuestions: [
+      'Welche Betriebssysteme und Versionen sind im Einsatz?',
+      'Welche OS haben das Support-Ende erreicht oder bald?',
+      'Wie ist der Patch-Stand und wie werden Updates ausgerollt?',
+      'Welche Lizenzmodelle gelten (Volumen, OEM, Subscription, Open Source)?',
+    ],
+    ansprechpartner: 'System-/Server-Administration, Client-Management, SAM/Lizenzmanagement',
+    wenFragen: [
+      { rolle: 'System-/Server-Administration', tipps: ['Kennt OS-Versionen, Patch-Stände und Support-Ende-Daten', 'Weiß, welche Systeme auf welchem OS laufen'] },
+      { rolle: 'SAM / Lizenzmanagement', tipps: ['Kennt OS-Lizenzmodelle und Cloud-Tauglichkeit (BYOL)', 'Weiß über Volumen-/Subscription-Verträge Bescheid'] },
+    ],
+  },
+  schnittstellen: {
+    intro:
+      'Schnittstellen erfassen die typisierten Kommunikationsbeziehungen zwischen Anwendungen (Quelle → Ziel) mit Protokoll, Port, Richtung, Verschlüsselung und Authentifizierung — das LeanIX-"Interface". Grundlage für Datenfluss-Graph und n×n-Matrix.',
+    bsiWhy:
+      'Schnittstellen — besonders mit Außenanbindung und ohne Verschlüsselung — sind im IT-Grundschutz kritische Betrachtungsobjekte. Protokoll, Port und Verschlüsselung dokumentieren die Angriffsfläche und nötige Firewall-Freischaltungen.',
+    cloudWhy:
+      'Abhängigkeiten zwischen Anwendungen bestimmen die Migrationsreihenfolge und -komplexität. Eng gekoppelte, synchrone Schnittstellen erschweren ein schrittweises Lift&Shift; lose, asynchrone Kopplung erleichtert die Cloud-Migration.',
+    interviewQuestions: [
+      'Welche Anwendungen tauschen Daten aus und über welches Protokoll?',
+      'Sind die Schnittstellen verschlüsselt und authentifiziert?',
+      'Welche sind synchron (Echtzeit) und welche asynchron/Batch?',
+      'Welche Firewall-Freischaltungen sind nötig?',
+    ],
+    ansprechpartner: 'Anwendungsverantwortliche, Integrations-/Middleware-Team, Netzwerk-/Security',
+    wenFragen: [
+      { rolle: 'Anwendungsverantwortliche', tipps: ['Kennen die Schnittstellen ihrer Anwendung und deren Datenfluss', 'Wissen über Protokolle, Frequenzen und Abhängigkeiten'] },
+      { rolle: 'Netzwerk-/Security', tipps: ['Kennen Firewall-Regeln, Ports und Verschlüsselung', 'Wissen, welche Schnittstellen das Netz verlassen'] },
     ],
   },
   datentraeger: {

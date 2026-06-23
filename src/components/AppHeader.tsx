@@ -16,6 +16,8 @@ interface Props {
   onExportReport: () => void;
   onClearData: () => void;
   onAISettings?: () => void;
+  onSearch?: () => void;
+  saveStatus?: 'idle' | 'saving' | 'saved' | 'error';
 }
 
 const TABS = [
@@ -76,7 +78,8 @@ export const AppHeader: React.FC<Props> = ({
   onExportWorkshop,
   onExportJSON,
   onExportReport,
-  onClearData, onAISettings,
+  onClearData, onAISettings, onSearch,
+  saveStatus,
 }) => {
   const importRef = React.useRef<HTMLInputElement>(null);
   const [showClearConfirm, setShowClearConfirm] = React.useState(false);
@@ -147,6 +150,20 @@ export const AppHeader: React.FC<Props> = ({
           </div>
         </div>
 
+        {/* Save status indicator */}
+        {saveStatus === 'saving' && (
+          <span className="text-xs text-white/60 flex items-center gap-1">
+            <span className="inline-block w-3 h-3 border-2 border-white/30 border-t-hi-teal rounded-full animate-spin" />
+            Speichern…
+          </span>
+        )}
+        {saveStatus === 'saved' && (
+          <span className="text-xs text-hi-teal flex items-center gap-1">✓ Gespeichert</span>
+        )}
+        {saveStatus === 'error' && (
+          <span className="text-xs text-red-400 flex items-center gap-1">⚠ Speicherfehler</span>
+        )}
+
         {/* Action buttons */}
         <div className="flex gap-2 ml-auto items-center flex-wrap justify-end">
           <button
@@ -189,6 +206,18 @@ export const AppHeader: React.FC<Props> = ({
             </svg>
             Bericht (HTML)
           </button>
+          {onSearch && (
+            <button
+              onClick={onSearch}
+              title="Globalsuche (Ctrl+K)"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded text-xs font-semibold uppercase tracking-wider transition-all"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              Suche
+            </button>
+          )}
           <button
             onClick={() => importRef.current?.click()}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded text-xs font-semibold uppercase tracking-wider transition-all"

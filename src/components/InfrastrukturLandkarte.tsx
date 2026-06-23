@@ -4,7 +4,16 @@ import { esc, openPrintWindow } from '../utils/safePrint';
 
 interface Props { state: AppState }
 
-type Ansicht = 'kategorien' | 'server-anwendungen' | 'netzwerk';
+type Ansicht = 'kategorien' | 'server-anwendungen' | 'netzwerk' | 'schnittstellen';
+
+const VERSCHLUESSELUNG_COLOR: Record<string, string> = {
+  'Keine':    '#dc2626',
+  'Unklar':   '#d97706',
+  'TLS 1.2':  '#16a34a',
+  'TLS 1.3':  '#16a34a',
+  'mTLS':     '#15803d',
+  'VPN':      '#0891b2',
+};
 
 const BEREITSTELLUNG_COLOR: Record<string, string> = {
   'On-Premises (physisch)':     '#6b7280',
@@ -140,6 +149,60 @@ function buildNetzwerkDiagram(state: AppState): string {
   return lines.join('\n');
 }
 
+/** Löst eine Anwendungs-Referenz (id | kuerzel | name) auf das Item auf. */
+function resolveAnwendung(
+  ref: string,
+  anwendungen: { id: string; name: string; kuerzel: string }[]
+): { id: string; name: string; kuerzel: string } | undefined {
+  return anwendungen.find((a) => a.id === ref || a.kuerzel === ref || a.name === ref);
+}
+
+function buildSchnittstellenDiagram(state: AppState): string {
+  const lines: string[] = ['graph LR'];
+  const anwendungen = (state.anwendungen as { id: string; name: string; kuerzel: string }[]);
+  const schnittstellen = ((state.schnittstellen ?? []) as {
+    id: string; name: string; kuerzel: string;
+    quellAnwendung?: string[]; zielAnwendung?: string[];
+    protokoll?: string; frequenz?: string; richtung?: string; verschluesselung?: string;
+  }[]);
+
+  if (schnittstellen.length === 0) {
+    return 'graph LR\n  empty["Noch keine Schnittstellen erfasst"]';
+  }
+
+  const usedNodes = new Set<string>();
+  const edgeLines: string[] = [];
+  const styleLines: string[] = [];
+  let edgeIdx = 0;
+
+  for (const ss of schnittstellen) {
+    const quelle = (ss.quellAnwendung ?? [])[0];
+    const ziel = (ss.zielAnwendung ?? [])[0];
+    if (!quelle || !ziel) continue;
+    const qItem = resolveAnwendung(quelle, anwendungen);
+    const zItem = resolveAnwendung(ziel, anwendungen);
+    if (!qItem || !zItem) continue;
+    const qid = nodeId('app', qItem.id);
+    const zid = nodeId('app', zItem.id);
+    usedNodes.add(`  ${qid}["${sanitize(qItem.kuerzel || qItem.name)}"]`);
+    usedNodes.add(`  ${zid}["${sanitize(zItem.kuerzel || zItem.name)}"]`);
+    const labelParts = [ss.protokoll, ss.frequenz].filter(Boolean).map((s) => sanitize(String(s)));
+    const label = labelParts.length ? `|"${labelParts.join(' · ')}"|` : '';
+    const arrow = ss.richtung === 'Bidirektional' ? '<-->' : '-->';
+    const col = VERSCHLUESSELUNG_COLOR[ss.verschluesselung || ''] || '#6b7280';
+    edgeLines.push(`  ${qid} ${arrow}${label} ${zid}`);
+    styleLines.push(`  linkStyle ${edgeIdx} stroke:${col},stroke-width:2px`);
+    edgeIdx++;
+  }
+
+  if (edgeIdx === 0) {
+    return 'graph LR\n  empty["Schnittstellen ohne aufgelöste Quell-/Ziel-Anwendung"]';
+  }
+
+  lines.push(...usedNodes, ...edgeLines, ...styleLines);
+  return lines.join('\n');
+}
+
 export const InfrastrukturLandkarte: React.FC<Props> = ({ state }) => {
   const [ansicht, setAnsicht] = useState<Ansicht>('kategorien');
   const containerRef = useRef<HTMLDivElement>(null);
@@ -148,8 +211,9 @@ export const InfrastrukturLandkarte: React.FC<Props> = ({ state }) => {
   const [loading, setLoading] = useState(false);
 
   const diagramCode = useMemo(() => {
-    if (ansicht === 'kategorien')        return buildKategorienDiagram(state);
+    if (ansicht === 'kategorien')         return buildKategorienDiagram(state);
     if (ansicht === 'server-anwendungen') return buildServerAnwendungenDiagram(state);
+    if (ansicht === 'schnittstellen')     return buildSchnittstellenDiagram(state);
     return buildNetzwerkDiagram(state);
   }, [ansicht, state]);
 
@@ -196,6 +260,7 @@ export const InfrastrukturLandkarte: React.FC<Props> = ({ state }) => {
   const ANSICHTEN: { key: Ansicht; label: string }[] = [
     { key: 'kategorien',         label: 'Kategorien-Übersicht' },
     { key: 'server-anwendungen', label: 'Server → Anwendungen' },
+    { key: 'schnittstellen',     label: 'Schnittstellen-Graph' },
     { key: 'netzwerk',           label: 'Netzwerktopologie' },
   ];
 
@@ -232,12 +297,21 @@ export const InfrastrukturLandkarte: React.FC<Props> = ({ state }) => {
 
       {/* Legende */}
       <div className="flex flex-wrap gap-3 text-xs">
-        {Object.entries(BEREITSTELLUNG_COLOR).slice(0, 5).map(([label, col]) => (
-          <span key={label} className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: col + '44', border: `1.5px solid ${col}` }} />
-            {label}
-          </span>
-        ))}
+        {ansicht === 'schnittstellen' ? (
+          [['TLS / mTLS', '#16a34a'], ['VPN', '#0891b2'], ['Unklar', '#d97706'], ['Keine', '#dc2626']].map(([label, col]) => (
+            <span key={label} className="flex items-center gap-1.5">
+              <span className="w-6 h-0.5 flex-shrink-0" style={{ backgroundColor: col }} />
+              {label}
+            </span>
+          ))
+        ) : (
+          Object.entries(BEREITSTELLUNG_COLOR).slice(0, 5).map(([label, col]) => (
+            <span key={label} className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: col + '44', border: `1.5px solid ${col}` }} />
+              {label}
+            </span>
+          ))
+        )}
       </div>
 
       {/* Diagramm */}

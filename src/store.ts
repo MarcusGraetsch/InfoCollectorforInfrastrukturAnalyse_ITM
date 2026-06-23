@@ -1,5 +1,6 @@
 import type { AppState, Liefergegenstand, Stakeholder, TCODaten } from './types';
 import { clearAIConfig } from './integrations/aiSuggest';
+import { idbSave, idbLoad, idbClear } from './db';
 
 const DEFAULT_TCO: TCODaten = {
   zeithorizont: '5',
@@ -90,6 +91,8 @@ export function createDefaultState(): AppState {
     geschaeftsprozesse: [],
     daten: [],
     anwendungen: [],
+    betriebssysteme: [],
+    schnittstellen: [],
     datentraeger: [],
     server: [],
     netzkomponenten: [],
@@ -164,7 +167,7 @@ export function mergeWithDefault(partial: Partial<AppState> | null | undefined):
 
   // Jede Kategorie/Array-Property als Array erzwingen
   const arrayKeys: (keyof AppState)[] = [
-    'quelldokumente', 'liefergegenstaende', 'stakeholder', 'meetings', 'geschaeftsprozesse', 'daten', 'anwendungen', 'datentraeger',
+    'quelldokumente', 'liefergegenstaende', 'stakeholder', 'meetings', 'geschaeftsprozesse', 'daten', 'anwendungen', 'betriebssysteme', 'schnittstellen', 'datentraeger',
     'server', 'netzkomponenten', 'netzverbindungen', 'clients', 'icsSysteme',
     'iotSysteme', 'raeume', 'gebaeude',
   ];
@@ -189,8 +192,9 @@ export function loadState(): AppState {
 
 export function saveState(state: AppState): void {
   const updated = { ...state, lastUpdated: new Date().toISOString() };
+  const json = JSON.stringify(updated);
   try {
-    localStorage.setItem(getDataKey(), JSON.stringify(updated));
+    localStorage.setItem(getDataKey(), json);
   } catch (err) {
     // QuotaExceededError o.ä. — Daten bleiben im RAM, aber Nutzer warnen
     console.error('saveState fehlgeschlagen:', err);
@@ -198,6 +202,19 @@ export function saveState(state: AppState): void {
       'Die Daten konnten nicht im Browser gespeichert werden — der lokale Speicher ist möglicherweise voll.\n\n' +
       'Bitte sichern Sie Ihre Daten über „JSON-Backup" und löschen Sie nicht mehr benötigte Einträge.'
     );
+  }
+  // Async IndexedDB write (persistent primary store) — errors logged, never thrown
+  idbSave(json).catch(err => console.error('[it-sa] IndexedDB write failed:', err));
+}
+
+export async function loadStateFromIDB(): Promise<AppState | null> {
+  try {
+    const json = await idbLoad();
+    if (!json) return null;
+    const parsed = JSON.parse(json) as Partial<AppState>;
+    return mergeWithDefault(parsed);
+  } catch {
+    return null;
   }
 }
 
@@ -229,6 +246,8 @@ export function clearState(): void {
   } catch {
     // Non-fatal — ignore if IndexedDB not available
   }
+  // Clear IndexedDB primary state store
+  idbClear().catch(err => console.error('[it-sa] IndexedDB clear failed:', err));
 }
 
 export function generateId(): string {
