@@ -173,3 +173,18 @@ bestehende SEAL-Modul vertieft statt neue, isolierte Module danebenzustellen:
 
 **A + B zusammen** ergeben einen runden, sofort vermarktbaren „Cloud-Souveränitäts-Check"
 und sind die klare Empfehlung für den ersten Schritt.
+
+---
+
+## 6. Umsetzungsstatus
+
+**Stand 2026-06-23: Features A, B, C und D umgesetzt.**
+
+| Feature | Status | Artefakte |
+|---|---|---|
+| A — Mehrdimensionale Scorecard | ✅ umgesetzt | `src/compliance/souveraenitaet.ts` (`assessSouveraenitaet`), Spider-Chart + Dimensions-Karten in `SouveraenitaetsBewertung.tsx` |
+| B — Souveränitäts-Washing-Check | ✅ umgesetzt | `pruefeSouveraenitaet()` (deterministische Regeln), Washing-Tabelle in `SouveraenitaetsBewertung.tsx` |
+| C — Nachweis-/Evidence-Katalog | ✅ umgesetzt | `src/compliance/nachweise.ts`, `NachweisKatalog.tsx`, `AppState.nachweisStatus`, Subtab „Nachweis-Katalog" |
+| D — Quellen-Bibliothek + Zeitstrahl (inkl. E) | ✅ umgesetzt | `src/compliance/quellen.ts`, `QuellenBibliothek.tsx`, Subtab „Quellen-Bibliothek" |
+
+Alles offline, deterministisch, ohne neue Abhängigkeiten — konform zu den Designprinzipien.

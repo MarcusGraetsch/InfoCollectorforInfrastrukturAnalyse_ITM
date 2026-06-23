@@ -414,6 +414,27 @@ Druckbare HTML-Tabelle: Zeilen = Quell-Anwendung, Spalten = Ziel-Anwendung, Zell
 
 Sichtbar im Cloud-Dashboard (KPI-Karte, Filter) und in der Zielbild-Ansicht.
 
+### Cloud-Souveränität & Compliance (Gruppe „Compliance & Regulatorik")
+
+Vertieft das einzelne SEAL-Level zu einem mehrdimensionalen Souveränitäts-Block
+(`src/compliance/souveraenitaet.ts`, `nachweise.ts`, `quellen.ts`):
+
+- **Mehrdimensionale Souveränitäts-Scorecard** (Tab „Cloud-Souveränität"): sechs
+  getrennte Scores (Datenschutz, Cybersicherheit, Operative Resilienz,
+  Souveränität/Lock-in, KI-Governance, Supply-Chain-Transparenz) als Spider-Chart
+  + Dimensions-Karten. Heuristisch aus vorhandenen Daten abgeleitet; fehlende
+  Daten → neutral statt Punktabzug.
+- **Souveränitäts-Washing-Check**: deterministische Regel-Engine (DSGVO, BSI C5,
+  EU AI Act, Data Act …) mit Verdikt-Tabelle (fail/warn/pass/unklar), Filter und
+  benötigtem Nachweis je Befund.
+- **Nachweis-/Evidence-Katalog** (Tab „Nachweis-Katalog"): ~20 Anforderung→Nachweis-
+  Einträge (AVV, SCC, TIA, C5, AIC4, ISO 42001, Exit-Plan, SBOM …), Checkbox +
+  Status persistiert (`state.nachweisStatus`), „Offene Nachweise als E-Mail" +
+  druckbare Übersicht.
+- **Quellen-Bibliothek + Regulatorik-Zeitstrahl** (Tab „Quellen-Bibliothek"):
+  ~35 kuratierte Offline-Quellen über 5 Ebenen, Filter nach Ebene/Status,
+  klickbare offizielle URLs (ISO nur Metadaten) + status-bewusster Zeitstrahl.
+
 ---
 
 ## 4. Import / Export
