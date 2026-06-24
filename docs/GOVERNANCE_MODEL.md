@@ -67,7 +67,10 @@ Reine Funktionen, keine UI, keine State-Mutation (immer neue Arrays):
 5. **Paket 3 — BCM & Cloud-Exit (LG 9):** ✅ umgesetzt — zwei bearbeitbare Governance-
    Themen (`src/compliance/lg9Governance.ts`) im Tab „Security & Gov. (LG 9)" über den
    `GovernanceTopicDrawer`, persistiert als `GovernanceTopic` (domain `bcm` / `cloudExit`).
-6. **Paket 7 — AI Act:** offen — Shadow-AI/KI-Systeme über denselben Drawer/`GovernanceTopic`.
+6. **Paket 7 — AI Act:** ✅ umgesetzt — Klärungs-Wizard je KI-System/Shadow-AI-Kandidat
+   (`EuAiActInventar.tsx`). Die KI-Daten leben auf der `Anwendung` (additive aiXxx-Felder);
+   Betriebsort/Hersteller nutzen vorhandene Felder, Nachweise referenzieren `evidenceItems`
+   (keine Doppelerfassung). `countOffeneKlaerung` macht offene Punkte als Aufgaben sichtbar.
 
 > Leitplanke: Keine neuen, parallelen Verantwortlichkeits-/Nachweisfelder in Einzelmodulen
 > — immer die zentralen Objekte referenzieren.

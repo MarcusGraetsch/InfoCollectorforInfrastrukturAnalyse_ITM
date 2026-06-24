@@ -175,11 +175,23 @@ export interface Anwendung extends BaseItem, CloudFields, WirtschaftlichkeitFiel
   // EU AI Act (Block 5) — alle optional
   istKISystem?: boolean;
   aiRisikoklasse?: 'Verboten' | 'Hoch' | 'Begrenzt' | 'Minimal' | 'Kein KI' | 'Unklar';
-  aiRolle?: 'Anbieter' | 'Betreiber' | 'Beides' | 'Unklar';
+  aiRolle?: 'Anbieter' | 'Betreiber' | 'Importeur' | 'Händler' | 'Nutzer' | 'Beides' | 'Unklar';
   aiTrainingsdaten?: 'Interne Daten' | 'Öffentliche Daten' | 'Drittanbieter' | 'Unklar';
   aiMenschlicheAufsicht?: 'Vollständig' | 'Teilweise' | 'Keine' | 'Unklar';
   aiLoggingVorhanden?: 'Ja' | 'Nein' | 'Teilweise' | 'Unklar';
   aiNotizen?: string;
+  // EU AI Act — geführte Klärung (Paket 7), alle optional/additiv.
+  // Betriebsort/Cloud-Service und Anbieter werden über die vorhandenen Felder
+  // `cloudDienst` bzw. `hersteller` abgebildet (keine Doppelerfassung).
+  aiZweck?: string;
+  aiDatenarten?: string;
+  aiPersonenbezug?: 'Ja' | 'Nein' | 'Unklar';
+  aiDokumentation?: 'Vorhanden' | 'Teilweise' | 'Fehlt' | 'Unklar';
+  aiModellInfo?: string;          // Modell-/Versionsinformationen
+  aiDrittanbieter?: string;       // Drittanbieter/Provider des Modells/Dienstes
+  aiEvidenceIds?: string[];       // → EvidenceItem.id
+  aiOffeneFragen?: string;
+  aiNaechsterSchritt?: string;
 }
 
 export interface Datentraeger extends BaseItem, HardwareFields, WirtschaftlichkeitFields {

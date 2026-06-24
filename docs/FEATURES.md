@@ -388,8 +388,16 @@ mit Status & Detailnotizen. Ergänzt um **strukturierte, bearbeitbare Governance
 
 - Shadow-AI-Heuristik: erkennt wahrscheinliche KI-Systeme anhand von Schlüsselwörtern in Anwendungsfeldern
 - KI-System-Klassifizierung inline in der Tabelle (Verboten / Hoch / Begrenzt / Minimal)
-- Felder: Risikoklasse, Rolle (Anbieter/Betreiber), Trainingsdaten, menschliche Aufsicht, Logging
-- CSV-Register-Export (EU AI Act Pflichtfelder)
+- **Klickbarer Klärungs-Wizard je KI-System / Shadow-AI-Kandidat** (Paket 7): geführter
+  7-Schritt-Drawer — Warum als KI-relevant erkannt (Shadow-AI-Treffer), Einstufung +
+  Rolle der Organisation (Anbieter/Betreiber/**Importeur/Händler/Nutzer**/Beides),
+  Zweck, Datenarten, Personenbezug, Trainingsdaten, menschliche Aufsicht, Logging,
+  technische Dokumentation, Modell-/Anbieterinfo, Drittanbieter, **Betriebsort/
+  Cloud-Service und Hersteller über die vorhandenen Anwendungsfelder** (keine
+  Doppelerfassung), **Evidence-Verknüpfung**, offene Fragen, nächster Klärungsschritt.
+- **Klärungsbedarf sichtbar:** Badge „N offen" zählt unklare/leere Schlüsselfelder je
+  KI-System (fehlende Informationen als Aufgaben).
+- CSV-Register-Export (EU AI Act Pflichtfelder); vollständige Daten im JSON-Backup.
 
 ---
 
