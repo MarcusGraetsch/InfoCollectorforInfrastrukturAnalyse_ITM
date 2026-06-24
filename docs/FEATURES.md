@@ -429,10 +429,19 @@ Vertieft das einzelne SEAL-Level zu einem mehrdimensionalen Souveränitäts-Bloc
 - **Souveränitäts-Washing-Check**: deterministische Regel-Engine (DSGVO, BSI C5,
   EU AI Act, Data Act …) mit Verdikt-Tabelle (fail/warn/pass/unklar), Filter und
   benötigtem Nachweis je Befund.
-- **Nachweis-/Evidence-Katalog** (Tab „Nachweis-Katalog"): ~20 Anforderung→Nachweis-
-  Einträge (AVV, SCC, TIA, C5, AIC4, ISO 42001, Exit-Plan, SBOM …), Checkbox +
-  Status persistiert (`state.nachweisStatus`), „Offene Nachweise als E-Mail" +
-  druckbare Übersicht.
+- **Evidence-/Nachweis-Katalog** (Tab „Evidence-Katalog"): interaktive, zentrale
+  Nachweisverwaltung auf Basis des Querschnittsmodells (`state.evidenceItems`,
+  s. `docs/GOVERNANCE_MODEL.md`). Jeder Nachweis ist ein **bearbeitbares Objekt**:
+  Titel, Warum-wichtig, Norm-/Themenbezug-Tags (DSGVO/NIS2/BSI/C5/DORA/AI Act/…),
+  normative Referenzen, benötigte Infos, Beispiel-Nachweise, typische Quelle,
+  Status (Offen/Angefragt/Erhalten/Geprüft/Nicht anwendbar), verantwortliche **Rolle**
+  (aus Rollenübersicht), Link/Datei/Review-/Gültigkeitsdatum, Notizen.
+  **n:m-Beziehungen:** ein Nachweis (z. B. AVV) lässt sich mehreren Themen,
+  Governance-Themen und Objekten (Anwendungen/Server/Provider) zuordnen — keine
+  Doppel­erfassung. Seed „Aus Standardkatalog erzeugen" (~20 Einträge AVV, SCC, TIA,
+  C5, AIC4, ISO 42001, Exit-Plan, SBOM …) **migriert vorhandenen Alt-Status**
+  (`nachweisStatus`) non-destruktiv. „Offene als E-Mail" + druckbares Evidence-Mapping;
+  vollständig im JSON-Backup enthalten.
 - **Quellen-Bibliothek + Regulatorik-Zeitstrahl** (Tab „Quellen-Bibliothek"):
   ~35 kuratierte Offline-Quellen über 5 Ebenen, Filter nach Ebene/Status,
   klickbare offizielle URLs (ISO nur Metadaten) + status-bewusster Zeitstrahl.

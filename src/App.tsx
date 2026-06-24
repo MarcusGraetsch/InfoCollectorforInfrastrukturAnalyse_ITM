@@ -445,7 +445,7 @@ function App() {
               }))}
               onUpdateTCO={(tco: TCODaten) => updateState(prev => ({ ...prev, tcoData: tco }))}
               onUpdateNIS2={(a) => updateState(prev => ({ ...prev, nis2Assessment: a }))}
-              onUpdateNachweise={(status) => updateState(prev => ({ ...prev, nachweisStatus: status }))}
+              onUpdateEvidence={(items) => updateState(prev => ({ ...prev, evidenceItems: items }))}
               onUpdateBeziehungen={(beziehungen) => updateState(prev => ({ ...prev, beziehungen }))}
               onUpdateIKT={(d) => updateState(prev => ({ ...prev, iktDienstleister: d }))}
               onUpdateCustomCatalog={(entries) => updateState(prev => ({ ...prev, customComponentCatalog: entries }))}

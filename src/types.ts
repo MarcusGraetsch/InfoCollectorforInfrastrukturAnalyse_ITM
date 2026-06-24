@@ -613,6 +613,15 @@ export interface EvidenceItem {
   relatedTopicIds?: string[];      // → GovernanceTopic.id
   relatedObjectRefs?: ObjectRef[];
   notes?: string;
+  // Beratungsfelder (Paket 9, alle optional/additiv)
+  whyImportant?: string;           // Warum wichtig?
+  themen?: string[];               // Norm-/Themenbezug-Tags (DSGVO, NIS2, BSI, DORA, AI Act, C5, …)
+  normativeReferences?: string[];  // konkrete Norm-/Quellenangaben
+  benoetigteInfos?: string;        // Welche Informationen werden benötigt?
+  beispielNachweise?: string;      // Beispiel-Nachweise / Artefakte
+  typischeQuelle?: string;         // Typische Quelle im Unternehmen (Abteilung/Tool)
+  /** Stabiler Seed-Schlüssel aus dem statischen Nachweis-Katalog (für idempotentes Seeding). */
+  seedKey?: string;
 }
 
 /** Relevanz-/Domänen-Klassifizierung einer Rolle (eine Rolle kann mehreren dienen). */

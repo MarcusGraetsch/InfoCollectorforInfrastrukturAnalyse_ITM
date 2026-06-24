@@ -50,8 +50,11 @@ Reine Funktionen, keine UI, keine State-Mutation (immer neue Arrays):
 
 1. **Paket 4 — Rollenübersicht:** ✅ umgesetzt — `RollenUebersicht.tsx` (Tab
    „ISMS-/BCM-Rollen") auf `roleAssignments` + `seedRoleAssignments`.
-2. **Paket 9 — Evidence-Katalog:** UI auf `evidenceItems`, Bridge zum bestehenden
-   `nachweisStatus`/`NACHWEIS_KATALOG` (additiv, ohne Bruch).
+2. **Paket 9 — Evidence-Katalog:** ✅ umgesetzt — `EvidenceKatalog.tsx` (Tab
+   „Evidence-Katalog") auf `evidenceItems`. `src/compliance/evidenceCatalog.ts`
+   bridged den statischen `NACHWEIS_KATALOG` (Seed) und migriert `nachweisStatus`
+   non-destruktiv. EvidenceItem um Beratungsfelder erweitert (whyImportant, themen,
+   normativeReferences, benoetigteInfos, beispielNachweise, typischeQuelle, seedKey).
 3. **Pakete 3/6/7/8 — BCM/Cloud-Exit, Souveränität, AI Act, NIS2:** je Domäne
    `GovernanceTopic`-Instanzen, die auf `evidenceItems` und `roleAssignments` referenzieren.
 
