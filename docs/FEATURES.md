@@ -433,6 +433,14 @@ Vertieft das einzelne SEAL-Level zu einem mehrdimensionalen Souveränitäts-Bloc
   Souveränität/Lock-in, KI-Governance, Supply-Chain-Transparenz) als Spider-Chart
   + Dimensions-Karten. Heuristisch aus vorhandenen Daten abgeleitet; fehlende
   Daten → neutral statt Punktabzug.
+- **Dimensionen als klickbare Governance-Wizards** (Paket 6): Jede Kachel öffnet
+  einen geführten Drawer (`GovernanceTopicDrawer`, wiederverwendbar): Warum-wichtig,
+  normative Einordnung, **welche Daten den Score beeinflussen** (live aus der
+  Bewertung), fehlende Infos, score-verbessernde Entscheidungen, erforderliche
+  **Nachweise** (Verknüpfung zentraler Evidence-Items), **beteiligte Rollen**
+  (aus Rollenübersicht), Workshop-Fragen, nächste Schritte sowie erfassbarer
+  Status/Reifegrad/Notizen. Persistenz als `GovernanceTopic` (domain
+  `cloudSovereignty`, key = Dimension) im zentralen Modell — keine Doppelerfassung.
 - **Souveränitäts-Washing-Check**: deterministische Regel-Engine (DSGVO, BSI C5,
   EU AI Act, Data Act …) mit Verdikt-Tabelle (fail/warn/pass/unklar), Filter und
   benötigtem Nachweis je Befund.

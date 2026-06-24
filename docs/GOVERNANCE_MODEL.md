@@ -59,8 +59,13 @@ Reine Funktionen, keine UI, keine State-Mutation (immer neue Arrays):
    Mindestmaßnahme (`NIS2Check.tsx` + `src/compliance/nis2Detail.ts`). Speichert
    Reifegrad/Rolle/Evidence/Follow-up in `nis2Assessment.massnahmenDetail` und
    referenziert zentrale `roleAssignments` + `evidenceItems` (statt Duplikaten).
-4. **Pakete 3/6/7 — BCM/Cloud-Exit, Souveränität, AI Act:** je Domäne
-   `GovernanceTopic`-Instanzen, die auf `evidenceItems` und `roleAssignments` referenzieren.
+4. **Paket 6 — Cloud-Souveränität:** ✅ umgesetzt — die 6 Dimensionen sind klickbare
+   Governance-Wizards (`GovernanceTopicDrawer.tsx` + `src/compliance/souvDetail.ts`),
+   persistiert als `GovernanceTopic` (domain `cloudSovereignty`, key = Dimension).
+   Helper `findTopic`/`makeTopic`/`upsertTopic` + `GovernanceTopicInfo` in governance.ts.
+   Der Drawer ist generisch und für Pakete 3/7 wiederverwendbar.
+5. **Pakete 3/7 — BCM/Cloud-Exit, AI Act:** je Domäne `GovernanceTopic`-Instanzen
+   über denselben `GovernanceTopicDrawer`, die auf `evidenceItems`/`roleAssignments` referenzieren.
 
 > Leitplanke: Keine neuen, parallelen Verantwortlichkeits-/Nachweisfelder in Einzelmodulen
 > — immer die zentralen Objekte referenzieren.

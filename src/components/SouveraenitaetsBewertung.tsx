@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import type { AppState } from '../types';
+import type { AppState, GovernanceTopic } from '../types';
 import { assessSovereignty } from '../cloudReadiness';
 import type { SovereignLevel } from '../cloudReadiness';
 import {
@@ -7,8 +7,12 @@ import {
   pruefeSouveraenitaet,
   VERDIKT_FARBE,
   VERDIKT_LABEL,
+  SOUV_DIMENSION_LABELS,
 } from '../compliance/souveraenitaet';
-import type { DimensionScore, SouvLevel, Verdikt } from '../compliance/souveraenitaet';
+import type { DimensionScore, SouvLevel, Verdikt, SouvDimension } from '../compliance/souveraenitaet';
+import { SOUV_DIMENSION_INFO } from '../compliance/souvDetail';
+import { findTopic, makeTopic, upsertTopic } from '../utils/governance';
+import { GovernanceTopicDrawer } from './GovernanceTopicDrawer';
 
 const ASSESSABLE = ['anwendungen', 'server', 'clients', 'icsSysteme', 'iotSysteme'] as const;
 
@@ -75,11 +79,28 @@ function SouvSpider({ dimensionen }: { dimensionen: DimensionScore[] }) {
 
 interface Props {
   state: AppState;
+  onUpdateTopics: (topics: GovernanceTopic[]) => void;
 }
 
-export function SouveraenitaetsBewertung({ state }: Props) {
+export function SouveraenitaetsBewertung({ state, onUpdateTopics }: Props) {
   const [filterLevel, setFilterLevel] = useState<string>('Alle');
   const [verdiktFilter, setVerdiktFilter] = useState<string>('Alle');
+  const [openDim, setOpenDim] = useState<SouvDimension | null>(null);
+
+  const topics = state.governanceTopics ?? [];
+  const STATUS_BADGE: Record<string, string> = {
+    'Offen': 'bg-gray-100 text-gray-500',
+    'In Arbeit': 'bg-sky-100 text-sky-700',
+    'Teilweise': 'bg-amber-100 text-amber-700',
+    'Erfüllt': 'bg-emerald-100 text-emerald-700',
+    'N/A': 'bg-gray-100 text-gray-400',
+  };
+  const topicFor = (dim: SouvDimension) => findTopic(topics, 'cloudSovereignty', dim);
+  const openTopic = openDim ? (topicFor(openDim) ?? makeTopic('cloudSovereignty', openDim, SOUV_DIMENSION_LABELS[openDim])) : null;
+  const patchTopic = (changes: Partial<GovernanceTopic>) => {
+    if (!openDim || !openTopic) return;
+    onUpdateTopics(upsertTopic(topics, { ...openTopic, ...changes }));
+  };
 
   const scorecard = useMemo(() => assessSouveraenitaet(state), [state]);
   const findings = useMemo(() => pruefeSouveraenitaet(state), [state]);
@@ -149,19 +170,35 @@ export function SouveraenitaetsBewertung({ state }: Props) {
             <SouvSpider dimensionen={scorecard.dimensionen} />
           </div>
           <div className="grid sm:grid-cols-2 gap-3">
-            {scorecard.dimensionen.map((d) => (
-              <div key={d.dimension} className="border border-gray-100 rounded-lg p-3 bg-gray-50/50">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-semibold text-hi-navy">{d.label}</span>
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${LEVEL_COLOR[d.level]}`}>
-                    {d.score} · {d.level}
-                  </span>
-                </div>
-                <ul className="mt-2 space-y-1 text-xs text-gray-600 list-disc list-inside">
-                  {d.begruendung.map((b, i) => <li key={i}>{b}</li>)}
-                </ul>
-              </div>
-            ))}
+            {scorecard.dimensionen.map((d) => {
+              const t = topicFor(d.dimension as SouvDimension);
+              return (
+                <button
+                  key={d.dimension}
+                  onClick={() => setOpenDim(d.dimension as SouvDimension)}
+                  className="text-left border border-gray-100 rounded-lg p-3 bg-gray-50/50 hover:border-hi-accent/50 hover:bg-hi-accent/5 transition-colors group"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-semibold text-hi-navy group-hover:text-hi-accent transition-colors flex items-center gap-1">
+                      {d.label}
+                      <svg className="w-3.5 h-3.5 text-gray-300 group-hover:text-hi-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                    </span>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${LEVEL_COLOR[d.level]}`}>
+                      {d.score} · {d.level}
+                    </span>
+                  </div>
+                  <ul className="mt-2 space-y-1 text-xs text-gray-600 list-disc list-inside">
+                    {d.begruendung.map((b, i) => <li key={i}>{b}</li>)}
+                  </ul>
+                  <div className="mt-2 flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] text-hi-accent font-medium">Governance-Wizard öffnen</span>
+                    {t?.status && t.status !== 'Offen' && <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${STATUS_BADGE[t.status] ?? ''}`}>{t.status}</span>}
+                    {t?.maturity !== undefined && <span className="text-[10px] text-gray-400">Reifegrad {t.maturity}/4</span>}
+                    {(t?.relatedEvidenceIds?.length ?? 0) > 0 && <span className="text-[10px] text-emerald-600">{t!.relatedEvidenceIds!.length} Nachweis(e)</span>}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -331,6 +368,23 @@ export function SouveraenitaetsBewertung({ state }: Props) {
         </div>
       </div>
       </section>
+
+      {openDim && openTopic && (() => {
+        const d = scorecard.dimensionen.find(x => x.dimension === openDim);
+        return (
+          <GovernanceTopicDrawer
+            title={SOUV_DIMENSION_LABELS[openDim]}
+            subtitle="Cloud-Souveränität — Governance-Wizard"
+            info={SOUV_DIMENSION_INFO[openDim]}
+            topic={openTopic}
+            roles={state.roleAssignments ?? []}
+            evidence={state.evidenceItems ?? []}
+            liveScore={d ? { score: d.score, level: d.level, begruendung: d.begruendung } : undefined}
+            onPatch={patchTopic}
+            onClose={() => setOpenDim(null)}
+          />
+        );
+      })()}
     </div>
   );
 }

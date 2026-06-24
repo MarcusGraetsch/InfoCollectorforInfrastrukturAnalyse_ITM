@@ -196,3 +196,49 @@ export function topicsForEvidence(topics: GovernanceTopic[], evidence: EvidenceI
 export function openActions(topics: GovernanceTopic[]): ActionItem[] {
   return topics.flatMap(t => (t.actionItems ?? []).filter(a => a.status !== 'Erledigt'));
 }
+
+// ── GovernanceTopic-Verwaltung (Pakete 6/3/7) ────────────────────────────────
+
+/** Findet ein Thema anhand Domäne + fachlichem Schlüssel. */
+export function findTopic(
+  topics: GovernanceTopic[],
+  domain: GovernanceDomain,
+  key: string,
+): GovernanceTopic | undefined {
+  return topics.find(t => t.domain === domain && t.key === key);
+}
+
+/** Erzeugt ein neues (noch nicht persistiertes) GovernanceTopic. */
+export function makeTopic(domain: GovernanceDomain, key: string, title: string): GovernanceTopic {
+  return { id: makeId('gt'), domain, key, title, status: 'Offen' };
+}
+
+/** Fügt ein Thema ein oder ersetzt das bestehende (per id). Immer neues Array. */
+export function upsertTopic(topics: GovernanceTopic[], topic: GovernanceTopic): GovernanceTopic[] {
+  const idx = topics.findIndex(t => t.id === topic.id);
+  if (idx === -1) return [...topics, topic];
+  const copy = topics.slice();
+  copy[idx] = topic;
+  return copy;
+}
+
+/**
+ * Statischer Beratungsinhalt für einen Governance-Wizard (wiederverwendbar für
+ * Cloud-Souveränität, BCM/Cloud-Exit, KI-Governance). Trennt fachlichen Inhalt
+ * (statisch) von der erfassten Bearbeitung (GovernanceTopic im AppState).
+ */
+export interface GovernanceTopicInfo {
+  whyImportant: string;
+  normative: string;
+  /** Welche bereits erfassten Daten beeinflussen die Bewertung? */
+  dataInfluences?: string[];
+  /** Welche Informationen fehlen typischerweise? */
+  missingInfos?: string[];
+  /** Welche Entscheidungen/Maßnahmen verbessern die Lage? */
+  improvements?: string[];
+  workshopFragen: string[];
+  naechsteSchritte: string[];
+  roleKeys: string[];
+  evidenceSeedKeys: string[];
+  appDataHint?: string;
+}
