@@ -1,6 +1,7 @@
 import type { AppState, Liefergegenstand, Stakeholder, TCODaten } from './types';
 import { clearAIConfig } from './integrations/aiSuggest';
 import { idbSave, idbLoad, idbClear } from './db';
+import { DEFAULT_ANNAHMEN } from './sustainability';
 
 const DEFAULT_TCO: TCODaten = {
   zeithorizont: '5',
@@ -109,6 +110,7 @@ export function createDefaultState(): AppState {
     governanceTopics: [],
     evidenceItems: [],
     roleAssignments: [],
+    nachhaltigkeitAnnahmen: { ...DEFAULT_ANNAHMEN },
   };
 }
 

@@ -5,7 +5,113 @@
  * Basiert auf öffentlichen Richtwerten (Uptime Institute, IEA, Bitkom).
  */
 
-import type { AppState } from './types';
+import type { AppState, NachhaltigkeitsAnnahmen, Server } from './types';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Paket 10 — Transparente, drill-down-fähige Energie-/CO₂-Berechnung je Server
+// mit editierbaren Annahmen. Richtwerte als Defaults; alle Annahmen überschreibbar.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const DEFAULT_ANNAHMEN: NachhaltigkeitsAnnahmen = {
+  pueOnPrem: 1.6,            // Uptime Institute PUE Global Survey 2023 (Firmen-RZ)
+  pueCloud: 1.15,           // Hyperscaler-Durchschnitt
+  betriebsstundenJahr: 8760, // 24 × 365
+  strommixFaktorOnPrem: 0.380, // UBA Emissionsfaktor DE 2023 (kg CO₂eq/kWh)
+  strommixFaktorCloud: 0.200,  // Hyperscaler-Mix (mehr Erneuerbare)
+  auslastung: 1.0,          // Volllast-Annahme (konservativ)
+  defaultLeistungW: 456,    // ≈ 4.000 kWh/Jahr bei 8760 h (Uptime: 3.000–5.000)
+};
+
+/** Führt gespeicherte Annahmen mit den Defaults zusammen (robust gegen fehlende Keys). */
+export function mergeAnnahmen(a?: Partial<NachhaltigkeitsAnnahmen>): NachhaltigkeitsAnnahmen {
+  return { ...DEFAULT_ANNAHMEN, ...(a ?? {}) };
+}
+
+const num = (s: string | undefined): number => {
+  const v = parseFloat((s ?? '').toString().replace(',', '.'));
+  return Number.isFinite(v) ? v : 0;
+};
+
+/** Ermittelt die Leistungsaufnahme (W) eines Servers + Herkunft des Werts. */
+export function serverLeistungW(s: Server, annahmen: NachhaltigkeitsAnnahmen): { w: number; quelle: 'gemessen' | 'max' | 'default' } {
+  const stromW = num(s.stromverbrauch);
+  if (stromW > 0) return { w: stromW, quelle: 'gemessen' };
+  const maxKw = num(s.leistungsaufnahmeMax);
+  if (maxKw > 0) return { w: maxKw * 1000, quelle: 'max' };
+  return { w: annahmen.defaultLeistungW, quelle: 'default' };
+}
+
+export interface ServerEnergieZeile {
+  id: string;
+  name: string;
+  kuerzel: string;
+  anzahl: number;
+  leistungW: number;          // Leistung je Einheit
+  quelle: 'gemessen' | 'max' | 'default';
+  itKwhJahr: number;          // ohne PUE (gesamt über anzahl)
+  energieKwhJahr: number;     // mit PUE On-Prem
+  co2KgJahr: number;          // On-Prem
+}
+
+export interface EnergieDetail {
+  zeilen: ServerEnergieZeile[];
+  annahmen: NachhaltigkeitsAnnahmen;
+  itKwhJahr: number;          // Summe IT-Energie (ohne PUE)
+  onPremKwhJahr: number;
+  onPremCo2KgJahr: number;
+  cloudKwhJahr: number;
+  cloudCo2KgJahr: number;
+  einsparungKwhJahr: number;
+  einsparungCo2KgJahr: number;
+  einsparungProzent: number;  // bezogen auf CO₂
+  serverOhneMesswert: number; // Anzahl Server, die den Default nutzen
+}
+
+/** Transparente Berechnung je Server (Drill-down) + aggregierte Cloud-Gegenüberstellung. */
+export function berechneEnergieDetail(state: AppState, annahmenInput?: Partial<NachhaltigkeitsAnnahmen>): EnergieDetail {
+  const annahmen = mergeAnnahmen(annahmenInput ?? state.nachhaltigkeitAnnahmen);
+  const servers = state.server ?? [];
+  let serverOhneMesswert = 0;
+
+  const zeilen: ServerEnergieZeile[] = servers.map(s => {
+    const { w, quelle } = serverLeistungW(s, annahmen);
+    if (quelle === 'default') serverOhneMesswert++;
+    const anzahl = Math.max(1, Math.round(num(s.anzahl) || 1));
+    const itKwh = (w / 1000) * annahmen.betriebsstundenJahr * annahmen.auslastung * anzahl;
+    const energieKwh = itKwh * annahmen.pueOnPrem;
+    const co2Kg = energieKwh * annahmen.strommixFaktorOnPrem;
+    return {
+      id: s.id, name: s.name, kuerzel: s.kuerzel, anzahl,
+      leistungW: w, quelle,
+      itKwhJahr: Math.round(itKwh),
+      energieKwhJahr: Math.round(energieKwh),
+      co2KgJahr: Math.round(co2Kg),
+    };
+  });
+
+  const itKwh = zeilen.reduce((sum, z) => sum + z.itKwhJahr, 0);
+  const onPremKwh = itKwh * annahmen.pueOnPrem;
+  const onPremCo2 = onPremKwh * annahmen.strommixFaktorOnPrem;
+  const cloudKwh = itKwh * annahmen.pueCloud;
+  const cloudCo2 = cloudKwh * annahmen.strommixFaktorCloud;
+  const einsparungKwh = Math.max(0, onPremKwh - cloudKwh);
+  const einsparungCo2 = Math.max(0, onPremCo2 - cloudCo2);
+  const einsparungProzent = onPremCo2 > 0 ? Math.round((einsparungCo2 / onPremCo2) * 100) : 0;
+
+  return {
+    zeilen,
+    annahmen,
+    itKwhJahr: Math.round(itKwh),
+    onPremKwhJahr: Math.round(onPremKwh),
+    onPremCo2KgJahr: Math.round(onPremCo2),
+    cloudKwhJahr: Math.round(cloudKwh),
+    cloudCo2KgJahr: Math.round(cloudCo2),
+    einsparungKwhJahr: Math.round(einsparungKwh),
+    einsparungCo2KgJahr: Math.round(einsparungCo2),
+    einsparungProzent,
+    serverOhneMesswert,
+  };
+}
 
 export interface EnergieProfil {
   serverCount: number;

@@ -538,6 +538,19 @@ export interface AppState {
   evidenceItems?: EvidenceItem[];
   /** Querschnitt: zentrale ISMS-/BCM-/NIS2-Rollenzuweisungen. */
   roleAssignments?: RoleAssignment[];
+  /** Editierbare Annahmen für die Nachhaltigkeits-/Energieberechnung (Paket 10). */
+  nachhaltigkeitAnnahmen?: NachhaltigkeitsAnnahmen;
+}
+
+/** Editierbare Annahmen der Energie-/CO₂-Berechnung (Paket 10, alle Werte überschreibbar). */
+export interface NachhaltigkeitsAnnahmen {
+  pueOnPrem: number;            // PUE On-Premises (Power Usage Effectiveness)
+  pueCloud: number;            // PUE Cloud/Hyperscaler
+  betriebsstundenJahr: number; // h/Jahr (24×365 = 8760)
+  strommixFaktorOnPrem: number; // kg CO₂eq/kWh (Strommix On-Prem/DE)
+  strommixFaktorCloud: number;  // kg CO₂eq/kWh (Strommix Cloud)
+  auslastung: number;          // Auslastungsannahme 0..1 (1 = Volllast)
+  defaultLeistungW: number;    // Fallback-Leistung je Server ohne Messwert (W)
 }
 
 export type CategoryKey = keyof Omit<

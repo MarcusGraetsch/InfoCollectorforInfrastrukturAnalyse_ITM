@@ -410,13 +410,22 @@ mit Status & Detailnotizen. Ergänzt um **strukturierte, bearbeitbare Governance
 
 ---
 
-### EnEfG / CO₂ Nachhaltigkeitsmodul
+### EnEfG / CO₂ Nachhaltigkeitsmodul (transparent & drill-down, Paket 10)
 
-- CO₂-Schätzung je Server (kW × PUE × Betriebsstunden × Strommix-Faktor)
-- On-Prem vs. Cloud CO₂-Vergleich (Balkendiagramm, CSS-basiert)
-- EnEfG-Pflicht-Banner wenn Gesamtleistung > 300 kW
-- Anpassbare Richtwerte (kW/Server, PUE, Strommix)
-- CSRD-tauglicher Export (Print-Window)
+- **Server-Drilldown:** anklickbare Server-Energiebilanz mit Leistung (Quelle:
+  gemessen / aus max. Leistungsaufnahme / Default), Betriebsstunden, PUE, Strommix,
+  berechnetem Energieverbrauch und CO₂ je Server. Klick auf eine Zeile blendet den
+  **kompletten Rechenweg** ein (`src/sustainability.ts: berechneEnergieDetail`).
+- **Editierbare Annahmen** (persistiert in `state.nachhaltigkeitAnnahmen`): PUE On-Prem,
+  PUE Cloud, Betriebsstunden/Jahr, Strommix-Faktor On-Prem/Cloud, Auslastung,
+  Default-Leistung je Server — mit „Auf Richtwerte zurücksetzen".
+- **Berechnungsformeln sichtbar** (IT-Energie → ×PUE → ×Strommix; Cloud = IT-Energie×PUE Cloud).
+- **CO₂-Einsparung Cloud — Detailrechnung:** On-Prem-Baseline, Cloud-Szenario, Differenz/%
+  + ausgewiesene **Unsicherheit/Annahme** (±30 %, „Schätzung, keine Messung").
+- Nutzt echte Server-Leistungsdaten (`stromverbrauch`, `leistungsaufnahmeMax`, `anzahl`);
+  EnEfG-Pflicht-Banner; Maßnahmen mit Einsparpotenzial.
+- **Druck-/Export** enthält Annahmen, Formeln, Server-Tabelle und Summen; vollständig im
+  JSON-Backup (`nachhaltigkeitAnnahmen`).
 
 ---
 

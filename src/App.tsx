@@ -451,6 +451,7 @@ function App() {
               onUpdateCustomCatalog={(entries) => updateState(prev => ({ ...prev, customComponentCatalog: entries }))}
               onUpdateRoles={(roles) => updateState(prev => ({ ...prev, roleAssignments: roles }))}
               onUpdateGovernanceTopics={(topics) => updateState(prev => ({ ...prev, governanceTopics: topics }))}
+              onUpdateNachhaltigkeit={(annahmen) => updateState(prev => ({ ...prev, nachhaltigkeitAnnahmen: annahmen }))}
               onOpenCloudWizard={id => setCloudWizardTargetId(id)}
               onRestore={(s) => updateState(() => s)}
               onReload={() => {

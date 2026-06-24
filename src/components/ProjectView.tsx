@@ -50,6 +50,7 @@ interface Props {
   onUpdateCustomCatalog: (entries: import('../data/componentCatalog').ComponentCatalogEntry[]) => void;
   onUpdateRoles: (roles: import('../types').RoleAssignment[]) => void;
   onUpdateGovernanceTopics: (topics: import('../types').GovernanceTopic[]) => void;
+  onUpdateNachhaltigkeit: (annahmen: import('../types').NachhaltigkeitsAnnahmen) => void;
   onOpenCloudWizard: (id: string) => void;
   onRestore: (state: AppState) => void;
   onReload: () => void;
@@ -136,7 +137,7 @@ const GROUPS = [
   },
 ];
 
-export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeholder, onUpdateMeetings, onUpdateAnwendung, onUpdateTCO, onUpdateNIS2, onUpdateEvidence, onUpdateBeziehungen, onUpdateIKT, onUpdateCustomCatalog, onUpdateRoles, onUpdateGovernanceTopics, onOpenCloudWizard, onRestore, onReload }) => {
+export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeholder, onUpdateMeetings, onUpdateAnwendung, onUpdateTCO, onUpdateNIS2, onUpdateEvidence, onUpdateBeziehungen, onUpdateIKT, onUpdateCustomCatalog, onUpdateRoles, onUpdateGovernanceTopics, onUpdateNachhaltigkeit, onOpenCloudWizard, onRestore, onReload }) => {
   const [subTab, setSubTab] = useState<SubTab>('liefergegenstaende');
   const [activeGroup, setActiveGroup] = useState<string>(GROUPS[0].label);
 
@@ -296,7 +297,7 @@ export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeh
         {subTab === 'souveraenitaet'     && <SouveraenitaetsBewertung state={state} onUpdateTopics={onUpdateGovernanceTopics} />}
         {subTab === 'nachweise'          && <EvidenceKatalog state={state} onUpdate={onUpdateEvidence} />}
         {subTab === 'quellen'            && <QuellenBibliothek />}
-        {subTab === 'nachhaltigkeit'      && <NachhaltigkeitsModul state={state} />}
+        {subTab === 'nachhaltigkeit'      && <NachhaltigkeitsModul state={state} onUpdate={onUpdateNachhaltigkeit} />}
         {subTab === 'dora'               && <DORARegister state={state} onUpdate={onUpdateIKT} />}
         {subTab === 'snapshots'            && <VersionControl state={state} onRestore={onRestore} />}
         {subTab === 'bericht'            && <InfrastrukturBericht state={state} />}
