@@ -437,6 +437,28 @@ Vertieft das einzelne SEAL-Level zu einem mehrdimensionalen Souveränitäts-Bloc
   ~35 kuratierte Offline-Quellen über 5 Ebenen, Filter nach Ebene/Status,
   klickbare offizielle URLs (ISO nur Metadaten) + status-bewusster Zeitstrahl.
 
+### ISMS-/BCM-Rollen & Verantwortlichkeiten (Tab „ISMS-/BCM-Rollen")
+
+Strukturierte Rollenübersicht als Grundlage für IT-Grundschutz-/ISO-27001-Zertifizierungs-
+fähigkeit und NIS2. Nutzt das zentrale Rollenmodell (`AppState.roleAssignments`,
+s. `docs/GOVERNANCE_MODEL.md`).
+
+- **Seed-Katalog mit 20 Rollen** (`ROLE_CATALOG`): Geschäftsleitung, ISB, IT-SiBe,
+  ISMS-Team, Asset Owner, Prozess-/IT-Betriebsverantwortliche, DSB, Risikomanagement,
+  BCM-Beauftragte:r, Krisenstabsleitung/-mitglieder, Krisenkommunikation,
+  Incident-Response/CSIRT, Cloud-Service-Owner, Cloud-Governance, Lieferanten-Management,
+  Compliance/Audit, IAM, Kryptographie. Anlegen per Klick (idempotent — fehlende ergänzen).
+- **Relevanz-Klassifizierung** je Rolle (ISMS / BCM-Krise / NIS2 / Cloud-Governance /
+  Datenschutz / Empfohlen) statt „formal vorgeschrieben" — mit Filter.
+- **Eingabemaske je Rolle** (Detail-Drawer): benannte Person, Stellvertretung,
+  Organisationseinheit, Kontakt, Verantwortung, Status (Offen/Benannt/Vertretung
+  offen/Vollständig/N/A), Bestellungsdokument-Verweis, Notizen; normative Einordnung
+  (BSI 200-2/200-4, NIS2/BSIG, ISO 27001) eingeblendet.
+- **Fortschritt:** x von y Rollen erfasst / benannt / mit Stellvertretung / mit Nachweis.
+- **Eigene Rollen** ergänzbar; Rollen werden im JSON-Export mitgeführt und sind von
+  NIS2-/Evidence-/Governance-Themen referenzierbar (zentrale Rollenobjekte, keine
+  doppelten Verantwortlichkeitsfelder).
+
 ---
 
 ## 4. Import / Export

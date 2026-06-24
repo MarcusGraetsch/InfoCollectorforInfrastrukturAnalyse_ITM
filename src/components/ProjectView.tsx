@@ -26,12 +26,14 @@ import { DORARegister } from './DORARegister';
 import { countItemsWithOpenFields } from '../cloudFields';
 import { EncryptionSettings } from './EncryptionSettings';
 import { KatalogUebersicht } from './KatalogUebersicht';
+import { RollenUebersicht } from './RollenUebersicht';
 import { ArchiMateViews } from './ArchiMateViews';
 
 type SubTab =
   | 'liefergegenstaende' | 'cockpit' | 'stakeholder' | 'meetings' | 'tops'
   | 'fragenliste' | 'landkarte' | 'schnittstellen' | 'beziehungen' | 'lizenz' | 'tco' | 'security' | 'zielarchitektur'
   | 'nis2' | 'euaiact' | 'souveraenitaet' | 'nachweise' | 'quellen' | 'nachhaltigkeit' | 'dora'
+  | 'rollen'
   | 'bericht' | 'executive' | 'snapshots' | 'einstellungen' | 'katalog' | 'archimate';
 
 interface Props {
@@ -46,6 +48,7 @@ interface Props {
   onUpdateBeziehungen: (beziehungen: import('../types').Beziehung[]) => void;
   onUpdateIKT: (d: import('../types').IKTDienstleister[]) => void;
   onUpdateCustomCatalog: (entries: import('../data/componentCatalog').ComponentCatalogEntry[]) => void;
+  onUpdateRoles: (roles: import('../types').RoleAssignment[]) => void;
   onOpenCloudWizard: (id: string) => void;
   onRestore: (state: AppState) => void;
   onReload: () => void;
@@ -96,6 +99,8 @@ const GROUPS = [
   {
     label: 'Compliance & Regulatorik',
     tabs: [
+      { key: 'rollen' as SubTab, label: 'ISMS-/BCM-Rollen',
+        icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg> },
       { key: 'nis2' as SubTab, label: 'NIS2-Check',
         icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg> },
       { key: 'euaiact' as SubTab, label: 'EU AI Act',
@@ -130,7 +135,7 @@ const GROUPS = [
   },
 ];
 
-export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeholder, onUpdateMeetings, onUpdateAnwendung, onUpdateTCO, onUpdateNIS2, onUpdateNachweise, onUpdateBeziehungen, onUpdateIKT, onUpdateCustomCatalog, onOpenCloudWizard, onRestore, onReload }) => {
+export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeholder, onUpdateMeetings, onUpdateAnwendung, onUpdateTCO, onUpdateNIS2, onUpdateNachweise, onUpdateBeziehungen, onUpdateIKT, onUpdateCustomCatalog, onUpdateRoles, onOpenCloudWizard, onRestore, onReload }) => {
   const [subTab, setSubTab] = useState<SubTab>('liefergegenstaende');
   const [activeGroup, setActiveGroup] = useState<string>(GROUPS[0].label);
 
@@ -297,6 +302,7 @@ export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeh
         {subTab === 'executive'          && <ExecutiveSummary state={state} />}
         {subTab === 'einstellungen'      && <EncryptionSettings onReload={onReload} />}
         {subTab === 'katalog'            && <KatalogUebersicht custom={state.customComponentCatalog ?? []} onUpdateCustom={onUpdateCustomCatalog} />}
+        {subTab === 'rollen'             && <RollenUebersicht roles={state.roleAssignments ?? []} onUpdate={onUpdateRoles} />}
         {subTab === 'archimate'          && <ArchiMateViews state={state} />}
       </div>
     </div>

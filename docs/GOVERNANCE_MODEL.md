@@ -48,7 +48,8 @@ Reine Funktionen, keine UI, keine State-Mutation (immer neue Arrays):
 
 ## Geplante Anbindung (nächste Phasen)
 
-1. **Paket 4 — Rollenübersicht:** UI auf `roleAssignments` + `seedRoleAssignments`.
+1. **Paket 4 — Rollenübersicht:** ✅ umgesetzt — `RollenUebersicht.tsx` (Tab
+   „ISMS-/BCM-Rollen") auf `roleAssignments` + `seedRoleAssignments`.
 2. **Paket 9 — Evidence-Katalog:** UI auf `evidenceItems`, Bridge zum bestehenden
    `nachweisStatus`/`NACHWEIS_KATALOG` (additiv, ohne Bruch).
 3. **Pakete 3/6/7/8 — BCM/Cloud-Exit, Souveränität, AI Act, NIS2:** je Domäne
