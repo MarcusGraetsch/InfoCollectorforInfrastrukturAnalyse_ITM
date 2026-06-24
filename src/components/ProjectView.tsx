@@ -45,6 +45,7 @@ interface Props {
   onUpdateNachweise: (status: Record<string, { vorhanden: boolean; notiz: string }>) => void;
   onUpdateBeziehungen: (beziehungen: import('../types').Beziehung[]) => void;
   onUpdateIKT: (d: import('../types').IKTDienstleister[]) => void;
+  onUpdateCustomCatalog: (entries: import('../data/componentCatalog').ComponentCatalogEntry[]) => void;
   onOpenCloudWizard: (id: string) => void;
   onRestore: (state: AppState) => void;
   onReload: () => void;
@@ -129,7 +130,7 @@ const GROUPS = [
   },
 ];
 
-export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeholder, onUpdateMeetings, onUpdateAnwendung, onUpdateTCO, onUpdateNIS2, onUpdateNachweise, onUpdateBeziehungen, onUpdateIKT, onOpenCloudWizard, onRestore, onReload }) => {
+export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeholder, onUpdateMeetings, onUpdateAnwendung, onUpdateTCO, onUpdateNIS2, onUpdateNachweise, onUpdateBeziehungen, onUpdateIKT, onUpdateCustomCatalog, onOpenCloudWizard, onRestore, onReload }) => {
   const [subTab, setSubTab] = useState<SubTab>('liefergegenstaende');
   const [activeGroup, setActiveGroup] = useState<string>(GROUPS[0].label);
 
@@ -295,7 +296,7 @@ export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeh
         {subTab === 'bericht'            && <InfrastrukturBericht state={state} />}
         {subTab === 'executive'          && <ExecutiveSummary state={state} />}
         {subTab === 'einstellungen'      && <EncryptionSettings onReload={onReload} />}
-        {subTab === 'katalog'            && <KatalogUebersicht />}
+        {subTab === 'katalog'            && <KatalogUebersicht custom={state.customComponentCatalog ?? []} onUpdateCustom={onUpdateCustomCatalog} />}
         {subTab === 'archimate'          && <ArchiMateViews state={state} />}
       </div>
     </div>

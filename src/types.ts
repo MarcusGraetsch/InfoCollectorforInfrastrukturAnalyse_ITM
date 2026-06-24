@@ -1,3 +1,5 @@
+import type { ComponentCatalogEntry } from './data/componentCatalog';
+
 export type Status = 'Aktiv' | 'Inaktiv' | 'In Planung' | 'Außer Betrieb';
 export type JaNein = 'Ja' | 'Nein';
 export type ProzessArt = 'Kernprozess' | 'Unterstützungsprozess';
@@ -499,11 +501,13 @@ export interface AppState {
   nachweisStatus?: Record<string, { vorhanden: boolean; notiz: string }>;
   /** Zentrales Kantenmodell: generische Beziehungen zwischen beliebigen Objekten. */
   beziehungen?: Beziehung[];
+  /** Kundenspezifische Katalogeinträge (ergänzen den statischen Basiskatalog, persistiert + exportiert). */
+  customComponentCatalog?: ComponentCatalogEntry[];
 }
 
 export type CategoryKey = keyof Omit<
   AppState,
-  'customerName' | 'lastUpdated' | 'cloudStrategy' | 'quelldokumente' | 'tcoData' | 'beziehungen'
+  'customerName' | 'lastUpdated' | 'cloudStrategy' | 'quelldokumente' | 'tcoData' | 'beziehungen' | 'customComponentCatalog'
 >;
 
 // Zentrales Beziehungsmodell (generische Objekt-Verknüpfungen)

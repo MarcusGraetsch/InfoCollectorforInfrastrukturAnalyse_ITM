@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { ComponentCatalogEntry, ComponentKind } from '../data/componentCatalog';
-import { searchComponents, getComponentSuggestionsForCategory } from '../utils/componentCatalog';
-import { COMPONENT_CATALOG } from '../data/componentCatalog';
+import { searchComponents, getComponentSuggestionsForCategory, effectiveCatalog } from '../utils/componentCatalog';
 
 interface ComponentPickerProps {
   categoryKey: string;
@@ -78,7 +77,7 @@ export const ComponentPicker: React.FC<ComponentPickerProps> = ({ categoryKey, o
       );
 
   const kindHasEntriesForCategory = (kind: ComponentKind) =>
-    COMPONENT_CATALOG.some(e => e.kind === kind && e.categoryTargets.includes(categoryKey));
+    effectiveCatalog().some(e => e.kind === kind && e.categoryTargets.includes(categoryKey));
 
   const relevantKinds = new Set<ComponentKind>(CATEGORY_RELEVANT_KINDS[categoryKey] ?? []);
   const primaryKinds = KIND_LABELS.filter(k => k.kind !== 'all' && relevantKinds.has(k.kind as ComponentKind));
