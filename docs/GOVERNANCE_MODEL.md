@@ -55,7 +55,11 @@ Reine Funktionen, keine UI, keine State-Mutation (immer neue Arrays):
    bridged den statischen `NACHWEIS_KATALOG` (Seed) und migriert `nachweisStatus`
    non-destruktiv. EvidenceItem um Beratungsfelder erweitert (whyImportant, themen,
    normativeReferences, benoetigteInfos, beispielNachweise, typischeQuelle, seedKey).
-3. **Pakete 3/6/7/8 — BCM/Cloud-Exit, Souveränität, AI Act, NIS2:** je Domäne
+3. **Paket 8 — NIS2-Check interaktiv:** ✅ umgesetzt — geführter Detail-Wizard je
+   Mindestmaßnahme (`NIS2Check.tsx` + `src/compliance/nis2Detail.ts`). Speichert
+   Reifegrad/Rolle/Evidence/Follow-up in `nis2Assessment.massnahmenDetail` und
+   referenziert zentrale `roleAssignments` + `evidenceItems` (statt Duplikaten).
+4. **Pakete 3/6/7 — BCM/Cloud-Exit, Souveränität, AI Act:** je Domäne
    `GovernanceTopic`-Instanzen, die auf `evidenceItems` und `roleAssignments` referenzieren.
 
 > Leitplanke: Keine neuen, parallelen Verantwortlichkeits-/Nachweisfelder in Einzelmodulen

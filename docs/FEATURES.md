@@ -358,7 +358,14 @@ Druckbare HTML-Tabelle: Zeilen = Quell-Anwendung, Spalten = Ziel-Anwendung, Zell
 
 - Automatische Einstufung: Besonders wichtig / Wichtig / Nicht betroffen
 - Gap-Analyse: 10 Mindestmaßnahmen nach Art. 21 NIS2 / §30 BSIG
-- Ampel-Zusammenfassung + Druckbericht mit Datum und Kundenname
+- **Geführter Detail-Wizard je Maßnahme** (klickbar): Warum-wichtig, normative
+  Einordnung, „was muss vorhanden sein", Hinweis auf nutzbare App-Daten, Ist-Zustand
+  (Status + Reifegrad 0–4), **Nachweise** (Verknüpfung zentraler Evidence-Items mit
+  passenden Vorschlägen + interne/externe URL + Dateiverweis), **verantwortliche Rolle**
+  (aus Rollenübersicht, mit Vorschlag), Workshop-Fragen, empfohlene nächste Schritte,
+  Fälligkeit/Follow-up, Notizen. Daten in `nis2Assessment.massnahmenDetail` (additiv).
+- Ampel-Zusammenfassung + Druckbericht (Status + Reifegrad + Verantwortlich + Nachweise
+  + Follow-up je Maßnahme) mit Datum und Kundenname
 
 ---
 

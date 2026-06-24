@@ -436,6 +436,21 @@ export interface TCODaten {
 export type NIS2Einstufung = 'Besonders wichtig' | 'Wichtig' | 'Nicht betroffen' | 'Unklar';
 export type NIS2MassnahmeStatus = 'Vorhanden' | 'Teilweise' | 'Fehlend' | 'N/A';
 
+/**
+ * Vertiefende, geführte Bearbeitung je NIS2-Mindestmaßnahme (Paket 8).
+ * Ergänzt den flachen Status in `massnahmen` — referenziert zentrale Rollen/Evidence
+ * (keine Duplikate). Alle Felder optional → abwärtskompatibel.
+ */
+export interface NIS2MassnahmeDetail {
+  reifegrad?: number;        // 0–4 (optional)
+  ownerRoleId?: string;      // → RoleAssignment.id
+  evidenceIds?: string[];    // → EvidenceItem.id
+  sourceUrl?: string;        // interne/externe URL
+  fileReference?: string;    // Datei-/Dokumentenverweis
+  dueDate?: string;          // Fälligkeit / Follow-up (ISO)
+  notes?: string;
+}
+
 export interface NIS2Assessment {
   sektor: string;
   mitarbeiter: string;       // '<50' | '50-249' | '≥250' | ''
@@ -443,6 +458,8 @@ export interface NIS2Assessment {
   kritis: string;            // 'Ja' | 'Nein' | 'Unklar'
   einstufung: NIS2Einstufung;
   massnahmen: Record<string, NIS2MassnahmeStatus>;
+  /** Geführte Detaildaten je Maßnahme (Paket 8), optional. */
+  massnahmenDetail?: Record<string, NIS2MassnahmeDetail>;
   notizen: string;
   erstelltAm: string;
 }
