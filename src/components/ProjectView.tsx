@@ -18,7 +18,7 @@ import { VollstaendigkeitsCockpit } from './VollstaendigkeitsCockpit';
 import { NIS2Check } from './NIS2Check';
 import { EuAiActInventar } from './EuAiActInventar';
 import { SouveraenitaetsBewertung } from './SouveraenitaetsBewertung';
-import { NachweisKatalog } from './NachweisKatalog';
+import { EvidenceKatalog } from './EvidenceKatalog';
 import { QuellenBibliothek } from './QuellenBibliothek';
 import { NachhaltigkeitsModul } from './NachhaltigkeitsModul';
 import { VersionControl } from './VersionControl';
@@ -26,12 +26,14 @@ import { DORARegister } from './DORARegister';
 import { countItemsWithOpenFields } from '../cloudFields';
 import { EncryptionSettings } from './EncryptionSettings';
 import { KatalogUebersicht } from './KatalogUebersicht';
+import { RollenUebersicht } from './RollenUebersicht';
 import { ArchiMateViews } from './ArchiMateViews';
 
 type SubTab =
   | 'liefergegenstaende' | 'cockpit' | 'stakeholder' | 'meetings' | 'tops'
   | 'fragenliste' | 'landkarte' | 'schnittstellen' | 'beziehungen' | 'lizenz' | 'tco' | 'security' | 'zielarchitektur'
   | 'nis2' | 'euaiact' | 'souveraenitaet' | 'nachweise' | 'quellen' | 'nachhaltigkeit' | 'dora'
+  | 'rollen'
   | 'bericht' | 'executive' | 'snapshots' | 'einstellungen' | 'katalog' | 'archimate';
 
 interface Props {
@@ -42,9 +44,13 @@ interface Props {
   onUpdateAnwendung: (id: string, changes: Partial<Anwendung>) => void;
   onUpdateTCO: (tco: TCODaten) => void;
   onUpdateNIS2: (a: NIS2Assessment) => void;
-  onUpdateNachweise: (status: Record<string, { vorhanden: boolean; notiz: string }>) => void;
+  onUpdateEvidence: (items: import('../types').EvidenceItem[]) => void;
   onUpdateBeziehungen: (beziehungen: import('../types').Beziehung[]) => void;
   onUpdateIKT: (d: import('../types').IKTDienstleister[]) => void;
+  onUpdateCustomCatalog: (entries: import('../data/componentCatalog').ComponentCatalogEntry[]) => void;
+  onUpdateRoles: (roles: import('../types').RoleAssignment[]) => void;
+  onUpdateGovernanceTopics: (topics: import('../types').GovernanceTopic[]) => void;
+  onUpdateNachhaltigkeit: (annahmen: import('../types').NachhaltigkeitsAnnahmen) => void;
   onOpenCloudWizard: (id: string) => void;
   onRestore: (state: AppState) => void;
   onReload: () => void;
@@ -95,13 +101,15 @@ const GROUPS = [
   {
     label: 'Compliance & Regulatorik',
     tabs: [
+      { key: 'rollen' as SubTab, label: 'ISMS-/BCM-Rollen',
+        icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg> },
       { key: 'nis2' as SubTab, label: 'NIS2-Check',
         icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg> },
       { key: 'euaiact' as SubTab, label: 'EU AI Act',
         icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg> },
       { key: 'souveraenitaet' as SubTab, label: 'Cloud-Souveränität',
         icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" /></svg> },
-      { key: 'nachweise' as SubTab, label: 'Nachweis-Katalog',
+      { key: 'nachweise' as SubTab, label: 'Evidence-Katalog',
         icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> },
       { key: 'quellen' as SubTab, label: 'Quellen-Bibliothek',
         icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg> },
@@ -129,7 +137,7 @@ const GROUPS = [
   },
 ];
 
-export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeholder, onUpdateMeetings, onUpdateAnwendung, onUpdateTCO, onUpdateNIS2, onUpdateNachweise, onUpdateBeziehungen, onUpdateIKT, onOpenCloudWizard, onRestore, onReload }) => {
+export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeholder, onUpdateMeetings, onUpdateAnwendung, onUpdateTCO, onUpdateNIS2, onUpdateEvidence, onUpdateBeziehungen, onUpdateIKT, onUpdateCustomCatalog, onUpdateRoles, onUpdateGovernanceTopics, onUpdateNachhaltigkeit, onOpenCloudWizard, onRestore, onReload }) => {
   const [subTab, setSubTab] = useState<SubTab>('liefergegenstaende');
   const [activeGroup, setActiveGroup] = useState<string>(GROUPS[0].label);
 
@@ -282,20 +290,21 @@ export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeh
         )}
         {subTab === 'lizenz'             && <LizenzKostenAnalyse state={state} onUpdateAnwendung={onUpdateAnwendung} />}
         {subTab === 'tco'                && <TCOModell state={state} onUpdate={onUpdateTCO} />}
-        {subTab === 'security'           && <SecurityGovernanceArchitektur state={state} onOpenCloudWizard={onOpenCloudWizard} />}
+        {subTab === 'security'           && <SecurityGovernanceArchitektur state={state} onOpenCloudWizard={onOpenCloudWizard} onUpdateTopics={onUpdateGovernanceTopics} />}
         {subTab === 'zielarchitektur'    && <ZielarchitekturBetrieb state={state} onOpenCloudWizard={onOpenCloudWizard} />}
         {subTab === 'nis2'               && <NIS2Check state={state} assessment={state.nis2Assessment ?? { sektor: '', mitarbeiter: '', umsatzMio: '', kritis: 'Unklar', einstufung: 'Unklar', massnahmen: {}, notizen: '', erstelltAm: '' }} onUpdate={onUpdateNIS2} />}
         {subTab === 'euaiact'            && <EuAiActInventar state={state} onUpdateAnwendung={onUpdateAnwendung} />}
-        {subTab === 'souveraenitaet'     && <SouveraenitaetsBewertung state={state} />}
-        {subTab === 'nachweise'          && <NachweisKatalog state={state} onUpdate={onUpdateNachweise} />}
+        {subTab === 'souveraenitaet'     && <SouveraenitaetsBewertung state={state} onUpdateTopics={onUpdateGovernanceTopics} />}
+        {subTab === 'nachweise'          && <EvidenceKatalog state={state} onUpdate={onUpdateEvidence} />}
         {subTab === 'quellen'            && <QuellenBibliothek />}
-        {subTab === 'nachhaltigkeit'      && <NachhaltigkeitsModul state={state} />}
+        {subTab === 'nachhaltigkeit'      && <NachhaltigkeitsModul state={state} onUpdate={onUpdateNachhaltigkeit} />}
         {subTab === 'dora'               && <DORARegister state={state} onUpdate={onUpdateIKT} />}
         {subTab === 'snapshots'            && <VersionControl state={state} onRestore={onRestore} />}
         {subTab === 'bericht'            && <InfrastrukturBericht state={state} />}
         {subTab === 'executive'          && <ExecutiveSummary state={state} />}
         {subTab === 'einstellungen'      && <EncryptionSettings onReload={onReload} />}
-        {subTab === 'katalog'            && <KatalogUebersicht />}
+        {subTab === 'katalog'            && <KatalogUebersicht custom={state.customComponentCatalog ?? []} onUpdateCustom={onUpdateCustomCatalog} />}
+        {subTab === 'rollen'             && <RollenUebersicht roles={state.roleAssignments ?? []} onUpdate={onUpdateRoles} />}
         {subTab === 'archimate'          && <ArchiMateViews state={state} />}
       </div>
     </div>

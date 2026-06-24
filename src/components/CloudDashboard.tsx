@@ -69,7 +69,7 @@ export const CloudDashboard: React.FC<Props> = ({ state, onGoToWizard, onOpenClo
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M11 17l-5-5m0 0l5-5m-5 5h12" />
           </svg>
-          Zum Assistenten
+          Zur Datenerfassung
         </button>
       </div>
 
@@ -81,12 +81,12 @@ export const CloudDashboard: React.FC<Props> = ({ state, onGoToWizard, onOpenClo
             </svg>
           </div>
           <p className="text-hi-slate font-medium">Noch keine cloud-relevanten Objekte erfasst.</p>
-          <p className="text-sm text-gray-400 mt-1 mb-4">Starte den Assistenten um Objekte aufzunehmen.</p>
+          <p className="text-sm text-gray-400 mt-1 mb-4">Starte die Datenerfassung, um Objekte aufzunehmen.</p>
           <button
             onClick={onGoToWizard}
             className="px-5 py-2 bg-hi-accent text-white rounded-lg text-sm font-semibold hover:bg-hi-blue transition-colors"
           >
-            Im Assistenten starten
+            Datenerfassung starten
           </button>
         </div>
       ) : (

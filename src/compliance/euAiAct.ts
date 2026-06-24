@@ -42,8 +42,20 @@ export function shadowAITreffer(a: Anwendung): string | null {
   return AI_KEYWORDS.find((kw) => t.includes(kw))?.trim() ?? null;
 }
 
+/** Zählt offene/unklare Klärungspunkte eines KI-Systems (für „N offen"-Badge, Paket 7). */
+export function countOffeneKlaerung(a: Anwendung): number {
+  let n = 0;
+  if (!a.aiRisikoklasse || a.aiRisikoklasse === 'Unklar') n++;
+  if (!a.aiRolle || a.aiRolle === 'Unklar') n++;
+  if (!a.aiMenschlicheAufsicht || a.aiMenschlicheAufsicht === 'Unklar') n++;
+  if (!a.aiLoggingVorhanden || a.aiLoggingVorhanden === 'Unklar') n++;
+  if (!a.aiZweck?.trim()) n++;
+  if (!a.aiPersonenbezug || a.aiPersonenbezug === 'Unklar') n++;
+  return n;
+}
+
 export const AI_RISIKOKLASSEN = ['Verboten', 'Hoch', 'Begrenzt', 'Minimal', 'Kein KI', 'Unklar'] as const;
-export const AI_ROLLEN = ['Anbieter', 'Betreiber', 'Beides', 'Unklar'] as const;
+export const AI_ROLLEN = ['Anbieter', 'Betreiber', 'Importeur', 'Händler', 'Nutzer', 'Beides', 'Unklar'] as const;
 export const AI_TRAININGSDATEN = ['Interne Daten', 'Öffentliche Daten', 'Drittanbieter', 'Unklar'] as const;
 export const AI_AUFSICHT = ['Vollständig', 'Teilweise', 'Keine', 'Unklar'] as const;
 export const AI_LOGGING = ['Ja', 'Nein', 'Teilweise', 'Unklar'] as const;

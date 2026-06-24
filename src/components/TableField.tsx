@@ -5,8 +5,13 @@ interface TableRow { [key: string]: string }
 interface ColumnDef {
   key: string;
   label: string;
-  type?: 'text' | 'select';
+  type?: 'text' | 'select' | 'date' | 'number' | 'url';
   options?: string[];
+  tooltip?: string;
+  unit?: string;
+  min?: number;
+  step?: number;
+  placeholder?: string;
 }
 
 interface Props {
@@ -15,6 +20,9 @@ interface Props {
   onChange: (rows: TableRow[]) => void;
   label: string;
 }
+
+/** True für leere Werte oder valides ISO-Datum (YYYY-MM-DD). */
+const isIsoDateOrEmpty = (v: string): boolean => v === '' || /^\d{4}-\d{2}-\d{2}$/.test(v);
 
 export const TableField: React.FC<Props> = ({ columns, value, onChange }) => {
   const handleCellChange = (rowIdx: number, colKey: string, cellVal: string) => {
@@ -44,8 +52,13 @@ export const TableField: React.FC<Props> = ({ columns, value, onChange }) => {
             <thead>
               <tr className="bg-gray-50">
                 {columns.map(col => (
-                  <th key={col.key} className="text-left px-2 py-1.5 font-semibold text-hi-navy border-b border-gray-200 whitespace-nowrap">
+                  <th
+                    key={col.key}
+                    title={col.tooltip}
+                    className={`text-left px-2 py-1.5 font-semibold text-hi-navy border-b border-gray-200 whitespace-nowrap${col.tooltip ? ' cursor-help' : ''}`}
+                  >
                     {col.label}
+                    {col.tooltip && <span className="ml-1 text-hi-slate/60" aria-hidden>ⓘ</span>}
                   </th>
                 ))}
                 <th className="px-2 py-1.5 border-b border-gray-200 w-8" />
@@ -67,10 +80,48 @@ export const TableField: React.FC<Props> = ({ columns, value, onChange }) => {
                             <option key={opt} value={opt}>{opt}</option>
                           ))}
                         </select>
+                      ) : col.type === 'date' ? (
+                        // Native Datumsauswahl; bei bestehendem Nicht-ISO-Freitext
+                        // (Altbestand) Text-Fallback, damit der Wert sichtbar/editierbar bleibt.
+                        isIsoDateOrEmpty(row[col.key] ?? '') ? (
+                          <input
+                            type="date"
+                            value={row[col.key] ?? ''}
+                            onChange={e => handleCellChange(rowIdx, col.key, e.target.value)}
+                            className={inputClass}
+                          />
+                        ) : (
+                          <input
+                            type="text"
+                            value={row[col.key] ?? ''}
+                            title="Freitext-Altwert — leeren und über die Datumsauswahl neu setzen"
+                            onChange={e => handleCellChange(rowIdx, col.key, e.target.value)}
+                            className={`${inputClass} border-amber-300 bg-amber-50`}
+                          />
+                        )
+                      ) : col.type === 'number' ? (
+                        <input
+                          type="number"
+                          value={row[col.key] ?? ''}
+                          min={col.min}
+                          step={col.step}
+                          placeholder={col.placeholder}
+                          onChange={e => handleCellChange(rowIdx, col.key, e.target.value)}
+                          className={inputClass}
+                        />
+                      ) : col.type === 'url' ? (
+                        <input
+                          type="url"
+                          value={row[col.key] ?? ''}
+                          placeholder={col.placeholder ?? 'https://…'}
+                          onChange={e => handleCellChange(rowIdx, col.key, e.target.value)}
+                          className={inputClass}
+                        />
                       ) : (
                         <input
                           type="text"
                           value={row[col.key] ?? ''}
+                          placeholder={col.placeholder}
                           onChange={e => handleCellChange(rowIdx, col.key, e.target.value)}
                           className={inputClass}
                         />

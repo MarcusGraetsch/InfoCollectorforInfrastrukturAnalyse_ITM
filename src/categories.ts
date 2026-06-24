@@ -36,7 +36,19 @@ export interface FieldDef {
   /** Feld nur anzeigen, wenn ein anderes Feld einen der Werte hat (Conditional Field). */
   showIf?: { field: string; equals: string[] };
   /** Spalten-Definitionen für type='table' (1:N wiederholbare Feldgruppen). */
-  tableColumns?: Array<{ key: string; label: string; type?: 'text' | 'select'; options?: string[] }>;
+  tableColumns?: Array<{
+    key: string;
+    label: string;
+    type?: 'text' | 'select' | 'date' | 'number' | 'url';
+    options?: string[];
+    /** Kontexthilfe (als title-Tooltip am Spaltenkopf). */
+    tooltip?: string;
+    /** Einheiten-Suffix / Min / Schrittweite für type='number'. */
+    unit?: string;
+    min?: number;
+    step?: number;
+    placeholder?: string;
+  }>;
 }
 
 /**
@@ -366,7 +378,7 @@ export const WIRTSCHAFTLICHKEIT_FIELDS: FieldDef[] = [
  * den Optionen des `typ`-Feldes.
  */
 export const SOFTWARE_FIELDS: FieldDef[] = [
-  { key: 'hersteller', label: 'Hersteller / Anbieter', type: 'text', group: 'basis', suggestions: ['Microsoft', 'SAP', 'Oracle', 'Atlassian', 'Adobe', 'Salesforce', 'IBM', 'VMware (Broadcom)', 'Red Hat', 'Google', 'Cisco', 'Siemens', 'Fortinet', 'Proxmox', 'GitLab', 'Canonical'], tooltip: 'Software-Hersteller / Anbieter' },
+  { key: 'hersteller', label: 'Hersteller / Software-Anbieter', type: 'text', group: 'basis', suggestions: ['Microsoft', 'SAP', 'Oracle', 'Atlassian', 'Adobe', 'Salesforce', 'IBM', 'VMware (Broadcom)', 'Red Hat', 'Google', 'Cisco', 'Siemens', 'Fortinet', 'Proxmox', 'GitLab', 'Canonical'], tooltip: 'Hersteller bzw. Anbieter des Produkts — z.B. Microsoft, SAP, Atlassian, Red Hat. NICHT der Vertragspartner/Reseller (das ist in der Lizenztabelle das Feld „Lizenzgeber / Vertragspartner").' },
   { key: 'produktname', label: 'Produktname', type: 'text', group: 'basis', tooltip: 'Offizieller Produktname' },
   { key: 'version', label: 'Version', type: 'text', group: 'basis', tooltip: 'z.B. „2024 R2", „15.6.1"' },
   { key: 'updateZyklus', label: 'Update-Zyklus', type: 'select', options: ['Kontinuierlich', 'Monatlich', 'Quartalsweise', 'Jährlich', 'Bei Bedarf', 'Unklar'], group: 'basis', tooltip: 'Wie häufig wird die Software aktualisiert?' },
@@ -504,9 +516,9 @@ export const CATEGORIES: CategoryDef[] = [
         type: 'table',
         tableColumns: [
           { key: 'typ', label: 'Lizenztyp', type: 'select', options: ['Perpetual', 'Subscription', 'OEM', 'Open Source', 'Freeware', 'Sonstige'] },
-          { key: 'anzahl', label: 'Anzahl', type: 'text' },
-          { key: 'ablauf', label: 'Ablaufdatum', type: 'text' },
-          { key: 'anbieter', label: 'Anbieter', type: 'text' },
+          { key: 'anzahl', label: 'Anzahl', type: 'text', placeholder: 'z.B. 50 CAL' },
+          { key: 'ablauf', label: 'Ablaufdatum', type: 'date', tooltip: 'Ablauf-/Verlängerungsdatum der Lizenz (native Datumsauswahl, gespeichert als YYYY-MM-DD).' },
+          { key: 'anbieter', label: 'Lizenzgeber / Vertragspartner', type: 'text', tooltip: 'Über wen läuft Lizenz/Vertrag? Z.B. Hersteller direkt, Reseller, Rahmenvertragspartner, Cloud Marketplace oder IT-Dienstleister. NICHT zwingend der Software-Hersteller (siehe Feld „Hersteller / Software-Anbieter").' },
         ],
       },
     ],

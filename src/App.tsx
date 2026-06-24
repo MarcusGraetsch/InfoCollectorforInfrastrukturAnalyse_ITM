@@ -26,6 +26,7 @@ import type { Liefergegenstand, Meeting, Stakeholder, Anwendung, TCODaten } from
 import type { RowClassification } from './utils/importAnalyzer';
 import type { CloudFields } from './types';
 import { syncBidirectionalLinks } from './utils/bidirectional';
+import { setCustomCatalog } from './utils/componentCatalog';
 
 function UnlockScreen({ onUnlocked }: { onUnlocked: (state: AppState, password: string) => void }) {
   const [pw, setPw] = useState('');
@@ -133,6 +134,12 @@ function App() {
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
   }, [saveStatus]);
+
+  // Custom-Katalogeinträge zur Laufzeit registrieren, damit sie in allen
+  // Such-/Filter-/Picker-Funktionen mit dem Basiskatalog zusammengeführt werden.
+  useEffect(() => {
+    setCustomCatalog(state.customComponentCatalog ?? []);
+  }, [state.customComponentCatalog]);
 
   // Global search shortcut: Ctrl+K / Cmd+K
   useEffect(() => {
@@ -438,9 +445,13 @@ function App() {
               }))}
               onUpdateTCO={(tco: TCODaten) => updateState(prev => ({ ...prev, tcoData: tco }))}
               onUpdateNIS2={(a) => updateState(prev => ({ ...prev, nis2Assessment: a }))}
-              onUpdateNachweise={(status) => updateState(prev => ({ ...prev, nachweisStatus: status }))}
+              onUpdateEvidence={(items) => updateState(prev => ({ ...prev, evidenceItems: items }))}
               onUpdateBeziehungen={(beziehungen) => updateState(prev => ({ ...prev, beziehungen }))}
               onUpdateIKT={(d) => updateState(prev => ({ ...prev, iktDienstleister: d }))}
+              onUpdateCustomCatalog={(entries) => updateState(prev => ({ ...prev, customComponentCatalog: entries }))}
+              onUpdateRoles={(roles) => updateState(prev => ({ ...prev, roleAssignments: roles }))}
+              onUpdateGovernanceTopics={(topics) => updateState(prev => ({ ...prev, governanceTopics: topics }))}
+              onUpdateNachhaltigkeit={(annahmen) => updateState(prev => ({ ...prev, nachhaltigkeitAnnahmen: annahmen }))}
               onOpenCloudWizard={id => setCloudWizardTargetId(id)}
               onRestore={(s) => updateState(() => s)}
               onReload={() => {

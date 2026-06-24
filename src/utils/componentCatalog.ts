@@ -2,6 +2,35 @@ import type { ComponentCatalogEntry, ComponentKind } from '../data/componentCata
 import { COMPONENT_CATALOG } from '../data/componentCatalog';
 import type { CategoryDef, FieldDef } from '../categories';
 
+/**
+ * Kundenspezifische Katalogeinträge (Custom Catalog). Werden zur Laufzeit aus
+ * `AppState.customComponentCatalog` registriert (App.tsx) und in allen
+ * Such-/Filter-/Statistik-Funktionen mit dem statischen Basiskatalog
+ * zusammengeführt — so erscheinen sie auch im ComponentPicker und in der
+ * globalen Suche. Persistenz/Export laufen über den AppState (store.ts).
+ */
+let CUSTOM_CATALOG: ComponentCatalogEntry[] = [];
+
+/** Registriert die Custom-Einträge (idempotent; aus dem AppState gespeist). */
+export function setCustomCatalog(entries: ComponentCatalogEntry[] | undefined | null): void {
+  CUSTOM_CATALOG = Array.isArray(entries) ? entries : [];
+}
+
+/** Aktuell registrierte Custom-Einträge. */
+export function getCustomCatalog(): ComponentCatalogEntry[] {
+  return CUSTOM_CATALOG;
+}
+
+/** Statischer Basiskatalog + Custom-Einträge (Custom hinten, gewinnt bei ID-Kollision in getById). */
+export function effectiveCatalog(): ComponentCatalogEntry[] {
+  return CUSTOM_CATALOG.length ? [...COMPONENT_CATALOG, ...CUSTOM_CATALOG] : COMPONENT_CATALOG;
+}
+
+/** True, wenn die ID zu einem Custom-Eintrag gehört (für UI-Markierung/Löschen). */
+export function isCustomComponent(id: string): boolean {
+  return CUSTOM_CATALOG.some(e => e.id === id);
+}
+
 const LICENSE_MAP: { needle: string; lizenztyp: string }[] = [
   { needle: 'open source', lizenztyp: 'Open Source (frei)' },
   { needle: 'subscription', lizenztyp: 'Subscription' },
@@ -73,12 +102,17 @@ export interface CatalogStats {
   cloud: number;
 }
 
-/** Aggregated, deterministic stats over the whole catalog (for the overview view). */
-export function getCatalogStats(): CatalogStats {
+/**
+ * Aggregated, deterministic stats over the whole catalog (for the overview view).
+ * Optional `catalogOverride` macht die Statistik reaktiv gegenüber Custom-Einträgen,
+ * ohne auf die (ggf. einen Render verzögerte) globale Registry zu warten.
+ */
+export function getCatalogStats(catalogOverride?: ComponentCatalogEntry[]): CatalogStats {
   const kinds = new Map<ComponentKind, number>();
   let openSource = 0, proprietary = 0, oeffentlicherSektor = 0, souveraen = 0;
   const byRelevance = { de: 0, eu: 0, global: 0, unspecified: 0 };
-  for (const e of COMPONENT_CATALOG) {
+  const catalog = catalogOverride ?? effectiveCatalog();
+  for (const e of catalog) {
     kinds.set(e.kind, (kinds.get(e.kind) ?? 0) + 1);
     const lic = (e.defaultFields.lizenzart ?? e.defaultFields.lizenztyp ?? '').toLowerCase();
     if (lic.includes('open source') || lic.includes('open-source') || lic.includes('open weights') || lic.includes('offener standard')) openSource++;
@@ -94,7 +128,7 @@ export function getCatalogStats(): CatalogStats {
     .map(([kind, count]) => ({ kind, count }))
     .sort((a, b) => b.count - a.count);
   return {
-    total: COMPONENT_CATALOG.length,
+    total: catalog.length,
     byKind,
     openSource,
     proprietary,
@@ -114,7 +148,7 @@ export function normalizeText(s: string): string {
 export function searchComponents(query: string, kind?: ComponentKind, limit = 20): ComponentCatalogEntry[] {
   if (!query || query.length < 2) return [];
   const q = normalizeText(query);
-  return COMPONENT_CATALOG.filter(e => {
+  return effectiveCatalog().filter(e => {
     if (kind && e.kind !== kind) return false;
     const haystack = normalizeText([e.vendor, e.product, ...(e.aliases ?? []), ...(e.tags ?? [])].join(' '));
     return haystack.includes(q);
@@ -122,11 +156,12 @@ export function searchComponents(query: string, kind?: ComponentKind, limit = 20
 }
 
 export function getComponentById(id: string): ComponentCatalogEntry | undefined {
-  return COMPONENT_CATALOG.find(e => e.id === id);
+  // Custom-Einträge zuerst (gewinnen bei ID-Kollision), dann Basiskatalog.
+  return CUSTOM_CATALOG.find(e => e.id === id) ?? COMPONENT_CATALOG.find(e => e.id === id);
 }
 
 export function getComponentSuggestionsForCategory(categoryKey: string, limit = 8): ComponentCatalogEntry[] {
-  return COMPONENT_CATALOG.filter(e => e.categoryTargets.includes(categoryKey)).slice(0, limit);
+  return effectiveCatalog().filter(e => e.categoryTargets.includes(categoryKey)).slice(0, limit);
 }
 
 /** Maps a catalog entry (+ optional chosen version) to form field key→value pairs. */
@@ -170,16 +205,17 @@ export function autofillFormFields(
 export function matchComponentFromText(text: string): ComponentCatalogEntry | undefined {
   if (!text) return undefined;
   const t = normalizeText(text);
+  const catalog = effectiveCatalog();
   // Exact product name match first
-  let best = COMPONENT_CATALOG.find(e => normalizeText(e.product) === t);
+  let best = catalog.find(e => normalizeText(e.product) === t);
   if (best) return best;
   // Alias match
-  best = COMPONENT_CATALOG.find(e =>
+  best = catalog.find(e =>
     (e.aliases ?? []).some(a => normalizeText(a) === t)
   );
   if (best) return best;
   // Substring: product name is contained in text or vice versa (min 4 chars)
-  best = COMPONENT_CATALOG.find(e => {
+  best = catalog.find(e => {
     const p = normalizeText(e.product);
     return p.length >= 4 && (t.includes(p) || p.includes(t));
   });

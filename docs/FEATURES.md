@@ -2,7 +2,7 @@
 
 Vollständige Beschreibung aller Funktionen. Zielgruppe: Berater:innen der HiSolutions AG im Kundeneinsatz.
 
-**Stand: 2026-06-22**
+**Stand: 2026-06-24**
 
 ---
 
@@ -88,7 +88,7 @@ Modal-Overlay mit Volltext-Suche über alle 14 Kategorie-Arrays:
 | `number` | Zahlenfeld mit Einheiten-Suffix | Einheiten: W, kW, V, GB, HE, €, Jahre … |
 | `date` | Natives Datumfeld | Speicherung als ISO-String `YYYY-MM-DD` |
 | `url` | URL-Eingabe mit „Öffnen ↗"-Link | Validierung `https?://` |
-| `table` | Wiederholbare Zeilengruppen (Multi-Data-Sections) | Inline-Tabelleneditor, JSON-Array im Store |
+| `table` | Wiederholbare Zeilengruppen (Multi-Data-Sections) | Inline-Tabelleneditor, JSON-Array im Store. Spalten unterstützen `text`, `select`, `date` (native Datumsauswahl, ISO `YYYY-MM-DD`), `number` und `url` sowie Spalten-Tooltips |
 
 **Conditional Fields (`showIf`):** Felder können typabhängig ein-/ausgeblendet werden (z. B. Datenbank-Felder nur wenn `typ = 'Datenbank'`). Versteckte Felder behalten ihren Wert und zählen nicht als „fehlend" in der Vollständigkeits-Berechnung.
 
@@ -268,12 +268,14 @@ Aktuell eingesetzt bei:
 | Typ | Management / Produktion / Backup / iDRAC |
 
 **Anwendungen — Lizenzen:**
-| Spalte | Beschreibung |
-|---|---|
-| Lizenztyp | Einzelplatz / Named-User / Core / Site / OEM … |
-| Anzahl | |
-| Ablaufdatum | |
-| Anbieter / Lizenzgeber | |
+| Spalte | Typ | Beschreibung |
+|---|---|---|
+| Lizenztyp | select | Perpetual / Subscription / OEM / Open Source / Freeware / Sonstige |
+| Anzahl | text | z. B. „50 CAL" (Freitext erlaubt) |
+| Ablaufdatum | **date** | Native Datumsauswahl, gespeichert als `YYYY-MM-DD`. Bestehende Freitext-Altwerte bleiben sichtbar/editierbar (gelb markiertes Fallback-Feld) |
+| Lizenzgeber / Vertragspartner | text | Über wen läuft Lizenz/Vertrag (Hersteller direkt, Reseller, Rahmenvertrag, Cloud Marketplace, IT-Dienstleister) — **nicht** zwingend der Software-Hersteller |
+
+> **Begriffsklärung (Hersteller vs. Lizenzgeber):** Das Anwendungsfeld **„Hersteller / Software-Anbieter"** bezeichnet den Produkthersteller (z. B. Microsoft, SAP, Atlassian, Red Hat). Die Lizenztabellen-Spalte **„Lizenzgeber / Vertragspartner"** bezeichnet die Organisation, über die der Lizenz-/Vertrag läuft (Hersteller, Reseller, Rahmenvertragspartner, Marketplace oder Dienstleister). Beide Begriffe sind bewusst getrennt; die Keys (`hersteller`, `anbieter`) bleiben unverändert → Export/Import bleibt kompatibel.
 
 ---
 
@@ -328,6 +330,21 @@ Druckbare HTML-Tabelle: Zeilen = Quell-Anwendung, Spalten = Ziel-Anwendung, Zell
 
 ---
 
+### Security- & Governance-Architektur (LG 9)
+
+Automatisch aus der Infrastruktur abgeleitete Empfehlungen (Pflicht/Empfohlen/Optional)
+mit Status & Detailnotizen. Ergänzt um **strukturierte, bearbeitbare Governance-Themen**
+(Paket 3):
+
+- **Business Continuity Management (BCM)** und **Cloud-Exit-Strategie** als klickbare
+  Governance-Wizards (`GovernanceTopicDrawer`): Warum-wichtig, normative Einordnung
+  (BSI 200-4 / NIS2 / ISO 22301 bzw. EU Data Act / DORA / C5), Soll-Inhalte
+  (BCM: BIA, RTO/RPO, Backup/Restore, Notfallhandbuch, Krisenmanagement,
+  Notfallübungen — Cloud-Exit: Exit-Szenarien, Datenportabilität, Kündigungsfristen,
+  technische Abhängigkeiten, IAM/Schlüssel, IaC, Zielplattformen, Kosten/Risiken),
+  Status/Reifegrad, **Nachweis- und Rollen-Verknüpfung** (zentral), Workshop-Fragen,
+  nächste Schritte, Notizen. Persistenz als `GovernanceTopic` (domain `bcm` / `cloudExit`).
+
 ### Executive Summary + Spider-Chart
 
 Überblick für Managementpräsentationen:
@@ -356,7 +373,14 @@ Druckbare HTML-Tabelle: Zeilen = Quell-Anwendung, Spalten = Ziel-Anwendung, Zell
 
 - Automatische Einstufung: Besonders wichtig / Wichtig / Nicht betroffen
 - Gap-Analyse: 10 Mindestmaßnahmen nach Art. 21 NIS2 / §30 BSIG
-- Ampel-Zusammenfassung + Druckbericht mit Datum und Kundenname
+- **Geführter Detail-Wizard je Maßnahme** (klickbar): Warum-wichtig, normative
+  Einordnung, „was muss vorhanden sein", Hinweis auf nutzbare App-Daten, Ist-Zustand
+  (Status + Reifegrad 0–4), **Nachweise** (Verknüpfung zentraler Evidence-Items mit
+  passenden Vorschlägen + interne/externe URL + Dateiverweis), **verantwortliche Rolle**
+  (aus Rollenübersicht, mit Vorschlag), Workshop-Fragen, empfohlene nächste Schritte,
+  Fälligkeit/Follow-up, Notizen. Daten in `nis2Assessment.massnahmenDetail` (additiv).
+- Ampel-Zusammenfassung + Druckbericht (Status + Reifegrad + Verantwortlich + Nachweise
+  + Follow-up je Maßnahme) mit Datum und Kundenname
 
 ---
 
@@ -364,8 +388,16 @@ Druckbare HTML-Tabelle: Zeilen = Quell-Anwendung, Spalten = Ziel-Anwendung, Zell
 
 - Shadow-AI-Heuristik: erkennt wahrscheinliche KI-Systeme anhand von Schlüsselwörtern in Anwendungsfeldern
 - KI-System-Klassifizierung inline in der Tabelle (Verboten / Hoch / Begrenzt / Minimal)
-- Felder: Risikoklasse, Rolle (Anbieter/Betreiber), Trainingsdaten, menschliche Aufsicht, Logging
-- CSV-Register-Export (EU AI Act Pflichtfelder)
+- **Klickbarer Klärungs-Wizard je KI-System / Shadow-AI-Kandidat** (Paket 7): geführter
+  7-Schritt-Drawer — Warum als KI-relevant erkannt (Shadow-AI-Treffer), Einstufung +
+  Rolle der Organisation (Anbieter/Betreiber/**Importeur/Händler/Nutzer**/Beides),
+  Zweck, Datenarten, Personenbezug, Trainingsdaten, menschliche Aufsicht, Logging,
+  technische Dokumentation, Modell-/Anbieterinfo, Drittanbieter, **Betriebsort/
+  Cloud-Service und Hersteller über die vorhandenen Anwendungsfelder** (keine
+  Doppelerfassung), **Evidence-Verknüpfung**, offene Fragen, nächster Klärungsschritt.
+- **Klärungsbedarf sichtbar:** Badge „N offen" zählt unklare/leere Schlüsselfelder je
+  KI-System (fehlende Informationen als Aufgaben).
+- CSV-Register-Export (EU AI Act Pflichtfelder); vollständige Daten im JSON-Backup.
 
 ---
 
@@ -378,13 +410,22 @@ Druckbare HTML-Tabelle: Zeilen = Quell-Anwendung, Spalten = Ziel-Anwendung, Zell
 
 ---
 
-### EnEfG / CO₂ Nachhaltigkeitsmodul
+### EnEfG / CO₂ Nachhaltigkeitsmodul (transparent & drill-down, Paket 10)
 
-- CO₂-Schätzung je Server (kW × PUE × Betriebsstunden × Strommix-Faktor)
-- On-Prem vs. Cloud CO₂-Vergleich (Balkendiagramm, CSS-basiert)
-- EnEfG-Pflicht-Banner wenn Gesamtleistung > 300 kW
-- Anpassbare Richtwerte (kW/Server, PUE, Strommix)
-- CSRD-tauglicher Export (Print-Window)
+- **Server-Drilldown:** anklickbare Server-Energiebilanz mit Leistung (Quelle:
+  gemessen / aus max. Leistungsaufnahme / Default), Betriebsstunden, PUE, Strommix,
+  berechnetem Energieverbrauch und CO₂ je Server. Klick auf eine Zeile blendet den
+  **kompletten Rechenweg** ein (`src/sustainability.ts: berechneEnergieDetail`).
+- **Editierbare Annahmen** (persistiert in `state.nachhaltigkeitAnnahmen`): PUE On-Prem,
+  PUE Cloud, Betriebsstunden/Jahr, Strommix-Faktor On-Prem/Cloud, Auslastung,
+  Default-Leistung je Server — mit „Auf Richtwerte zurücksetzen".
+- **Berechnungsformeln sichtbar** (IT-Energie → ×PUE → ×Strommix; Cloud = IT-Energie×PUE Cloud).
+- **CO₂-Einsparung Cloud — Detailrechnung:** On-Prem-Baseline, Cloud-Szenario, Differenz/%
+  + ausgewiesene **Unsicherheit/Annahme** (±30 %, „Schätzung, keine Messung").
+- Nutzt echte Server-Leistungsdaten (`stromverbrauch`, `leistungsaufnahmeMax`, `anzahl`);
+  EnEfG-Pflicht-Banner; Maßnahmen mit Einsparpotenzial.
+- **Druck-/Export** enthält Annahmen, Formeln, Server-Tabelle und Summen; vollständig im
+  JSON-Backup (`nachhaltigkeitAnnahmen`).
 
 ---
 
@@ -424,16 +465,55 @@ Vertieft das einzelne SEAL-Level zu einem mehrdimensionalen Souveränitäts-Bloc
   Souveränität/Lock-in, KI-Governance, Supply-Chain-Transparenz) als Spider-Chart
   + Dimensions-Karten. Heuristisch aus vorhandenen Daten abgeleitet; fehlende
   Daten → neutral statt Punktabzug.
+- **Dimensionen als klickbare Governance-Wizards** (Paket 6): Jede Kachel öffnet
+  einen geführten Drawer (`GovernanceTopicDrawer`, wiederverwendbar): Warum-wichtig,
+  normative Einordnung, **welche Daten den Score beeinflussen** (live aus der
+  Bewertung), fehlende Infos, score-verbessernde Entscheidungen, erforderliche
+  **Nachweise** (Verknüpfung zentraler Evidence-Items), **beteiligte Rollen**
+  (aus Rollenübersicht), Workshop-Fragen, nächste Schritte sowie erfassbarer
+  Status/Reifegrad/Notizen. Persistenz als `GovernanceTopic` (domain
+  `cloudSovereignty`, key = Dimension) im zentralen Modell — keine Doppelerfassung.
 - **Souveränitäts-Washing-Check**: deterministische Regel-Engine (DSGVO, BSI C5,
   EU AI Act, Data Act …) mit Verdikt-Tabelle (fail/warn/pass/unklar), Filter und
   benötigtem Nachweis je Befund.
-- **Nachweis-/Evidence-Katalog** (Tab „Nachweis-Katalog"): ~20 Anforderung→Nachweis-
-  Einträge (AVV, SCC, TIA, C5, AIC4, ISO 42001, Exit-Plan, SBOM …), Checkbox +
-  Status persistiert (`state.nachweisStatus`), „Offene Nachweise als E-Mail" +
-  druckbare Übersicht.
+- **Evidence-/Nachweis-Katalog** (Tab „Evidence-Katalog"): interaktive, zentrale
+  Nachweisverwaltung auf Basis des Querschnittsmodells (`state.evidenceItems`,
+  s. `docs/GOVERNANCE_MODEL.md`). Jeder Nachweis ist ein **bearbeitbares Objekt**:
+  Titel, Warum-wichtig, Norm-/Themenbezug-Tags (DSGVO/NIS2/BSI/C5/DORA/AI Act/…),
+  normative Referenzen, benötigte Infos, Beispiel-Nachweise, typische Quelle,
+  Status (Offen/Angefragt/Erhalten/Geprüft/Nicht anwendbar), verantwortliche **Rolle**
+  (aus Rollenübersicht), Link/Datei/Review-/Gültigkeitsdatum, Notizen.
+  **n:m-Beziehungen:** ein Nachweis (z. B. AVV) lässt sich mehreren Themen,
+  Governance-Themen und Objekten (Anwendungen/Server/Provider) zuordnen — keine
+  Doppel­erfassung. Seed „Aus Standardkatalog erzeugen" (~20 Einträge AVV, SCC, TIA,
+  C5, AIC4, ISO 42001, Exit-Plan, SBOM …) **migriert vorhandenen Alt-Status**
+  (`nachweisStatus`) non-destruktiv. „Offene als E-Mail" + druckbares Evidence-Mapping;
+  vollständig im JSON-Backup enthalten.
 - **Quellen-Bibliothek + Regulatorik-Zeitstrahl** (Tab „Quellen-Bibliothek"):
   ~35 kuratierte Offline-Quellen über 5 Ebenen, Filter nach Ebene/Status,
   klickbare offizielle URLs (ISO nur Metadaten) + status-bewusster Zeitstrahl.
+
+### ISMS-/BCM-Rollen & Verantwortlichkeiten (Tab „ISMS-/BCM-Rollen")
+
+Strukturierte Rollenübersicht als Grundlage für IT-Grundschutz-/ISO-27001-Zertifizierungs-
+fähigkeit und NIS2. Nutzt das zentrale Rollenmodell (`AppState.roleAssignments`,
+s. `docs/GOVERNANCE_MODEL.md`).
+
+- **Seed-Katalog mit 20 Rollen** (`ROLE_CATALOG`): Geschäftsleitung, ISB, IT-SiBe,
+  ISMS-Team, Asset Owner, Prozess-/IT-Betriebsverantwortliche, DSB, Risikomanagement,
+  BCM-Beauftragte:r, Krisenstabsleitung/-mitglieder, Krisenkommunikation,
+  Incident-Response/CSIRT, Cloud-Service-Owner, Cloud-Governance, Lieferanten-Management,
+  Compliance/Audit, IAM, Kryptographie. Anlegen per Klick (idempotent — fehlende ergänzen).
+- **Relevanz-Klassifizierung** je Rolle (ISMS / BCM-Krise / NIS2 / Cloud-Governance /
+  Datenschutz / Empfohlen) statt „formal vorgeschrieben" — mit Filter.
+- **Eingabemaske je Rolle** (Detail-Drawer): benannte Person, Stellvertretung,
+  Organisationseinheit, Kontakt, Verantwortung, Status (Offen/Benannt/Vertretung
+  offen/Vollständig/N/A), Bestellungsdokument-Verweis, Notizen; normative Einordnung
+  (BSI 200-2/200-4, NIS2/BSIG, ISO 27001) eingeblendet.
+- **Fortschritt:** x von y Rollen erfasst / benannt / mit Stellvertretung / mit Nachweis.
+- **Eigene Rollen** ergänzbar; Rollen werden im JSON-Export mitgeführt und sind von
+  NIS2-/Evidence-/Governance-Themen referenzierbar (zentrale Rollenobjekte, keine
+  doppelten Verantwortlichkeitsfelder).
 
 ---
 

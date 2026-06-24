@@ -1,6 +1,7 @@
 import type { AppState, Liefergegenstand, Stakeholder, TCODaten } from './types';
 import { clearAIConfig } from './integrations/aiSuggest';
 import { idbSave, idbLoad, idbClear } from './db';
+import { DEFAULT_ANNAHMEN } from './sustainability';
 
 const DEFAULT_TCO: TCODaten = {
   zeithorizont: '5',
@@ -105,6 +106,11 @@ export function createDefaultState(): AppState {
     iktDienstleister: [],
     nachweisStatus: {},
     beziehungen: [],
+    customComponentCatalog: [],
+    governanceTopics: [],
+    evidenceItems: [],
+    roleAssignments: [],
+    nachhaltigkeitAnnahmen: { ...DEFAULT_ANNAHMEN },
   };
 }
 
@@ -173,6 +179,7 @@ export function mergeWithDefault(partial: Partial<AppState> | null | undefined):
     'quelldokumente', 'liefergegenstaende', 'stakeholder', 'meetings', 'geschaeftsprozesse', 'daten', 'anwendungen', 'betriebssysteme', 'schnittstellen', 'datentraeger',
     'server', 'netzkomponenten', 'netzverbindungen', 'clients', 'icsSysteme',
     'iotSysteme', 'raeume', 'gebaeude', 'iktDienstleister', 'beziehungen',
+    'customComponentCatalog', 'governanceTopics', 'evidenceItems', 'roleAssignments',
   ];
   for (const key of arrayKeys) {
     if (!Array.isArray(merged[key])) {

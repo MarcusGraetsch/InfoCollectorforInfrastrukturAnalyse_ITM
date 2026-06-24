@@ -121,9 +121,38 @@ Insgesamt 120+ Einträge:
 - ICS/IoT: 9 Einträge
 - Middleware: 8 Einträge
 
-## Neue Einträge hinzufügen
+## Übersichts-Ansicht & Detail-Drawer (Subtab „Komponentenkatalog")
 
-Eintrag am Ende des Arrays `COMPONENT_CATALOG` in `src/data/componentCatalog.ts` anfügen:
+Die Komponente `KatalogUebersicht.tsx` (Subtab „Komponentenkatalog" in der Projektsicht)
+bietet eine durchsuch- und filterbare Tabelle über **Basiskatalog + eigene Einträge**:
+
+- **Klickbare Zeilen:** Ein Klick öffnet einen Detail-Drawer mit allen Attributen —
+  Hersteller, Produkt, Klasse, Zielkategorien, Aliases, Versionen, Tags, Relevanz,
+  Öffentlicher-Sektor-Markierung, Spec, `priceInfo` (mit Hinweis „indikativ"),
+  `endoflifeSlug`, CPE, purl-Typ sowie die Default-Felder (Autofill-Vorschau).
+- **Stat-Karten & Klassen-Filter** berücksichtigen eigene Einträge reaktiv.
+
+## Eigene Komponenten ohne Code hinzufügen (empfohlener Nutzerweg)
+
+Über die Schaltfläche **„+ Eigene Komponente hinzufügen"** in der Katalog-Übersicht legen
+Berater:innen kundenspezifische Einträge direkt in der UI an — **ohne Code, ohne
+Datei-Bearbeitung**. Das ist im Beratungstermin der vorgesehene Weg.
+
+- Gespeichert werden eigene Einträge im Projekt-Datenbestand unter
+  `AppState.customComponentCatalog` (persistiert via localStorage/IndexedDB,
+  enthalten in JSON-Export/-Import).
+- Sie werden zur Laufzeit über `setCustomCatalog()` registriert und in **allen**
+  Such-, Filter- und Statistik-Funktionen sowie im `ComponentPicker` gleichberechtigt
+  mit dem Basiskatalog zusammengeführt (`effectiveCatalog()`). In der UI sind sie mit
+  dem Badge **EIGEN** markiert und können im Detail-Drawer wieder gelöscht werden.
+- Pflichtangaben im Formular: Hersteller, Produkt und mindestens eine Zielkategorie.
+  Die ID wird automatisch als `custom-<vendor>-<product>` (kollisionssicher) erzeugt.
+
+## Basiskatalog erweitern (Entwicklerhinweis)
+
+Der statische Basiskatalog bleibt für dauerhafte, projektübergreifende Ergänzungen in
+`src/data/componentCatalog.ts` pflegbar. Eintrag am Ende des Arrays `COMPONENT_CATALOG`
+anfügen:
 
 ```typescript
 {
@@ -159,8 +188,13 @@ Nach dem Hinzufügen: `npm run test` — der Test "all entries have unique ids" 
 ## Technische Architektur
 
 - **`src/data/componentCatalog.ts`**: Statische Datendatei (kein Import von React oder anderen Komponenten)
-- **`src/utils/componentCatalog.ts`**: Hilfsfunktionen (Suche, Autofill, Matching)
-- **`src/components/ComponentPicker.tsx`**: Modal-UI zur Auswahl
+- **`src/utils/componentCatalog.ts`**: Hilfsfunktionen (Suche, Autofill, Matching) +
+  Custom-Registry (`setCustomCatalog`, `getCustomCatalog`, `effectiveCatalog`,
+  `isCustomComponent`) — merged Basis- und Custom-Katalog
+- **`src/components/ComponentPicker.tsx`**: Modal-UI zur Auswahl (nutzt `effectiveCatalog()`)
 - **`src/components/CategoryForm.tsx`**: Integration (Button + Toast)
+- **`src/components/KatalogUebersicht.tsx`**: Übersicht, Detail-Drawer, Custom-Formular
+- **`AppState.customComponentCatalog`**: Persistenz der eigenen Einträge (store.ts:
+  `createDefaultState` + `arrayKeys`); App.tsx registriert sie via `setCustomCatalog`
 
 Der Katalog ist vollständig offline und erfordert keine Netzwerkverbindung.
