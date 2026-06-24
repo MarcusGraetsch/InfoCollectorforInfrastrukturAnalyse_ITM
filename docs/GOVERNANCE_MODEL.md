@@ -64,8 +64,10 @@ Reine Funktionen, keine UI, keine State-Mutation (immer neue Arrays):
    persistiert als `GovernanceTopic` (domain `cloudSovereignty`, key = Dimension).
    Helper `findTopic`/`makeTopic`/`upsertTopic` + `GovernanceTopicInfo` in governance.ts.
    Der Drawer ist generisch und für Pakete 3/7 wiederverwendbar.
-5. **Pakete 3/7 — BCM/Cloud-Exit, AI Act:** je Domäne `GovernanceTopic`-Instanzen
-   über denselben `GovernanceTopicDrawer`, die auf `evidenceItems`/`roleAssignments` referenzieren.
+5. **Paket 3 — BCM & Cloud-Exit (LG 9):** ✅ umgesetzt — zwei bearbeitbare Governance-
+   Themen (`src/compliance/lg9Governance.ts`) im Tab „Security & Gov. (LG 9)" über den
+   `GovernanceTopicDrawer`, persistiert als `GovernanceTopic` (domain `bcm` / `cloudExit`).
+6. **Paket 7 — AI Act:** offen — Shadow-AI/KI-Systeme über denselben Drawer/`GovernanceTopic`.
 
 > Leitplanke: Keine neuen, parallelen Verantwortlichkeits-/Nachweisfelder in Einzelmodulen
 > — immer die zentralen Objekte referenzieren.

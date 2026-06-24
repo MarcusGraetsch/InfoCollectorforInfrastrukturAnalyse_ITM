@@ -1,10 +1,25 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import type { AppState } from '../types';
+import type { AppState, GovernanceTopic } from '../types';
 import { getEffektiverSchutzbedarf } from '../schutzbedarfsVererbung';
 import { assessAll } from '../cloudReadiness';
 import { esc, openPrintWindow, printHeader, printFooter } from '../utils/safePrint';
+import { LG9_GOVERNANCE_TOPICS } from '../compliance/lg9Governance';
+import { findTopic, makeTopic, upsertTopic } from '../utils/governance';
+import { GovernanceTopicDrawer } from './GovernanceTopicDrawer';
 
-interface Props { state: AppState; onOpenCloudWizard: (id: string) => void }
+interface Props {
+  state: AppState;
+  onOpenCloudWizard: (id: string) => void;
+  onUpdateTopics: (topics: GovernanceTopic[]) => void;
+}
+
+const TOPIC_STATUS_BADGE: Record<string, string> = {
+  'Offen': 'bg-gray-100 text-gray-500',
+  'In Arbeit': 'bg-sky-100 text-sky-700',
+  'Teilweise': 'bg-amber-100 text-amber-700',
+  'Erfüllt': 'bg-emerald-100 text-emerald-700',
+  'N/A': 'bg-gray-100 text-gray-400',
+};
 
 type MassnahmeStatus = 'Offen' | 'Geplant' | 'Umgesetzt';
 const LS_STATUS  = 'it-sa-security-status';
@@ -195,11 +210,20 @@ const STATUS_STYLES: Record<MassnahmeStatus, string> = {
   'Umgesetzt': 'bg-green-100 text-green-700 border-green-300',
 };
 
-export const SecurityGovernanceArchitektur: React.FC<Props> = ({ state, onOpenCloudWizard }) => {
+export const SecurityGovernanceArchitektur: React.FC<Props> = ({ state, onOpenCloudWizard, onUpdateTopics }) => {
   const empfehlungen = useMemo(() => buildEmpfehlungen(state), [state]);
   const [statusMap,  setStatusMap]  = useState<Record<string, MassnahmeStatus>>(loadStatus);
   const [detailsMap, setDetailsMap] = useState<Record<string, MassnahmeDetails>>(loadDetails);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const [openTopicKey, setOpenTopicKey] = useState<string | null>(null);
+
+  const topics = state.governanceTopics ?? [];
+  const openDef = LG9_GOVERNANCE_TOPICS.find(d => d.key === openTopicKey) ?? null;
+  const openTopic = openDef ? (findTopic(topics, openDef.domain, openDef.key) ?? makeTopic(openDef.domain, openDef.key, openDef.title)) : null;
+  const patchTopic = (changes: Partial<GovernanceTopic>) => {
+    if (!openDef || !openTopic) return;
+    onUpdateTopics(upsertTopic(topics, { ...openTopic, ...changes }));
+  };
 
   useEffect(() => { saveStatus(statusMap); },  [statusMap]);
   useEffect(() => { saveDetails(detailsMap); }, [detailsMap]);
@@ -273,6 +297,38 @@ export const SecurityGovernanceArchitektur: React.FC<Props> = ({ state, onOpenCl
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-800">
         <strong>Hinweis:</strong> Diese Empfehlungen werden automatisch aus den erfassten Infrastruktur-Daten abgeleitet (Schutzbedarf, Datensouveränität, Bereitstellung, ICS/IoT-Systeme). Sie ersetzen keine individuelle Sicherheitsarchitektur, bilden aber eine valide Ausgangsbasis für den LG-9-Workshop.
       </div>
+
+      {/* Governance-Themen (BCM, Cloud-Exit) — bearbeitbar, zentrales Modell */}
+      <section>
+        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Governance-Themen</h3>
+        <div className="grid sm:grid-cols-2 gap-3">
+          {LG9_GOVERNANCE_TOPICS.map(def => {
+            const t = findTopic(topics, def.domain, def.key);
+            return (
+              <button
+                key={def.key}
+                onClick={() => setOpenTopicKey(def.key)}
+                className="text-left border border-gray-200 rounded-xl p-4 bg-white hover:border-hi-accent/50 hover:bg-hi-accent/5 transition-colors group shadow-sm"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-bold text-hi-navy group-hover:text-hi-accent transition-colors flex items-center gap-1.5">
+                    {def.title}
+                    <svg className="w-3.5 h-3.5 text-gray-300 group-hover:text-hi-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                  </span>
+                  {t?.status && t.status !== 'Offen' && <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${TOPIC_STATUS_BADGE[t.status] ?? ''}`}>{t.status}</span>}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">{def.kurz}</p>
+                <div className="mt-2 flex items-center gap-2 flex-wrap">
+                  <span className="text-[11px] text-hi-accent font-medium">Governance-Wizard öffnen</span>
+                  {t?.maturity !== undefined && <span className="text-[10px] text-gray-400">Reifegrad {t.maturity}/4</span>}
+                  {(t?.relatedEvidenceIds?.length ?? 0) > 0 && <span className="text-[10px] text-emerald-600">{t!.relatedEvidenceIds!.length} Nachweis(e)</span>}
+                  {(t?.relatedRoleIds?.length ?? 0) > 0 && <span className="text-[10px] text-gray-400">{t!.relatedRoleIds!.length} Rolle(n)</span>}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
       <div className="space-y-6">
         {grouped.map(group => (
@@ -375,6 +431,19 @@ export const SecurityGovernanceArchitektur: React.FC<Props> = ({ state, onOpenCl
           </div>
         ))}
       </div>
+
+      {openDef && openTopic && (
+        <GovernanceTopicDrawer
+          title={openDef.title}
+          subtitle="Security & Governance (LG 9) — Governance-Wizard"
+          info={openDef.info}
+          topic={openTopic}
+          roles={state.roleAssignments ?? []}
+          evidence={state.evidenceItems ?? []}
+          onPatch={patchTopic}
+          onClose={() => setOpenTopicKey(null)}
+        />
+      )}
     </div>
   );
 };

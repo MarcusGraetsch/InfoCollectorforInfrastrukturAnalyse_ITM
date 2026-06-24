@@ -289,7 +289,7 @@ export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeh
         )}
         {subTab === 'lizenz'             && <LizenzKostenAnalyse state={state} onUpdateAnwendung={onUpdateAnwendung} />}
         {subTab === 'tco'                && <TCOModell state={state} onUpdate={onUpdateTCO} />}
-        {subTab === 'security'           && <SecurityGovernanceArchitektur state={state} onOpenCloudWizard={onOpenCloudWizard} />}
+        {subTab === 'security'           && <SecurityGovernanceArchitektur state={state} onOpenCloudWizard={onOpenCloudWizard} onUpdateTopics={onUpdateGovernanceTopics} />}
         {subTab === 'zielarchitektur'    && <ZielarchitekturBetrieb state={state} onOpenCloudWizard={onOpenCloudWizard} />}
         {subTab === 'nis2'               && <NIS2Check state={state} assessment={state.nis2Assessment ?? { sektor: '', mitarbeiter: '', umsatzMio: '', kritis: 'Unklar', einstufung: 'Unklar', massnahmen: {}, notizen: '', erstelltAm: '' }} onUpdate={onUpdateNIS2} />}
         {subTab === 'euaiact'            && <EuAiActInventar state={state} onUpdateAnwendung={onUpdateAnwendung} />}

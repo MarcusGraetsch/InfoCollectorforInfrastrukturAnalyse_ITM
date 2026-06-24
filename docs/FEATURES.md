@@ -330,6 +330,21 @@ Druckbare HTML-Tabelle: Zeilen = Quell-Anwendung, Spalten = Ziel-Anwendung, Zell
 
 ---
 
+### Security- & Governance-Architektur (LG 9)
+
+Automatisch aus der Infrastruktur abgeleitete Empfehlungen (Pflicht/Empfohlen/Optional)
+mit Status & Detailnotizen. Ergänzt um **strukturierte, bearbeitbare Governance-Themen**
+(Paket 3):
+
+- **Business Continuity Management (BCM)** und **Cloud-Exit-Strategie** als klickbare
+  Governance-Wizards (`GovernanceTopicDrawer`): Warum-wichtig, normative Einordnung
+  (BSI 200-4 / NIS2 / ISO 22301 bzw. EU Data Act / DORA / C5), Soll-Inhalte
+  (BCM: BIA, RTO/RPO, Backup/Restore, Notfallhandbuch, Krisenmanagement,
+  Notfallübungen — Cloud-Exit: Exit-Szenarien, Datenportabilität, Kündigungsfristen,
+  technische Abhängigkeiten, IAM/Schlüssel, IaC, Zielplattformen, Kosten/Risiken),
+  Status/Reifegrad, **Nachweis- und Rollen-Verknüpfung** (zentral), Workshop-Fragen,
+  nächste Schritte, Notizen. Persistenz als `GovernanceTopic` (domain `bcm` / `cloudExit`).
+
 ### Executive Summary + Spider-Chart
 
 Überblick für Managementpräsentationen:
