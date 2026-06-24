@@ -1,0 +1,63 @@
+# Querschnitt — Gemeinsames Governance-/Evidence-/Rollen-Modell
+
+**Stand: 2026-06-24** · Status: Fundament umgesetzt (Datenmodell + Helper + Seed-Katalog).
+UI-Konsumenten folgen in späteren Phasen (Rollen, NIS2, Souveränität, AI Act, BCM, Evidence).
+
+## Motivation
+
+Viele Module überschneiden sich (NIS2, Evidence-Katalog, Cloud-Souveränität, EU AI Act,
+BCM, Cloud-Exit, Nachhaltigkeit, IT-Grundschutz-Rollen). Statt in jedem Modul eigene
+Verantwortlichkeits- und Nachweisfelder zu duplizieren, gibt es **eine zentrale Datenbasis**.
+Module referenzieren gemeinsame Objekte über IDs (n:m), z. B. kann ein AVV-Nachweis
+gleichzeitig Datenschutz, NIS2-Lieferkette und Cloud-Souveränität abdecken.
+
+## Datenmodell (`src/types.ts`)
+
+| Struktur | Zweck | AppState-Feld (optional) |
+|---|---|---|
+| `GovernanceTopic` | Control/Thema je Domäne (NIS2-Maßnahme, Souveränitäts-Dimension, BCM-Baustein …) | `governanceTopics?` |
+| `EvidenceItem` | Zentraler Nachweis (n:m zu Themen über `relatedTopicIds`) | `evidenceItems?` |
+| `RoleAssignment` | ISMS-/BCM-/NIS2-Rolle (zentral referenzierbar) | `roleAssignments?` |
+| `ActionItem` | Maßnahme / nächster Schritt (eingebettet in `GovernanceTopic.actionItems`) | — |
+| `ObjectRef` | Verweis auf ein Erfassungsobjekt (`{ kategorie, id }`) | — |
+
+Alle Felder sind **optional und additiv** → alte Backups laden unverändert
+(`store.ts`: `createDefaultState` + `arrayKeys` + `mergeWithDefault`). Export/Import läuft
+über den bestehenden State-Mechanismus.
+
+### Domänen & Status
+
+- `GovernanceDomain`: `nis2 | cloudSovereignty | aiAct | bcm | cloudExit | sustainability | itGrundschutz`
+- `GovernanceStatus`: `Offen | In Arbeit | Teilweise | Erfüllt | N/A`
+- `EvidenceStatus`: `Offen | Angefragt | Erhalten | Geprüft | Nicht anwendbar`
+- `RoleRelevance`: `isms | bcm | nis2 | cloudGovernance | datenschutz | empfohlen`
+  (eine Rolle kann mehreren dienen — Klassifizierung statt „formal vorgeschrieben").
+
+## Helper (`src/utils/governance.ts`)
+
+Reine Funktionen, keine UI, keine State-Mutation (immer neue Arrays):
+
+- `makeId(prefix)` — kollisionsarme IDs ohne Dependency
+- `ROLE_CATALOG` — Seed-Katalog der **20 ISMS-/BCM-/NIS2-Rollen** inkl. `relevanz`-Tags,
+  `responsibility` und orientierendem `normativeHint`
+- `seedRoleAssignments(existing)` — erzeugt fehlende Rollen idempotent (per `key`)
+- `roleProgress` / `topicCompletion` / `evidenceProgress` — Fortschrittskennzahlen
+- `roleName`, `evidenceForTopic`, `topicsForEvidence`, `openActions` — Referenz-Auflösung
+  (beide Richtungen → keine Duplikat-Inseln)
+- `DOMAIN_LABEL`, `ROLE_RELEVANCE_LABEL` — Anzeige-Labels
+
+## Geplante Anbindung (nächste Phasen)
+
+1. **Paket 4 — Rollenübersicht:** UI auf `roleAssignments` + `seedRoleAssignments`.
+2. **Paket 9 — Evidence-Katalog:** UI auf `evidenceItems`, Bridge zum bestehenden
+   `nachweisStatus`/`NACHWEIS_KATALOG` (additiv, ohne Bruch).
+3. **Pakete 3/6/7/8 — BCM/Cloud-Exit, Souveränität, AI Act, NIS2:** je Domäne
+   `GovernanceTopic`-Instanzen, die auf `evidenceItems` und `roleAssignments` referenzieren.
+
+> Leitplanke: Keine neuen, parallelen Verantwortlichkeits-/Nachweisfelder in Einzelmodulen
+> — immer die zentralen Objekte referenzieren.
+
+## Tests
+
+`src/__tests__/governance.test.ts` — Default/Migration, Seed-Idempotenz, Fortschritt,
+n:m-Referenzauflösung, ID-Eindeutigkeit.

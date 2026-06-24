@@ -503,11 +503,18 @@ export interface AppState {
   beziehungen?: Beziehung[];
   /** Kundenspezifische Katalogeinträge (ergänzen den statischen Basiskatalog, persistiert + exportiert). */
   customComponentCatalog?: ComponentCatalogEntry[];
+  /** Querschnitt: zentrale Governance-Themen (NIS2, Souveränität, BCM, Cloud-Exit …). */
+  governanceTopics?: GovernanceTopic[];
+  /** Querschnitt: zentrale Nachweis-/Evidence-Objekte (n:m zu Themen). */
+  evidenceItems?: EvidenceItem[];
+  /** Querschnitt: zentrale ISMS-/BCM-/NIS2-Rollenzuweisungen. */
+  roleAssignments?: RoleAssignment[];
 }
 
 export type CategoryKey = keyof Omit<
   AppState,
   'customerName' | 'lastUpdated' | 'cloudStrategy' | 'quelldokumente' | 'tcoData' | 'beziehungen' | 'customComponentCatalog'
+  | 'governanceTopics' | 'evidenceItems' | 'roleAssignments'
 >;
 
 // Zentrales Beziehungsmodell (generische Objekt-Verknüpfungen)
@@ -524,6 +531,116 @@ export interface Beziehung {
   protokoll?: string;        // optional, only meaningful for 'kommuniziert'
   verbindungsmedium?: string; // optional, only meaningful for 'physisch'
   notiz?: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Querschnitt — Gemeinsames Control-/Evidence-/Rollen-/Action-Modell
+// Eine Datenbasis für NIS2, Cloud-Souveränität, EU AI Act, BCM, Cloud-Exit,
+// Nachhaltigkeit und IT-Grundschutz-Rollen. Vermeidet doppelte Felder/Dateninseln:
+// Module referenzieren zentrale Evidence- und Rollen-Objekte über IDs.
+// Alle Strukturen sind additiv + optional in AppState → keine Migration nötig.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Fachdomäne eines Governance-Themas. */
+export type GovernanceDomain =
+  | 'nis2' | 'cloudSovereignty' | 'aiAct' | 'bcm' | 'cloudExit'
+  | 'sustainability' | 'itGrundschutz';
+
+/** Einheitlicher Bearbeitungsstatus für Governance-Themen (Reifegrad-orientiert). */
+export type GovernanceStatus = 'Offen' | 'In Arbeit' | 'Teilweise' | 'Erfüllt' | 'N/A';
+
+/** Status einer Maßnahme/Aufgabe. */
+export type ActionStatus = 'Offen' | 'In Arbeit' | 'Erledigt';
+
+/** Verweis auf ein beliebiges Erfassungs-Objekt (kategorieübergreifend). */
+export interface ObjectRef {
+  kategorie: CategoryKey;
+  id: string;
+}
+
+/** Konkrete Maßnahme / nächster Schritt (kann an Thema/Evidence/Rolle hängen). */
+export interface ActionItem {
+  id: string;
+  title: string;
+  description?: string;
+  ownerRoleId?: string;       // → RoleAssignment.id
+  dueDate?: string;           // ISO YYYY-MM-DD
+  status: ActionStatus;
+  relatedEvidenceIds?: string[];
+}
+
+/**
+ * Governance-Thema (Control). Wiederverwendbar über alle Domänen — z.B. eine
+ * NIS2-Mindestmaßnahme, eine Cloud-Souveränitäts-Dimension oder ein BCM-Baustein.
+ */
+export interface GovernanceTopic {
+  id: string;
+  domain: GovernanceDomain;
+  /** Stabiler fachlicher Schlüssel innerhalb der Domäne (z.B. 'nis2-3', 'bcm', 'cloud-exit'). */
+  key?: string;
+  title: string;
+  description?: string;
+  whyImportant?: string;
+  normativeReferences?: string[];
+  relatedEvidenceIds?: string[];   // → EvidenceItem.id
+  relatedRoleIds?: string[];       // → RoleAssignment.id
+  relatedObjectRefs?: ObjectRef[];
+  status?: GovernanceStatus;
+  maturity?: number;               // 0–4 (optional)
+  notes?: string;
+  actionItems?: ActionItem[];
+}
+
+/** Lebenszyklus-Status eines Nachweises. */
+export type EvidenceStatus = 'Offen' | 'Angefragt' | 'Erhalten' | 'Geprüft' | 'Nicht anwendbar';
+
+/**
+ * Zentrales Nachweis-/Evidence-Objekt. Ein Nachweis (z.B. AVV) kann mehreren
+ * Themen/Domänen zugeordnet sein (Datenschutz, NIS2-Lieferkette, Souveränität …)
+ * → relatedTopicIds bildet n:m ab, ohne den Nachweis zu duplizieren.
+ */
+export interface EvidenceItem {
+  id: string;
+  title: string;
+  description?: string;
+  evidenceType?: string;           // z.B. 'Vertrag', 'Konzept', 'Protokoll', 'Zertifikat'
+  status: EvidenceStatus;
+  ownerRoleId?: string;            // → RoleAssignment.id
+  sourceUrl?: string;
+  fileReference?: string;
+  reviewDate?: string;             // ISO
+  validUntil?: string;             // ISO
+  relatedTopicIds?: string[];      // → GovernanceTopic.id
+  relatedObjectRefs?: ObjectRef[];
+  notes?: string;
+}
+
+/** Relevanz-/Domänen-Klassifizierung einer Rolle (eine Rolle kann mehreren dienen). */
+export type RoleRelevance = 'isms' | 'bcm' | 'nis2' | 'cloudGovernance' | 'datenschutz' | 'empfohlen';
+
+/** Benennungs-Status einer Rolle. */
+export type RoleAssignmentStatus = 'Offen' | 'Benannt' | 'Vertretung offen' | 'Vollständig' | 'N/A';
+
+/**
+ * Rollen-/Verantwortlichkeitszuweisung (ISMS-/BCM-/NIS2-Rollen). Zentrales
+ * Rollenobjekt, auf das Governance-Themen und Evidence referenzieren — keine
+ * doppelten Verantwortlichkeitsfelder in NIS2/Evidence/BCM.
+ */
+export interface RoleAssignment {
+  id: string;
+  roleName: string;
+  /** Stabiler fachlicher Schlüssel aus dem Seed-Katalog (z.B. 'isb', 'bcm-beauftragter'). */
+  key?: string;
+  relevanz: RoleRelevance[];
+  personName?: string;
+  orgUnit?: string;
+  email?: string;
+  deputy?: string;                 // Stellvertretung
+  responsibility?: string;
+  status?: RoleAssignmentStatus;
+  evidenceIds?: string[];          // → EvidenceItem.id (z.B. Bestellungsdokument)
+  bestellungsdokument?: string;    // freier Verweis (URL/Datei), falls kein EvidenceItem
+  notes?: string;
 }
 
 // Block 11 — Snapshot-Versionierung

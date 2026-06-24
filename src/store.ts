@@ -106,6 +106,9 @@ export function createDefaultState(): AppState {
     nachweisStatus: {},
     beziehungen: [],
     customComponentCatalog: [],
+    governanceTopics: [],
+    evidenceItems: [],
+    roleAssignments: [],
   };
 }
 
@@ -174,7 +177,7 @@ export function mergeWithDefault(partial: Partial<AppState> | null | undefined):
     'quelldokumente', 'liefergegenstaende', 'stakeholder', 'meetings', 'geschaeftsprozesse', 'daten', 'anwendungen', 'betriebssysteme', 'schnittstellen', 'datentraeger',
     'server', 'netzkomponenten', 'netzverbindungen', 'clients', 'icsSysteme',
     'iotSysteme', 'raeume', 'gebaeude', 'iktDienstleister', 'beziehungen',
-    'customComponentCatalog',
+    'customComponentCatalog', 'governanceTopics', 'evidenceItems', 'roleAssignments',
   ];
   for (const key of arrayKeys) {
     if (!Array.isArray(merged[key])) {
