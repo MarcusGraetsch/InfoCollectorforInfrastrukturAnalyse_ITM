@@ -2,7 +2,7 @@
 
 Vollständige Beschreibung aller Funktionen. Zielgruppe: Berater:innen der HiSolutions AG im Kundeneinsatz.
 
-**Stand: 2026-06-22**
+**Stand: 2026-06-24**
 
 ---
 
@@ -88,7 +88,7 @@ Modal-Overlay mit Volltext-Suche über alle 14 Kategorie-Arrays:
 | `number` | Zahlenfeld mit Einheiten-Suffix | Einheiten: W, kW, V, GB, HE, €, Jahre … |
 | `date` | Natives Datumfeld | Speicherung als ISO-String `YYYY-MM-DD` |
 | `url` | URL-Eingabe mit „Öffnen ↗"-Link | Validierung `https?://` |
-| `table` | Wiederholbare Zeilengruppen (Multi-Data-Sections) | Inline-Tabelleneditor, JSON-Array im Store |
+| `table` | Wiederholbare Zeilengruppen (Multi-Data-Sections) | Inline-Tabelleneditor, JSON-Array im Store. Spalten unterstützen `text`, `select`, `date` (native Datumsauswahl, ISO `YYYY-MM-DD`), `number` und `url` sowie Spalten-Tooltips |
 
 **Conditional Fields (`showIf`):** Felder können typabhängig ein-/ausgeblendet werden (z. B. Datenbank-Felder nur wenn `typ = 'Datenbank'`). Versteckte Felder behalten ihren Wert und zählen nicht als „fehlend" in der Vollständigkeits-Berechnung.
 
@@ -268,12 +268,14 @@ Aktuell eingesetzt bei:
 | Typ | Management / Produktion / Backup / iDRAC |
 
 **Anwendungen — Lizenzen:**
-| Spalte | Beschreibung |
-|---|---|
-| Lizenztyp | Einzelplatz / Named-User / Core / Site / OEM … |
-| Anzahl | |
-| Ablaufdatum | |
-| Anbieter / Lizenzgeber | |
+| Spalte | Typ | Beschreibung |
+|---|---|---|
+| Lizenztyp | select | Perpetual / Subscription / OEM / Open Source / Freeware / Sonstige |
+| Anzahl | text | z. B. „50 CAL" (Freitext erlaubt) |
+| Ablaufdatum | **date** | Native Datumsauswahl, gespeichert als `YYYY-MM-DD`. Bestehende Freitext-Altwerte bleiben sichtbar/editierbar (gelb markiertes Fallback-Feld) |
+| Lizenzgeber / Vertragspartner | text | Über wen läuft Lizenz/Vertrag (Hersteller direkt, Reseller, Rahmenvertrag, Cloud Marketplace, IT-Dienstleister) — **nicht** zwingend der Software-Hersteller |
+
+> **Begriffsklärung (Hersteller vs. Lizenzgeber):** Das Anwendungsfeld **„Hersteller / Software-Anbieter"** bezeichnet den Produkthersteller (z. B. Microsoft, SAP, Atlassian, Red Hat). Die Lizenztabellen-Spalte **„Lizenzgeber / Vertragspartner"** bezeichnet die Organisation, über die der Lizenz-/Vertrag läuft (Hersteller, Reseller, Rahmenvertragspartner, Marketplace oder Dienstleister). Beide Begriffe sind bewusst getrennt; die Keys (`hersteller`, `anbieter`) bleiben unverändert → Export/Import bleibt kompatibel.
 
 ---
 
