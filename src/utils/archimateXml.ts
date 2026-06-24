@@ -54,17 +54,21 @@ export function modelToExchangeXml(model: ArchiMateModel): string {
   lines.push(indent(1) + `<documentation xml:lang="de">ArchiMate-lite mapping derived from IT-Strukturanalyse AppState. ` +
     `Erzeugt von ${xmlEsc(GENERATOR_NAME)} am ${xmlEsc(model.generatedAt)}.</documentation>`);
 
-  // Elemente
-  lines.push(indent(1) + '<elements>');
-  for (const el of model.elements) {
-    lines.push(indent(2) + `<element identifier="${xmlEsc(el.id)}" xsi:type="${xmlEsc(el.type)}">`);
-    lines.push(indent(3) + `<name xml:lang="de">${xmlEsc(el.name)}</name>`);
-    if (el.documentation) {
-      lines.push(indent(3) + `<documentation xml:lang="de">${xmlEsc(el.documentation)}</documentation>`);
+  // Elemente — der <elements>-Block wird nur ausgegeben, wenn Elemente
+  // existieren (ein leeres <elements/> ist gegen das ArchiMate-3.0-Schema
+  // ungültig).
+  if (model.elements.length > 0) {
+    lines.push(indent(1) + '<elements>');
+    for (const el of model.elements) {
+      lines.push(indent(2) + `<element identifier="${xmlEsc(el.id)}" xsi:type="${xmlEsc(el.type)}">`);
+      lines.push(indent(3) + `<name xml:lang="de">${xmlEsc(el.name)}</name>`);
+      if (el.documentation) {
+        lines.push(indent(3) + `<documentation xml:lang="de">${xmlEsc(el.documentation)}</documentation>`);
+      }
+      lines.push(indent(2) + '</element>');
     }
-    lines.push(indent(2) + '</element>');
+    lines.push(indent(1) + '</elements>');
   }
-  lines.push(indent(1) + '</elements>');
 
   // Relationships
   if (model.relationships.length > 0) {

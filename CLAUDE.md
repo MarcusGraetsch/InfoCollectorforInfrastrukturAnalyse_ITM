@@ -82,6 +82,35 @@ Konzept: `docs/SOUVERAENITAET_FEATURES_KONZEPT.md` (Features A–D umgesetzt).
 
 ---
 
+## ArchiMate-lite Export & Viewpoint-Generator (umgesetzt 2026-06-23)
+
+Konzept + Grenzen: `docs/ARCHIMATE_EXPORT.md`, Import-Spike: `docs/ARCHIMATE_IMPORT_SPIKE.md`.
+
+- **Kein ArchiMate-Editor** — das Modell wird **deterministisch aus `AppState`
+  abgeleitet** (Single Source of Truth bleibt die Strukturanalyse). Keine
+  manuelle Modellierung in der UI.
+- **`src/utils/archimate.ts`** — reine Transformationsfunktionen ohne UI-Bezug,
+  keine Mutation: `buildArchiMateModel(state)` (Element- + Relationship-Mapping
+  mit Deduplizierung über deterministische IDs `el-<kat>-<id>` /
+  `rel-<typ>-<src>-<tgt>`, Warnungssammlung), drei View-Builder mit
+  Mermaid-Output, `buildArchiMateJson(state)`.
+- **`src/utils/archimateXml.ts`** — `buildArchiMateExchangeXml(state)` im
+  ArchiMate Open Exchange 3.0 Format für das Tool „Archi" (String-Serialisierung
+  mit Escaping, keine neue Dependency; `Deployment` → `Assignment` für
+  Schema-Validität).
+- **`src/components/ArchiMateViews.tsx`** — Subtab „ArchiMate-Views" (Gruppe
+  „Analyse & Strategie"). 3 View-Tabs (Application Cooperation / Technology Usage /
+  Business-Application Alignment), Mermaid-Preview (Lazy-Import, `securityLevel:
+  'strict'` — wie `InfrastrukturLandkarte`), Export JSON/Archi-XML/SVG/Druck,
+  Warnungs-Panel, Hinweis-Banner „abgeleitetes Modell".
+- **Import bewusst nicht gebaut** — semantisch mehrdeutig (ein
+  `ApplicationComponent` ≠ zwingend eine „Anwendung"). Nur als Spike dokumentiert,
+  Empfehlung: späterer Review-Wizard ohne `AppState`-Mutation.
+- Tests: `src/__tests__/archimate.test.ts` (Mapping, Views, referenzielle
+  Integrität, JSON, XML-Escaping).
+
+---
+
 ## Entwicklungsrichtung: Von der Datenaufnahme zum Beratungs-Workflow-Tool
 
 Das Tool begann als **strukturierte Datenaufnahme** für BSI-Strukturanalysen. Die natürliche nächste Ebene ist ein **leichtgewichtiges Projektmanagement** für Cloud-Strategie, -Transformation und Audits — ohne externe Tools, direkt im Beratungskontext nutzbar.

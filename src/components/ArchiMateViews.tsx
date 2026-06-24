@@ -136,9 +136,31 @@ export const ArchiMateViews: React.FC<Props> = ({ state }) => {
       {/* Diagramm */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 min-h-64 overflow-auto">
         {loading && <div className="flex items-center justify-center h-48 text-gray-400 text-sm">Diagramm wird generiert …</div>}
-        {error && <div className="text-red-600 text-xs p-4 bg-red-50 rounded-lg">Diagramm konnte nicht erzeugt werden: {error}</div>}
-        {!loading && !error && svg && <div dangerouslySetInnerHTML={{ __html: svg }} />}
+        {error && (
+          <div className="text-red-600 text-xs p-4 bg-red-50 rounded-lg">
+            <p className="font-semibold mb-1">Fehler beim Rendern:</p>
+            <pre className="whitespace-pre-wrap">{error}</pre>
+            <details className="mt-2"><summary className="cursor-pointer">Mermaid-Code</summary><pre className="text-[10px] mt-1">{view?.mermaid}</pre></details>
+          </div>
+        )}
+        {!loading && !error && svg && (
+          <div className="overflow-auto" dangerouslySetInnerHTML={{ __html: svg }} />
+        )}
+        {!loading && !error && !svg && model.elements.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-48 text-gray-400 text-sm gap-2 text-center px-6">
+            <p>Noch keine verknüpften Objekte erfasst.</p>
+            <p className="text-xs">Erfassen Sie Geschäftsprozesse, Anwendungen, Daten und Infrastruktur und verknüpfen Sie diese — daraus werden die ArchiMate-Views automatisch abgeleitet.</p>
+          </div>
+        )}
       </div>
+
+      {/* Mermaid-Quellcode (Transparenz / Debug) */}
+      {view && (
+        <details className="text-xs text-gray-400">
+          <summary className="cursor-pointer hover:text-gray-600">Mermaid-Quellcode anzeigen</summary>
+          <pre className="mt-2 p-3 bg-gray-50 rounded-lg whitespace-pre-wrap border text-[10px]">{view.mermaid}</pre>
+        </details>
+      )}
 
       {/* Warnungen */}
       {model.warnings.length > 0 && (
