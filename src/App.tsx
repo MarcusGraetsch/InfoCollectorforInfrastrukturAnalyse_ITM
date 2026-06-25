@@ -203,6 +203,13 @@ function App() {
   };
   const handleNew = () => { setEditId(null); setView('form'); };
   const handleEdit = (id: string) => { setEditId(id); setView('form'); };
+  /** Öffnet das „Eintrag bearbeiten"-Formular für ein beliebiges Objekt (aus Dashboards). */
+  const openEntryEditor = (category: CategoryKey, id: string) => {
+    setActiveCategory(category);
+    setEditId(id);
+    setView('form');
+    setMode('detail');
+  };
   const handleDelete = (id: string) => {
     updateState((prev) => ({
       ...prev,
@@ -452,6 +459,7 @@ function App() {
               onUpdateRoles={(roles) => updateState(prev => ({ ...prev, roleAssignments: roles }))}
               onUpdateGovernanceTopics={(topics) => updateState(prev => ({ ...prev, governanceTopics: topics }))}
               onUpdateNachhaltigkeit={(annahmen) => updateState(prev => ({ ...prev, nachhaltigkeitAnnahmen: annahmen }))}
+              onEditObject={openEntryEditor}
               onOpenCloudWizard={id => setCloudWizardTargetId(id)}
               onRestore={(s) => updateState(() => s)}
               onReload={() => {
@@ -467,6 +475,7 @@ function App() {
             state={state}
             onGoToWizard={() => setMode('wizard')}
             onOpenCloudWizard={() => setCloudWizardTargetId('')}
+            onEditObject={openEntryEditor}
           />
           </div>
         )}

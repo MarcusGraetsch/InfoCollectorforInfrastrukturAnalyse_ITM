@@ -293,7 +293,7 @@ Automatische Bewertung aller cloud-relevanten Objekte (Anwendungen, Server, Clie
 | **6R-Verteilung** | Kreisdiagramm (Rehost / Replatform / Repurchase / Refactor / Retire / Retain) |
 | **SEAL-Level** | Souveränitäts-Bewertung S0–S3 (S0=keine Anforderung, S3=Gaia-X/C5 + BYOK) |
 | **FinOps-Szenarien** | Konservativ / Realistisch / Optimistisch mit Szenario-Vergleichstabelle |
-| **Bewertungstabelle** | Score, Level, 6R, SEAL, Souveränitätsbedarf, Begründung je Objekt |
+| **Bewertungstabelle** | Score, Level, 6R, SEAL, Souveränitätsbedarf, Begründung je Objekt — **Zeilen anklickbar: öffnet direkt „Eintrag bearbeiten"** für das Objekt |
 
 Scoring-Logik (0–100): ≥70 = Hoch · 45–69 = Mittel · <45 = Niedrig. `Unklar`-Werte sind neutral (kein Punktabzug) — sie markieren offene Fragen.
 
@@ -480,6 +480,9 @@ Vertieft das einzelne SEAL-Level zu einem mehrdimensionalen Souveränitäts-Bloc
   Bedarf + hohe Exposition = kritisch). Klickbare Zellen mit Objekt-Drilldown
   (Risiko-Treiber je Objekt), Kennzahlen „kritisch / Handlungsbedarf / ohne Cloud-Daten".
   Leitet sich vollständig aus vorhandenen Cloud-Feldern ab (kein neues Erfassen).
+  Drilldown-Objekte und die **SEAL-Tabelle pro Objekt sind anklickbar → öffnet
+  direkt „Eintrag bearbeiten"**. Der Tab hat einen **Drucken/PDF-Export** inkl.
+  Scorecard, Risiko-Matrix und SEAL-Tabelle.
 - **Souveränitäts-Washing-Check**: deterministische Regel-Engine (DSGVO, BSI C5,
   EU AI Act, Data Act …) mit Verdikt-Tabelle (fail/warn/pass/unklar), Filter und
   benötigtem Nachweis je Befund.

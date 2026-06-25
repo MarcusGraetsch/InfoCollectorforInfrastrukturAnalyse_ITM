@@ -13,6 +13,7 @@ import {
 import type { DimensionScore, SouvLevel, Verdikt, SouvDimension, RisikoSeverity } from '../compliance/souveraenitaet';
 import { SOUV_DIMENSION_INFO } from '../compliance/souvDetail';
 import { findTopic, makeTopic, upsertTopic } from '../utils/governance';
+import { esc, openPrintWindow, printHeader, printFooter } from '../utils/safePrint';
 import { GovernanceTopicDrawer } from './GovernanceTopicDrawer';
 
 const ASSESSABLE = ['anwendungen', 'server', 'clients', 'icsSysteme', 'iotSysteme'] as const;
@@ -97,9 +98,10 @@ function SouvSpider({ dimensionen }: { dimensionen: DimensionScore[] }) {
 interface Props {
   state: AppState;
   onUpdateTopics: (topics: GovernanceTopic[]) => void;
+  onEditObject: (category: import('../types').CategoryKey, id: string) => void;
 }
 
-export function SouveraenitaetsBewertung({ state, onUpdateTopics }: Props) {
+export function SouveraenitaetsBewertung({ state, onUpdateTopics, onEditObject }: Props) {
   const [filterLevel, setFilterLevel] = useState<string>('Alle');
   const [verdiktFilter, setVerdiktFilter] = useState<string>('Alle');
   const [openDim, setOpenDim] = useState<SouvDimension | null>(null);
@@ -165,14 +167,46 @@ export function SouveraenitaetsBewertung({ state, onUpdateTopics }: Props) {
     S3: { badge: '🔴 S3 – Streng souverän', color: 'bg-red-100 text-red-800' },
   };
 
+  const handlePrint = () => {
+    // Risiko-Matrix als HTML-Tabelle (Zeilen S3→S0, Spalten Niedrig/Mittel/Hoch)
+    const sevBg: Record<RisikoSeverity, string> = { gering: '#d1fae5', mittel: '#fef3c7', hoch: '#fed7aa', kritisch: '#fca5a5' };
+    const matrixRows = (['S3', 'S2', 'S1', 'S0'] as const).map(seal => {
+      const cells = (['Niedrig', 'Mittel', 'Hoch'] as const).map(risiko => {
+        const z = risikoMatrix.zellen.find(c => c.seal === seal && c.risiko === risiko)!;
+        return `<td style="background:${sevBg[z.severity]};text-align:center;font-weight:bold">${z.count}<br><span style="font-size:8px;font-weight:normal">${SEVERITY_LABEL[z.severity]}</span></td>`;
+      }).join('');
+      return `<tr><th style="text-align:right">${esc(SEAL_BEDARF_LABEL[seal])}</th>${cells}</tr>`;
+    }).join('');
+    const dimRows = scorecard.dimensionen.map(d => `<tr><td>${esc(d.label)}</td><td style="text-align:center">${d.score}</td><td>${esc(d.level)}</td></tr>`).join('');
+    const sealRows = rows.map(r => `<tr><td>${esc(r.kuerzel)}</td><td>${esc(r.name)}</td><td>${esc(CATEGORY_LABELS[r.cat] ?? r.cat)}</td><td>${esc(r.level)}</td><td>${esc(r.anforderung)}</td></tr>`).join('');
+    const body = `${printHeader('Cloud-Souveränität & Compliance', state.customerName)}
+      <h2>Souveränitäts-Scorecard — Gesamt-Score ${scorecard.gesamt}</h2>
+      <table><thead><tr><th>Dimension</th><th>Score</th><th>Stufe</th></tr></thead><tbody>${dimRows}</tbody></table>
+      <h2>Souveränitäts-Risiko-Matrix (Bedarf × Exposition)</h2>
+      <p>Kritisch: ${risikoMatrix.kritisch} &middot; Handlungsbedarf (hoch+kritisch): ${risikoMatrix.handlungsbedarf} &middot; ohne Cloud-Daten: ${risikoMatrix.datenarm} &middot; Objekte gesamt: ${risikoMatrix.gesamt}</p>
+      <table><thead><tr><th>Bedarf ＼ Risiko</th><th>Niedrig</th><th>Mittel</th><th>Hoch</th></tr></thead><tbody>${matrixRows}</tbody></table>
+      <p style="font-size:9px;color:#888">Y = Souveränitätsbedarf (SEAL S0–S3) &middot; X = Ist-Risiko/Exposition (Jurisdiktion, Schlüsselhoheit, Portabilität, Bereitstellung, Gaia-X). Kritikalität = Bedarf × Exposition. Deterministische Schätzung aus erfassten Cloud-Feldern, keine rechtsverbindliche Bewertung.</p>
+      <h2>SEAL-Bewertung je Objekt</h2>
+      <table><thead><tr><th>Kürzel</th><th>Name</th><th>Typ</th><th>SEAL</th><th>Anforderung</th></tr></thead><tbody>${sealRows}</tbody></table>
+      ${printFooter()}`;
+    openPrintWindow(`Cloud-Souveränität — ${state.customerName || 'Kunde'}`, body,
+      'h2{font-size:13px;margin-top:18px}table{font-size:10px}th,td{border:1px solid #ddd;padding:3px 5px}');
+  };
+
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      <div>
-        <h2 className="text-xl font-bold text-hi-navy">Cloud-Souveränität & Compliance</h2>
-        <p className="text-sm text-gray-500 mt-1">
-          Souveränität ist mehr als Datenresidenz — bewertet über sechs getrennte Dimensionen,
-          ergänzt um einen deterministischen Souveränitäts-Washing-Check und die SEAL-Bewertung pro Objekt.
-        </p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h2 className="text-xl font-bold text-hi-navy">Cloud-Souveränität & Compliance</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Souveränität ist mehr als Datenresidenz — bewertet über sechs getrennte Dimensionen,
+            ergänzt um einen deterministischen Souveränitäts-Washing-Check und die SEAL-Bewertung pro Objekt.
+          </p>
+        </div>
+        <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-hi-navy text-white rounded-lg text-sm font-medium hover:bg-hi-navy/90 flex-shrink-0">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+          Drucken / PDF
+        </button>
       </div>
 
       {/* ─── Feature A — Mehrdimensionale Scorecard ─── */}
@@ -314,7 +348,12 @@ export function SouveraenitaetsBewertung({ state, onUpdateTopics }: Props) {
                 </div>
                 <div className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
                   {selectedZelle.objekte.map(o => (
-                    <div key={`${o.kategorie}-${o.id}`} className="px-4 py-2.5">
+                    <div
+                      key={`${o.kategorie}-${o.id}`}
+                      onClick={() => onEditObject(o.kategorie, o.id)}
+                      title="Eintrag bearbeiten"
+                      className="px-4 py-2.5 cursor-pointer hover:bg-hi-accent/5"
+                    >
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium text-hi-navy text-sm">{o.name}</span>
                         <span className="text-[10px] font-mono text-gray-400">{o.kuerzel}</span>
@@ -472,11 +511,17 @@ export function SouveraenitaetsBewertung({ state, onUpdateTopics }: Props) {
                 <th className="px-4 py-3 text-left">SEAL-Level</th>
                 <th className="px-4 py-3 text-left">Anforderung</th>
                 <th className="px-4 py-3 text-left">Hinweise</th>
+                <th className="px-4 py-3 w-10" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filtered.map(r => (
-                <tr key={`${r.cat}-${r.id}`} className="hover:bg-gray-50">
+                <tr
+                  key={`${r.cat}-${r.id}`}
+                  onClick={() => onEditObject(r.cat as import('../types').CategoryKey, r.id)}
+                  title="Eintrag bearbeiten"
+                  className="cursor-pointer hover:bg-hi-accent/5 group"
+                >
                   <td className="px-4 py-2.5 font-mono text-xs text-gray-500">{r.kuerzel}</td>
                   <td className="px-4 py-2.5 font-medium text-hi-navy">{r.name}</td>
                   <td className="px-4 py-2.5 text-gray-500 text-xs">{CATEGORY_LABELS[r.cat] ?? r.cat}</td>
@@ -488,6 +533,9 @@ export function SouveraenitaetsBewertung({ state, onUpdateTopics }: Props) {
                   <td className="px-4 py-2.5 text-xs text-gray-500 max-w-xs">{r.anforderung}</td>
                   <td className="px-4 py-2.5 text-xs text-gray-400 max-w-xs">
                     {r.hinweise.join(' · ')}
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <svg className="w-4 h-4 text-gray-300 group-hover:text-hi-accent transition-colors inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                   </td>
                 </tr>
               ))}
