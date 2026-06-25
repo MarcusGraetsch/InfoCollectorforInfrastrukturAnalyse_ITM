@@ -182,7 +182,7 @@ und sind die klare Empfehlung für den ersten Schritt.
 
 | Feature | Status | Artefakte |
 |---|---|---|
-| A — Mehrdimensionale Scorecard | ✅ umgesetzt + erweitert | `src/compliance/souveraenitaet.ts` (`assessSouveraenitaet`), Spider-Chart + **klickbare Dimensions-Karten als Governance-Wizards** (Paket 6, `souvDetail.ts` + `GovernanceTopicDrawer.tsx`) in `SouveraenitaetsBewertung.tsx` |
+| A — Mehrdimensionale Scorecard | ✅ umgesetzt + erweitert | `src/compliance/souveraenitaet.ts` (`assessSouveraenitaet`), Spider-Chart + **klickbare Dimensions-Karten mit geführter Detailansicht & Maßnahmen** (Paket 6, `souvDetail.ts` + `GovernanceTopicDrawer.tsx`) in `SouveraenitaetsBewertung.tsx` |
 | B — Souveränitäts-Washing-Check | ✅ umgesetzt | `pruefeSouveraenitaet()` (deterministische Regeln), Washing-Tabelle in `SouveraenitaetsBewertung.tsx` |
 | C — Nachweis-/Evidence-Katalog | ✅ umgesetzt, **2026-06-24 überarbeitet (Paket 9)** | Aus der ursprünglichen Checkbox-Ansicht (`NachweisKatalog.tsx` + `AppState.nachweisStatus`) wurde der **interaktive Evidence-Katalog**: `EvidenceKatalog.tsx` + `src/compliance/evidenceCatalog.ts` auf `AppState.evidenceItems` (n:m zu Themen/Rollen/Objekten). `nachweise.ts` ist Seed-Quelle; alter `nachweisStatus` wird non-destruktiv migriert. Subtab heißt nun „Evidence-Katalog". |
 | D — Quellen-Bibliothek + Zeitstrahl (inkl. E) | ✅ umgesetzt | `src/compliance/quellen.ts`, `QuellenBibliothek.tsx`, Subtab „Quellen-Bibliothek" |

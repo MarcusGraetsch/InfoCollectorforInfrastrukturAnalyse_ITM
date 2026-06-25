@@ -245,7 +245,7 @@ export function SouveraenitaetsBewertung({ state, onUpdateTopics, onEditObject }
                     {d.begruendung.map((b, i) => <li key={i}>{b}</li>)}
                   </ul>
                   <div className="mt-2 flex items-center gap-2 flex-wrap">
-                    <span className="text-[11px] text-hi-accent font-medium">Governance-Wizard öffnen</span>
+                    <span className="text-[11px] text-hi-accent font-medium">Detailansicht & Maßnahmen</span>
                     {t?.status && t.status !== 'Offen' && <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${STATUS_BADGE[t.status] ?? ''}`}>{t.status}</span>}
                     {t?.maturity !== undefined && <span className="text-[10px] text-gray-400">Reifegrad {t.maturity}/4</span>}
                     {(t?.relatedEvidenceIds?.length ?? 0) > 0 && <span className="text-[10px] text-emerald-600">{t!.relatedEvidenceIds!.length} Nachweis(e)</span>}
@@ -374,7 +374,7 @@ export function SouveraenitaetsBewertung({ state, onUpdateTopics, onEditObject }
 
             <p className="text-[11px] text-gray-400">
               Schätzung aus erfassten Cloud-Souveränitätsfeldern — keine rechtsverbindliche Bewertung.
-              Objekte „ohne Cloud-Daten" werden konservativ mit Unklar-Risiko geführt; im Governance-Wizard
+              Objekte „ohne Cloud-Daten" werden konservativ mit Unklar-Risiko geführt; in der Detailansicht
               je Dimension lassen sich Maßnahmen und Nachweise hinterlegen.
             </p>
           </>
@@ -561,7 +561,7 @@ export function SouveraenitaetsBewertung({ state, onUpdateTopics, onEditObject }
         return (
           <GovernanceTopicDrawer
             title={SOUV_DIMENSION_LABELS[openDim]}
-            subtitle="Cloud-Souveränität — Governance-Wizard"
+            subtitle="Cloud-Souveränität — Detailansicht & Maßnahmen"
             info={SOUV_DIMENSION_INFO[openDim]}
             topic={openTopic}
             roles={state.roleAssignments ?? []}

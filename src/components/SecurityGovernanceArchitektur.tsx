@@ -319,7 +319,7 @@ export const SecurityGovernanceArchitektur: React.FC<Props> = ({ state, onOpenCl
                 </div>
                 <p className="text-xs text-gray-500 mt-1">{def.kurz}</p>
                 <div className="mt-2 flex items-center gap-2 flex-wrap">
-                  <span className="text-[11px] text-hi-accent font-medium">Governance-Wizard öffnen</span>
+                  <span className="text-[11px] text-hi-accent font-medium">Detailansicht & Maßnahmen</span>
                   {t?.maturity !== undefined && <span className="text-[10px] text-gray-400">Reifegrad {t.maturity}/4</span>}
                   {(t?.relatedEvidenceIds?.length ?? 0) > 0 && <span className="text-[10px] text-emerald-600">{t!.relatedEvidenceIds!.length} Nachweis(e)</span>}
                   {(t?.relatedRoleIds?.length ?? 0) > 0 && <span className="text-[10px] text-gray-400">{t!.relatedRoleIds!.length} Rolle(n)</span>}
@@ -435,7 +435,7 @@ export const SecurityGovernanceArchitektur: React.FC<Props> = ({ state, onOpenCl
       {openDef && openTopic && (
         <GovernanceTopicDrawer
           title={openDef.title}
-          subtitle="Security & Governance (LG 9) — Governance-Wizard"
+          subtitle="Security & Governance (LG 9) — Detailansicht & Maßnahmen"
           info={openDef.info}
           topic={openTopic}
           roles={state.roleAssignments ?? []}
