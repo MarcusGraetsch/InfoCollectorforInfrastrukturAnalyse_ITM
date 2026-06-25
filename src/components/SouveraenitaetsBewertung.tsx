@@ -8,8 +8,9 @@ import {
   VERDIKT_FARBE,
   VERDIKT_LABEL,
   SOUV_DIMENSION_LABELS,
+  souveraenitaetsRisikoMatrix,
 } from '../compliance/souveraenitaet';
-import type { DimensionScore, SouvLevel, Verdikt, SouvDimension } from '../compliance/souveraenitaet';
+import type { DimensionScore, SouvLevel, Verdikt, SouvDimension, RisikoSeverity } from '../compliance/souveraenitaet';
 import { SOUV_DIMENSION_INFO } from '../compliance/souvDetail';
 import { findTopic, makeTopic, upsertTopic } from '../utils/governance';
 import { GovernanceTopicDrawer } from './GovernanceTopicDrawer';
@@ -28,6 +29,22 @@ const LEVEL_COLOR: Record<SouvLevel, string> = {
   Hoch: 'bg-emerald-100 text-emerald-800',
   Mittel: 'bg-amber-100 text-amber-800',
   Niedrig: 'bg-red-100 text-red-800',
+};
+
+const SEVERITY_CELL: Record<RisikoSeverity, string> = {
+  gering: 'bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border-emerald-200',
+  mittel: 'bg-amber-100 hover:bg-amber-200 text-amber-900 border-amber-200',
+  hoch: 'bg-orange-200 hover:bg-orange-300 text-orange-900 border-orange-300',
+  kritisch: 'bg-red-300 hover:bg-red-400 text-red-950 border-red-400',
+};
+const SEVERITY_LABEL: Record<RisikoSeverity, string> = {
+  gering: 'gering', mittel: 'mittel', hoch: 'hoch', kritisch: 'kritisch',
+};
+const SEAL_BEDARF_LABEL: Record<string, string> = {
+  S3: 'S3 · Streng souverän', S2: 'S2 · Erhöht (BYOK)', S1: 'S1 · Standard (EU)', S0: 'S0 · Kein Bedarf',
+};
+const SOUV_CAT_LABEL: Record<string, string> = {
+  anwendungen: 'Anwendung', server: 'Server', clients: 'Client', icsSysteme: 'ICS', iotSysteme: 'IoT',
 };
 
 // SVG Spider / Radar Chart (Muster aus ExecutiveSummary.tsx)
@@ -104,6 +121,9 @@ export function SouveraenitaetsBewertung({ state, onUpdateTopics }: Props) {
 
   const scorecard = useMemo(() => assessSouveraenitaet(state), [state]);
   const findings = useMemo(() => pruefeSouveraenitaet(state), [state]);
+  const risikoMatrix = useMemo(() => souveraenitaetsRisikoMatrix(state), [state]);
+  const [selectedCell, setSelectedCell] = useState<string | null>(null);
+  const selectedZelle = risikoMatrix.zellen.find(z => `${z.seal}-${z.risiko}` === selectedCell) ?? null;
 
   const verdiktCounts = useMemo(() => {
     const c: Record<Verdikt, number> = { fail: 0, warn: 0, pass: 0, unklar: 0 };
@@ -201,6 +221,125 @@ export function SouveraenitaetsBewertung({ state, onUpdateTopics }: Props) {
             })}
           </div>
         </div>
+      </section>
+
+      {/* ─── Souveränitäts-Risiko-Matrix ─── */}
+      <section className="bg-white border border-gray-100 rounded-xl shadow-sm p-6 space-y-5">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h3 className="text-lg font-bold text-hi-navy">Souveränitäts-Risiko-Matrix</h3>
+            <p className="text-sm text-gray-500 mt-1 max-w-2xl">
+              Bedarf × Exposition je Objekt — deterministisch aus den Cloud-Feldern abgeleitet.
+              <strong> Zeilen:</strong> Souveränitätsbedarf (SEAL S0–S3). <strong> Spalten:</strong> Ist-Risiko
+              (Jurisdiktion, Schlüsselhoheit, Portabilität, Bereitstellung, Gaia-X). Kritisch wird es nur dort,
+              wo hoher Bedarf auf hohe Exposition trifft. Klick auf eine Zelle zeigt die Objekte.
+            </p>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <span className="text-xs px-3 py-1.5 bg-red-100 text-red-800 border border-red-200 rounded-full font-semibold">{risikoMatrix.kritisch} kritisch</span>
+            <span className="text-xs px-3 py-1.5 bg-orange-100 text-orange-800 border border-orange-200 rounded-full font-semibold">{risikoMatrix.handlungsbedarf} Handlungsbedarf</span>
+            <span className="text-xs px-3 py-1.5 bg-gray-100 text-gray-600 border border-gray-300 rounded-full font-medium">{risikoMatrix.datenarm} ohne Cloud-Daten</span>
+          </div>
+        </div>
+
+        {risikoMatrix.gesamt === 0 ? (
+          <p className="text-sm text-gray-400 py-6 text-center">Keine bewertbaren Objekte (Anwendungen/Server/Clients/ICS/IoT) erfasst.</p>
+        ) : (
+          <>
+            <div className="flex gap-3">
+              {/* Y-Achsen-Beschriftung */}
+              <div className="flex items-center">
+                <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>Souveränitätsbedarf →</span>
+              </div>
+              <div className="flex-1 overflow-x-auto">
+                <table className="w-full border-separate" style={{ borderSpacing: '4px' }}>
+                  <thead>
+                    <tr>
+                      <th className="w-28" />
+                      {(['Niedrig', 'Mittel', 'Hoch'] as const).map(r => (
+                        <th key={r} className="text-center text-[11px] font-semibold text-gray-500 pb-1">{r}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(['S3', 'S2', 'S1', 'S0'] as const).map(seal => (
+                      <tr key={seal}>
+                        <td className="pr-2 text-right align-middle">
+                          <span className="text-[11px] font-semibold text-hi-navy whitespace-nowrap">{SEAL_BEDARF_LABEL[seal]}</span>
+                        </td>
+                        {(['Niedrig', 'Mittel', 'Hoch'] as const).map(risiko => {
+                          const z = risikoMatrix.zellen.find(c => c.seal === seal && c.risiko === risiko)!;
+                          const key = `${seal}-${risiko}`;
+                          const active = selectedCell === key;
+                          return (
+                            <td key={risiko} className="p-0">
+                              <button
+                                onClick={() => setSelectedCell(active ? null : (z.count > 0 ? key : null))}
+                                disabled={z.count === 0}
+                                title={`Bedarf ${seal} · Risiko ${risiko} · ${SEVERITY_LABEL[z.severity]}`}
+                                className={`w-full h-16 rounded-lg border flex flex-col items-center justify-center transition-colors ${SEVERITY_CELL[z.severity]} ${z.count === 0 ? 'opacity-40 cursor-default' : 'cursor-pointer'} ${active ? 'ring-2 ring-hi-navy' : ''}`}
+                              >
+                                <span className="text-xl font-bold leading-none">{z.count}</span>
+                                <span className="text-[9px] uppercase tracking-wide mt-0.5">{SEVERITY_LABEL[z.severity]}</span>
+                              </button>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="text-center text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Ist-Risiko / Exposition →</p>
+              </div>
+            </div>
+
+            {/* Legende */}
+            <div className="flex flex-wrap gap-3 text-[11px] text-gray-500">
+              {(['gering', 'mittel', 'hoch', 'kritisch'] as const).map(sev => (
+                <span key={sev} className="flex items-center gap-1.5">
+                  <span className={`w-3 h-3 rounded ${SEVERITY_CELL[sev].split(' ')[0]}`} />{SEVERITY_LABEL[sev]}
+                </span>
+              ))}
+            </div>
+
+            {/* Drilldown der gewählten Zelle */}
+            {selectedZelle && (
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                  <span className="text-sm font-semibold text-hi-navy">
+                    Bedarf {SEAL_BEDARF_LABEL[selectedZelle.seal]} · Risiko {selectedZelle.risiko}
+                    <span className={`ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded ${SEVERITY_CELL[selectedZelle.severity]}`}>{SEVERITY_LABEL[selectedZelle.severity]}</span>
+                  </span>
+                  <button onClick={() => setSelectedCell(null)} className="text-gray-400 hover:text-gray-700 text-sm">×</button>
+                </div>
+                <div className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
+                  {selectedZelle.objekte.map(o => (
+                    <div key={`${o.kategorie}-${o.id}`} className="px-4 py-2.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-hi-navy text-sm">{o.name}</span>
+                        <span className="text-[10px] font-mono text-gray-400">{o.kuerzel}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">{SOUV_CAT_LABEL[o.kategorie] ?? o.kategorie}</span>
+                        <span className="text-[10px] text-gray-400">Exposition {o.risikoScore}/100</span>
+                        {o.datenarm && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">Cloud-Daten fehlen</span>}
+                      </div>
+                      {o.treiber.length > 0 && (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {o.treiber.map((t, i) => <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-50 border border-gray-200 text-gray-500">{t}</span>)}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <p className="text-[11px] text-gray-400">
+              Schätzung aus erfassten Cloud-Souveränitätsfeldern — keine rechtsverbindliche Bewertung.
+              Objekte „ohne Cloud-Daten" werden konservativ mit Unklar-Risiko geführt; im Governance-Wizard
+              je Dimension lassen sich Maßnahmen und Nachweise hinterlegen.
+            </p>
+          </>
+        )}
       </section>
 
       {/* ─── Feature B — Souveränitäts-Washing-Check ─── */}

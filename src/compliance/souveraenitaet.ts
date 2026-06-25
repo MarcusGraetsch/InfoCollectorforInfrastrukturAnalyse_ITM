@@ -385,3 +385,133 @@ export const VERDIKT_LABEL: Record<Verdikt, string> = {
 
 // Re-export für ggf. nutzende Komponenten
 export { assessAll };
+
+// ─── Souveränitäts-Risiko-Matrix ────────────────────────────────────────────
+// Deterministische 4×3-Risikomatrix aus vorhandenen Daten:
+//   Y-Achse = SouveränitätsBEDARF   (SEAL-Level S0–S3 aus assessSovereignty)
+//   X-Achse = Ist-RISIKO/Exposition (aus Jurisdiktion, Schlüsselhoheit,
+//             Portabilität, Bereitstellung, Gaia-X der Cloud-Felder)
+// Kritikalität = Bedarf × Exposition: nur wo hoher Bedarf auf hohe Exposition
+// trifft, entsteht echtes Souveränitätsrisiko (kein neues Datenerfassen).
+
+import type { CategoryKey } from '../types';
+import type { SovereignLevel } from '../cloudReadiness';
+
+export type RisikoStufe = 'Niedrig' | 'Mittel' | 'Hoch';
+export type RisikoSeverity = 'gering' | 'mittel' | 'hoch' | 'kritisch';
+
+export interface SouvRisikoObjekt {
+  kategorie: CategoryKey;
+  id: string;
+  name: string;
+  kuerzel: string;
+  seal: SovereignLevel;       // Bedarf
+  risikoScore: number;        // 0–100 Exposition
+  risiko: RisikoStufe;
+  severity: RisikoSeverity;
+  treiber: string[];
+  datenarm: boolean;          // (fast) keine Souveränitäts-Cloud-Felder erfasst
+}
+
+export interface SouvRisikoZelle {
+  seal: SovereignLevel;
+  risiko: RisikoStufe;
+  severity: RisikoSeverity;
+  count: number;
+  objekte: SouvRisikoObjekt[];
+}
+
+export interface SouvRisikoMatrix {
+  zellen: SouvRisikoZelle[];   // 4 (S3..S0) × 3 (Niedrig..Hoch) = 12, zeilenweise S3→S0
+  objekte: SouvRisikoObjekt[];
+  gesamt: number;
+  kritisch: number;            // severity 'kritisch'
+  handlungsbedarf: number;     // severity 'hoch' + 'kritisch'
+  datenarm: number;            // Objekte ohne ausreichende Cloud-Souveränitätsdaten
+}
+
+const SEAL_REIHENFOLGE: SovereignLevel[] = ['S3', 'S2', 'S1', 'S0'];
+const RISIKO_REIHENFOLGE: RisikoStufe[] = ['Niedrig', 'Mittel', 'Hoch'];
+const SEAL_RANK: Record<SovereignLevel, number> = { S0: 0, S1: 1, S2: 2, S3: 3 };
+const RISIKO_RANK: Record<RisikoStufe, number> = { Niedrig: 0, Mittel: 1, Hoch: 2 };
+
+/** Exposition (0–100) aus den Cloud-Souveränitätsfeldern eines Objekts. */
+export function expositionsRisiko(item: CloudFields): { score: number; treiber: string[]; datenarm: boolean } {
+  let s = 0;
+  const treiber: string[] = [];
+  let felder = 0;
+
+  const jur = item.cloudAnbieterJurisdiktion;
+  if (jur) felder++;
+  if (jur === 'USA') { s += 45; treiber.push('Anbieter-Jurisdiktion USA'); }
+  else if (jur === 'Gemischt') { s += 30; treiber.push('Gemischte Jurisdiktion'); }
+  else if (jur === 'Unklar' || !jur) { s += 20; treiber.push('Jurisdiktion unklar'); }
+
+  const vh = item.verschluesselungshoheit;
+  if (vh) felder++;
+  if (vh === 'Anbieter') { s += 30; treiber.push('Schlüsselhoheit beim Anbieter'); }
+  else if (vh === 'Unklar' || !vh) { s += 18; treiber.push('Schlüsselhoheit unklar'); }
+
+  const pr = item.portabilitaetsreife;
+  if (pr) felder++;
+  if (pr === 'Niedrig (proprietär)') { s += 30; treiber.push('Proprietärer Lock-in'); }
+  else if (pr === 'Mittel') { s += 15; treiber.push('Mittlere Portabilität'); }
+  else if (pr === 'Unklar' || !pr) { s += 12; treiber.push('Portabilität unklar'); }
+
+  const b = item.bereitstellung ?? '';
+  if (b) felder++;
+  if (/SaaS|Public|Serverless|PaaS|Managed Kubernetes \(Cloud\)/.test(b)) { s += 15; treiber.push('Public-Cloud-Bereitstellung'); }
+  else if (/Hybrid|Private Cloud/.test(b)) { s += 5; }
+
+  if (item.gaixZertifiziert === 'Ja') { s = Math.max(0, s - 12); treiber.push('Gaia-X-zertifiziert (mindernd)'); felder++; }
+  else if (item.gaixZertifiziert) felder++;
+
+  return { score: Math.max(0, Math.min(100, s)), treiber, datenarm: felder === 0 };
+}
+
+function risikoStufe(score: number): RisikoStufe {
+  return score >= 55 ? 'Hoch' : score >= 25 ? 'Mittel' : 'Niedrig';
+}
+
+function severityFor(seal: SovereignLevel, risiko: RisikoStufe): RisikoSeverity {
+  const p = SEAL_RANK[seal] * RISIKO_RANK[risiko]; // 0..6
+  if (p >= 5) return 'kritisch';
+  if (p >= 3) return 'hoch';
+  if (p >= 1) return 'mittel';
+  return 'gering';
+}
+
+/** Baut die Souveränitäts-Risiko-Matrix über alle bewertbaren Objekte. */
+export function souveraenitaetsRisikoMatrix(state: AppState): SouvRisikoMatrix {
+  const objekte: SouvRisikoObjekt[] = [];
+
+  for (const cat of ASSESSABLE_CATEGORIES) {
+    const items = (state[cat] as unknown as (CloudFields & { id: string; name: string; kuerzel: string })[]) ?? [];
+    for (const item of items) {
+      const seal = assessSovereignty(item).level;
+      const { score, treiber, datenarm } = expositionsRisiko(item);
+      const risiko = risikoStufe(score);
+      objekte.push({
+        kategorie: cat, id: item.id, name: item.name, kuerzel: item.kuerzel,
+        seal, risikoScore: score, risiko, severity: severityFor(seal, risiko), treiber, datenarm,
+      });
+    }
+  }
+
+  const zellen: SouvRisikoZelle[] = [];
+  for (const seal of SEAL_REIHENFOLGE) {
+    for (const risiko of RISIKO_REIHENFOLGE) {
+      const objs = objekte.filter(o => o.seal === seal && o.risiko === risiko);
+      zellen.push({ seal, risiko, severity: severityFor(seal, risiko), count: objs.length, objekte: objs });
+    }
+  }
+
+  return {
+    zellen,
+    objekte,
+    gesamt: objekte.length,
+    kritisch: objekte.filter(o => o.severity === 'kritisch').length,
+    handlungsbedarf: objekte.filter(o => o.severity === 'kritisch' || o.severity === 'hoch').length,
+    datenarm: objekte.filter(o => o.datenarm).length,
+  };
+}

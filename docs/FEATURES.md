@@ -473,6 +473,13 @@ Vertieft das einzelne SEAL-Level zu einem mehrdimensionalen Souveränitäts-Bloc
   (aus Rollenübersicht), Workshop-Fragen, nächste Schritte sowie erfassbarer
   Status/Reifegrad/Notizen. Persistenz als `GovernanceTopic` (domain
   `cloudSovereignty`, key = Dimension) im zentralen Modell — keine Doppelerfassung.
+- **Souveränitäts-Risiko-Matrix** (`souveraenitaetsRisikoMatrix`): deterministische
+  4×3-Heatmap **Bedarf × Exposition** — Zeilen = Souveränitätsbedarf (SEAL S0–S3 aus
+  `assessSovereignty`), Spalten = Ist-Risiko (Jurisdiktion, Schlüsselhoheit,
+  Portabilität, Bereitstellung, Gaia-X). Kritikalität = Bedarf × Exposition (nur hoher
+  Bedarf + hohe Exposition = kritisch). Klickbare Zellen mit Objekt-Drilldown
+  (Risiko-Treiber je Objekt), Kennzahlen „kritisch / Handlungsbedarf / ohne Cloud-Daten".
+  Leitet sich vollständig aus vorhandenen Cloud-Feldern ab (kein neues Erfassen).
 - **Souveränitäts-Washing-Check**: deterministische Regel-Engine (DSGVO, BSI C5,
   EU AI Act, Data Act …) mit Verdikt-Tabelle (fail/warn/pass/unklar), Filter und
   benötigtem Nachweis je Befund.

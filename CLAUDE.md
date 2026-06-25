@@ -55,7 +55,7 @@ Konzept + Status: `docs/DATENMODELL_ERWEITERUNG.md` (Abschnitt 9 = Umsetzungssta
 - **Schnittstellen-Visualisierung:** Modus „Schnittstellen-Graph" in `InfrastrukturLandkarte` (Kantenfarbe nach Verschlüsselung) + druckbare n×n-Matrix `SchnittstellenMatrix.tsx` (Subtab in ProjectView).
 - **AfA / TCO-Aggregation:** `src/wirtschaftlichkeit.ts` — `berechneBuchwert()` (lineare AfA, Restwert/Restlaufzeit) und `summiereObjektkosten()`. TCO-Modul bietet „Aus Objektdaten übernehmen" (non-destruktiv) + druckbare Asset-/AfA-Übersicht. Single Source of Truth für Ist-Kosten.
 - **Migration:** alle neuen Felder optional; neue Top-Level-Arrays in `createDefaultState` + `arrayKeys` (store.ts) — alte Backups laden unverändert.
-- **Beziehungen / Abhängigkeiten (zentrales Kantenmodell):** generische, kategorieübergreifende Objekt-Verknüpfungen über neues optionales `AppState.beziehungen?` (Interface `Beziehung`, `'beziehungen'` aus `CategoryKey`-`Omit` ausgeschlossen). Sechs Typen (`kommuniziert`/`physisch`/`treiber`/`abhaengig`/`teil-von`/`redundanz`), uni/bi-Richtung. Logik in `src/utils/beziehungen.ts`; wiederverwendbarer `BeziehungenEditor.tsx` (Inline-Modus in `CategoryForm.tsx` nur bei bestehendem Objekt + Global-Modus als Subtab „Beziehungen"). Graph-Ansicht „Beziehungen" in `InfrastrukturLandkarte`. Orphan-Pruning für gelöschte Endpunkte. Ergänzt `schnittstellen` (Netzwerk-Kommunikation) und `plattform` (Läuft auf). Handler `onUpdateBeziehungen` in App.tsx (Muster wie `onUpdateNachweise`). Details: `docs/DATENMODELL_ERWEITERUNG.md`.
+- **Beziehungen / Abhängigkeiten (zentrales Kantenmodell):** generische, kategorieübergreifende Objekt-Verknüpfungen über neues optionales `AppState.beziehungen?` (Interface `Beziehung`, `'beziehungen'` aus `CategoryKey`-`Omit` ausgeschlossen). Sechs Typen (`kommuniziert`/`physisch`/`treiber`/`abhaengig`/`teil-von`/`redundanz`), uni/bi-Richtung. Logik in `src/utils/beziehungen.ts`; wiederverwendbarer `BeziehungenEditor.tsx` (Inline-Modus in `CategoryForm.tsx` nur bei bestehendem Objekt + Global-Modus als Subtab „Beziehungen"). Graph-Ansicht „Beziehungen" in `InfrastrukturLandkarte`. Orphan-Pruning für gelöschte Endpunkte. Ergänzt `schnittstellen` (Netzwerk-Kommunikation) und `plattform` (Läuft auf). Handler `onUpdateBeziehungen` in App.tsx (Muster wie `onUpdateNIS2`). Details: `docs/DATENMODELL_ERWEITERUNG.md`.
 - **Plattform-Zuordnung („Läuft auf"):** sanfter Nudge an allen Laufzeit-Objekten (`anwendungen`, `betriebssysteme`, `clients`, `icsSysteme`, `iotSysteme` — NICHT `server`). Neues `plattformTyp`-Select + Relations-Felder in neuer Form-Gruppe `'plattform'` (eigenes violettes Fieldset in `CategoryForm.tsx`). Logik in `src/utils/plattform.ts` (`isPlatformUnassigned`, `findPlatformGaps`); offene Zuordnungen als additiver Block in `OffenePunkte.tsx`. Offen lassen erlaubt (kein Save-Block) → erscheint als offener Punkt. Details: `docs/DATENMODELL_ERWEITERUNG.md`.
 
 ---
@@ -70,15 +70,47 @@ Konzept: `docs/SOUVERAENITAET_FEATURES_KONZEPT.md` (Features A–D umgesetzt).
   (Verdikt fail/warn/pass/unklar). Erweitert `SouveraenitaetsBewertung.tsx`
   (Scorecard + Spider-Chart + Washing-Tabelle über der bestehenden SEAL-Tabelle).
 - **`src/compliance/nachweise.ts`** — (C) statischer `NACHWEIS_KATALOG`
-  (Anforderung→Nachweis). Komponente `NachweisKatalog.tsx`, Status persistiert in
-  neuem optionalem `AppState.nachweisStatus` (Record, nicht Array; in
-  `createDefaultState` + `mergeWithDefault`, NICHT in `arrayKeys`). Update via
-  `onUpdateNachweise` in App.tsx (Muster wie `onUpdateNIS2`).
+  (Anforderung→Nachweis). **Hinweis:** Die ursprüngliche Checkbox-Komponente
+  `NachweisKatalog.tsx` + `AppState.nachweisStatus` wurde durch den interaktiven
+  **Evidence-Katalog** ersetzt (s. Abschnitt „Querschnitt-Governance-Modell").
+  `nachweisStatus` bleibt für Abwärtskompatibilität/Migration im State; `nachweise.ts`
+  dient jetzt als Seed-Quelle für `evidenceItems`.
 - **`src/compliance/quellen.ts`** — (D) statisches `QUELLEN_REGISTER` (5 Ebenen,
   offline, ISO nur Metadaten) + `ZEITSTRAHL`. Komponente `QuellenBibliothek.tsx`.
-- **Neue Subtabs** in ProjectView-Gruppe „Compliance & Regulatorik":
-  `nachweise` und `quellen` (Reihenfolge: nis2, euaiact, souveraenitaet,
-  nachweise, quellen, nachhaltigkeit, dora).
+- **Subtabs** in ProjectView-Gruppe „Compliance & Regulatorik" (Reihenfolge):
+  `rollen` (ISMS-/BCM-Rollen), `nis2`, `euaiact`, `souveraenitaet`, `nachweise`
+  (jetzt „Evidence-Katalog"), `quellen`, `nachhaltigkeit`, `dora`.
+
+---
+
+## Querschnitt-Governance-Modell (umgesetzt 2026-06-24)
+
+Gemeinsames Control-/Evidence-/Rollen-/Action-Modell gegen doppelte Dateninseln —
+NIS2, Cloud-Souveränität, EU AI Act, BCM/Cloud-Exit und der Evidence-Katalog
+referenzieren zentrale Objekte statt eigener Felder. Vollständige Doku:
+`docs/GOVERNANCE_MODEL.md`.
+
+- **`src/types.ts`** — neue, additive/optionale Strukturen: `GovernanceTopic`,
+  `EvidenceItem`, `RoleAssignment`, `ActionItem`, `ObjectRef`. In `AppState`:
+  `governanceTopics?`, `evidenceItems?`, `roleAssignments?`, `nachhaltigkeitAnnahmen?`
+  (alle aus `CategoryKey`-`Omit` ausgeschlossen, in `createDefaultState` + `arrayKeys`).
+- **`src/utils/governance.ts`** — reine Helper: `ROLE_CATALOG` (20 ISMS-/BCM-/NIS2-
+  Rollen), `seedRoleAssignments` (idempotent), Fortschritts-/Referenz-Helfer,
+  `findTopic`/`makeTopic`/`upsertTopic`, `GovernanceTopicInfo`.
+- **`src/components/GovernanceTopicDrawer.tsx`** — wiederverwendbarer Wizard-Drawer
+  (Souveränität, BCM, Cloud-Exit): Warum-wichtig, Norm, Daten-Einfluss, Status/
+  Reifegrad, Evidence-/Rollen-Verknüpfung, Workshop-Fragen, nächste Schritte.
+- **Konsumenten:** `RollenUebersicht.tsx` (Paket 4), `EvidenceKatalog.tsx` +
+  `src/compliance/evidenceCatalog.ts` (Paket 9, migriert `nachweisStatus`),
+  `NIS2Check.tsx` + `nis2Detail.ts` (Paket 8, `nis2Assessment.massnahmenDetail`),
+  `SouveraenitaetsBewertung.tsx` + `souvDetail.ts` (Paket 6),
+  `SecurityGovernanceArchitektur.tsx` + `lg9Governance.ts` (Paket 3 BCM/Cloud-Exit),
+  `EuAiActInventar.tsx` (Paket 7, additive `ai*`-Felder an `Anwendung`).
+- **Nachhaltigkeit (Paket 10):** `src/sustainability.ts` `berechneEnergieDetail()` +
+  editierbare `AppState.nachhaltigkeitAnnahmen` (PUE/Strommix/Betriebsstunden/…),
+  Server-Drilldown mit sichtbaren Formeln in `NachhaltigkeitsModul.tsx`.
+- Neue Handler in App.tsx: `onUpdateRoles`, `onUpdateGovernanceTopics`,
+  `onUpdateEvidence`, `onUpdateNachhaltigkeit` (Muster wie `onUpdateNIS2`).
 
 ---
 
