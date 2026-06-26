@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import type { AppState } from '../types';
+import type { AppState, CategoryKey } from '../types';
 import { assessAll, summarize, assessSovereignty } from '../cloudReadiness';
 import type { ReadinessLevel } from '../cloudReadiness';
 
@@ -7,6 +7,7 @@ interface Props {
   state: AppState;
   onGoToWizard: () => void;
   onOpenCloudWizard: () => void;
+  onEditObject?: (category: CategoryKey, id: string) => void;
 }
 
 const LEVEL_COLOR: Record<ReadinessLevel, string> = {
@@ -39,7 +40,7 @@ const KpiCard: React.FC<{
   </div>
 );
 
-export const CloudDashboard: React.FC<Props> = ({ state, onGoToWizard, onOpenCloudWizard }) => {
+export const CloudDashboard: React.FC<Props> = ({ state, onGoToWizard, onOpenCloudWizard, onEditObject }) => {
   const items = useMemo(() => assessAll(state), [state]);
   const summary = useMemo(() => summarize(items), [items]);
 
@@ -204,11 +205,17 @@ export const CloudDashboard: React.FC<Props> = ({ state, onGoToWizard, onOpenClo
                     <th className="text-left px-4 py-3 font-semibold text-hi-slate text-xs uppercase tracking-wider w-48">Readiness</th>
                     <th className="text-left px-4 py-3 font-semibold text-hi-slate text-xs uppercase tracking-wider">Empfehlung (6R)</th>
                     <th className="text-left px-4 py-3 font-semibold text-hi-slate text-xs uppercase tracking-wider">Souverän</th>
+                    {onEditObject && <th className="px-4 py-3 w-10" />}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {sorted.map((i) => (
-                    <tr key={i.id} className="hover:bg-hi-gray/50 align-top transition-colors">
+                    <tr
+                      key={i.id}
+                      onClick={onEditObject ? () => onEditObject(i.category, i.id) : undefined}
+                      title={onEditObject ? 'Eintrag bearbeiten' : undefined}
+                      className={`align-top transition-colors ${onEditObject ? 'cursor-pointer hover:bg-hi-accent/5 group' : 'hover:bg-hi-gray/50'}`}
+                    >
                       <td className="px-4 py-3 font-mono text-hi-accent text-xs whitespace-nowrap font-bold">
                         {i.kuerzel}
                       </td>
@@ -244,6 +251,11 @@ export const CloudDashboard: React.FC<Props> = ({ state, onGoToWizard, onOpenClo
                           <span className="text-gray-300 text-xs">–</span>
                         )}
                       </td>
+                      {onEditObject && (
+                        <td className="px-4 py-3 text-right">
+                          <svg className="w-4 h-4 text-gray-300 group-hover:text-hi-accent transition-colors inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -252,6 +264,7 @@ export const CloudDashboard: React.FC<Props> = ({ state, onGoToWizard, onOpenClo
           </div>
 
           <p className="text-xs text-hi-slate">
+            {onEditObject && <><strong>Tipp:</strong> Klick auf eine Zeile öffnet „Eintrag bearbeiten". </>}
             Hinweis: Die Empfehlungen sind heuristische Vorschläge zur Workshop-Vorbereitung und
             ersetzen keine detaillierte Migrationsanalyse. Die finale 6R-Entscheidung kann je Objekt
             im Feld „Migrationsstrategie (6R)" dokumentiert werden.

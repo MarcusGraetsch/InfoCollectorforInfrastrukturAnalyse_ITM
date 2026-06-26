@@ -55,12 +55,12 @@ Reine Funktionen, keine UI, keine State-Mutation (immer neue Arrays):
    bridged den statischen `NACHWEIS_KATALOG` (Seed) und migriert `nachweisStatus`
    non-destruktiv. EvidenceItem um Beratungsfelder erweitert (whyImportant, themen,
    normativeReferences, benoetigteInfos, beispielNachweise, typischeQuelle, seedKey).
-3. **Paket 8 — NIS2-Check interaktiv:** ✅ umgesetzt — geführter Detail-Wizard je
+3. **Paket 8 — NIS2-Check interaktiv:** ✅ umgesetzt — geführte Detailansicht je
    Mindestmaßnahme (`NIS2Check.tsx` + `src/compliance/nis2Detail.ts`). Speichert
    Reifegrad/Rolle/Evidence/Follow-up in `nis2Assessment.massnahmenDetail` und
    referenziert zentrale `roleAssignments` + `evidenceItems` (statt Duplikaten).
 4. **Paket 6 — Cloud-Souveränität:** ✅ umgesetzt — die 6 Dimensionen sind klickbare
-   Governance-Wizards (`GovernanceTopicDrawer.tsx` + `src/compliance/souvDetail.ts`),
+   Detailansichten (`GovernanceTopicDrawer.tsx` + `src/compliance/souvDetail.ts`),
    persistiert als `GovernanceTopic` (domain `cloudSovereignty`, key = Dimension).
    Helper `findTopic`/`makeTopic`/`upsertTopic` + `GovernanceTopicInfo` in governance.ts.
    Der Drawer ist generisch und für Pakete 3/7 wiederverwendbar.

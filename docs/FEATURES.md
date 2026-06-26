@@ -293,7 +293,7 @@ Automatische Bewertung aller cloud-relevanten Objekte (Anwendungen, Server, Clie
 | **6R-Verteilung** | Kreisdiagramm (Rehost / Replatform / Repurchase / Refactor / Retire / Retain) |
 | **SEAL-Level** | Souveränitäts-Bewertung S0–S3 (S0=keine Anforderung, S3=Gaia-X/C5 + BYOK) |
 | **FinOps-Szenarien** | Konservativ / Realistisch / Optimistisch mit Szenario-Vergleichstabelle |
-| **Bewertungstabelle** | Score, Level, 6R, SEAL, Souveränitätsbedarf, Begründung je Objekt |
+| **Bewertungstabelle** | Score, Level, 6R, SEAL, Souveränitätsbedarf, Begründung je Objekt — **Zeilen anklickbar: öffnet direkt „Eintrag bearbeiten"** für das Objekt |
 
 Scoring-Logik (0–100): ≥70 = Hoch · 45–69 = Mittel · <45 = Niedrig. `Unklar`-Werte sind neutral (kein Punktabzug) — sie markieren offene Fragen.
 
@@ -337,7 +337,7 @@ mit Status & Detailnotizen. Ergänzt um **strukturierte, bearbeitbare Governance
 (Paket 3):
 
 - **Business Continuity Management (BCM)** und **Cloud-Exit-Strategie** als klickbare
-  Governance-Wizards (`GovernanceTopicDrawer`): Warum-wichtig, normative Einordnung
+  geführte Detailansichten (`GovernanceTopicDrawer`): Warum-wichtig, normative Einordnung
   (BSI 200-4 / NIS2 / ISO 22301 bzw. EU Data Act / DORA / C5), Soll-Inhalte
   (BCM: BIA, RTO/RPO, Backup/Restore, Notfallhandbuch, Krisenmanagement,
   Notfallübungen — Cloud-Exit: Exit-Szenarien, Datenportabilität, Kündigungsfristen,
@@ -373,7 +373,7 @@ mit Status & Detailnotizen. Ergänzt um **strukturierte, bearbeitbare Governance
 
 - Automatische Einstufung: Besonders wichtig / Wichtig / Nicht betroffen
 - Gap-Analyse: 10 Mindestmaßnahmen nach Art. 21 NIS2 / §30 BSIG
-- **Geführter Detail-Wizard je Maßnahme** (klickbar): Warum-wichtig, normative
+- **Geführte Detailansicht je Maßnahme** (klickbar, einzelnes Panel — kein Schritt-für-Schritt-Wizard): Warum-wichtig, normative
   Einordnung, „was muss vorhanden sein", Hinweis auf nutzbare App-Daten, Ist-Zustand
   (Status + Reifegrad 0–4), **Nachweise** (Verknüpfung zentraler Evidence-Items mit
   passenden Vorschlägen + interne/externe URL + Dateiverweis), **verantwortliche Rolle**
@@ -465,7 +465,7 @@ Vertieft das einzelne SEAL-Level zu einem mehrdimensionalen Souveränitäts-Bloc
   Souveränität/Lock-in, KI-Governance, Supply-Chain-Transparenz) als Spider-Chart
   + Dimensions-Karten. Heuristisch aus vorhandenen Daten abgeleitet; fehlende
   Daten → neutral statt Punktabzug.
-- **Dimensionen als klickbare Governance-Wizards** (Paket 6): Jede Kachel öffnet
+- **Dimensionen als klickbare Detailansichten** (Paket 6): Jede Kachel öffnet
   einen geführten Drawer (`GovernanceTopicDrawer`, wiederverwendbar): Warum-wichtig,
   normative Einordnung, **welche Daten den Score beeinflussen** (live aus der
   Bewertung), fehlende Infos, score-verbessernde Entscheidungen, erforderliche
@@ -480,6 +480,9 @@ Vertieft das einzelne SEAL-Level zu einem mehrdimensionalen Souveränitäts-Bloc
   Bedarf + hohe Exposition = kritisch). Klickbare Zellen mit Objekt-Drilldown
   (Risiko-Treiber je Objekt), Kennzahlen „kritisch / Handlungsbedarf / ohne Cloud-Daten".
   Leitet sich vollständig aus vorhandenen Cloud-Feldern ab (kein neues Erfassen).
+  Drilldown-Objekte und die **SEAL-Tabelle pro Objekt sind anklickbar → öffnet
+  direkt „Eintrag bearbeiten"**. Der Tab hat einen **Drucken/PDF-Export** inkl.
+  Scorecard, Risiko-Matrix und SEAL-Tabelle.
 - **Souveränitäts-Washing-Check**: deterministische Regel-Engine (DSGVO, BSI C5,
   EU AI Act, Data Act …) mit Verdikt-Tabelle (fail/warn/pass/unklar), Filter und
   benötigtem Nachweis je Befund.

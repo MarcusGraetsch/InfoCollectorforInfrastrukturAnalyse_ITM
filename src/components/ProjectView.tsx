@@ -51,6 +51,7 @@ interface Props {
   onUpdateRoles: (roles: import('../types').RoleAssignment[]) => void;
   onUpdateGovernanceTopics: (topics: import('../types').GovernanceTopic[]) => void;
   onUpdateNachhaltigkeit: (annahmen: import('../types').NachhaltigkeitsAnnahmen) => void;
+  onEditObject: (category: import('../types').CategoryKey, id: string) => void;
   onOpenCloudWizard: (id: string) => void;
   onRestore: (state: AppState) => void;
   onReload: () => void;
@@ -137,7 +138,7 @@ const GROUPS = [
   },
 ];
 
-export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeholder, onUpdateMeetings, onUpdateAnwendung, onUpdateTCO, onUpdateNIS2, onUpdateEvidence, onUpdateBeziehungen, onUpdateIKT, onUpdateCustomCatalog, onUpdateRoles, onUpdateGovernanceTopics, onUpdateNachhaltigkeit, onOpenCloudWizard, onRestore, onReload }) => {
+export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeholder, onUpdateMeetings, onUpdateAnwendung, onUpdateTCO, onUpdateNIS2, onUpdateEvidence, onUpdateBeziehungen, onUpdateIKT, onUpdateCustomCatalog, onUpdateRoles, onUpdateGovernanceTopics, onUpdateNachhaltigkeit, onEditObject, onOpenCloudWizard, onRestore, onReload }) => {
   const [subTab, setSubTab] = useState<SubTab>('liefergegenstaende');
   const [activeGroup, setActiveGroup] = useState<string>(GROUPS[0].label);
 
@@ -294,7 +295,7 @@ export const ProjectView: React.FC<Props> = ({ state, onUpdateLG, onUpdateStakeh
         {subTab === 'zielarchitektur'    && <ZielarchitekturBetrieb state={state} onOpenCloudWizard={onOpenCloudWizard} />}
         {subTab === 'nis2'               && <NIS2Check state={state} assessment={state.nis2Assessment ?? { sektor: '', mitarbeiter: '', umsatzMio: '', kritis: 'Unklar', einstufung: 'Unklar', massnahmen: {}, notizen: '', erstelltAm: '' }} onUpdate={onUpdateNIS2} />}
         {subTab === 'euaiact'            && <EuAiActInventar state={state} onUpdateAnwendung={onUpdateAnwendung} />}
-        {subTab === 'souveraenitaet'     && <SouveraenitaetsBewertung state={state} onUpdateTopics={onUpdateGovernanceTopics} />}
+        {subTab === 'souveraenitaet'     && <SouveraenitaetsBewertung state={state} onUpdateTopics={onUpdateGovernanceTopics} onEditObject={onEditObject} />}
         {subTab === 'nachweise'          && <EvidenceKatalog state={state} onUpdate={onUpdateEvidence} />}
         {subTab === 'quellen'            && <QuellenBibliothek />}
         {subTab === 'nachhaltigkeit'      && <NachhaltigkeitsModul state={state} onUpdate={onUpdateNachhaltigkeit} />}

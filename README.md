@@ -75,7 +75,7 @@ Das Skript stoppt Docker-Container und -Image, beendet laufende Prozesse und lö
 | **Objekt-Notizen** | Kommentar-Feed mit Timestamp + Autor je Objekt |
 | **Globale Suche** | `Ctrl+K` — Volltext über alle 14 Kategorien, Tastaturnavigation |
 | **Cloud-Readiness** | Score 0–100, 6R-Verteilung, SEAL-Level S0–S3, FinOps-Szenarien |
-| **Compliance** | NIS2-Check (geführte Maßnahmen-Wizards), EU AI Act Inventar & Shadow-AI, Cloud-Souveränität (6 Dimensions-Wizards), Evidence-Katalog, ISMS-/BCM-Rollen, BCM & Cloud-Exit, DORA IKT-Register, EnEfG/CO₂, SAM-Analyse |
+| **Compliance** | NIS2-Check (geführte Maßnahmen-Detailansicht), EU AI Act Inventar & Shadow-AI, Cloud-Souveränität (6 Dimensionen, Detailansicht & Maßnahmen), Evidence-Katalog, ISMS-/BCM-Rollen, BCM & Cloud-Exit, DORA IKT-Register, EnEfG/CO₂, SAM-Analyse |
 | **Governance-Modell** | Gemeinsames Control-/Evidence-/Rollen-Modell — NIS2, Souveränität, AI Act, BCM referenzieren zentrale Nachweise & Rollen ([Doku](docs/GOVERNANCE_MODEL.md)) |
 | **Analysen** | Infrastruktur-Landkarte, Schnittstellen-Graph, Schnittstellen-Matrix (n×n) |
 | **Berichte** | Executive Summary (Spider-Chart), Reifegradmodell, Vollständigkeits-Cockpit |

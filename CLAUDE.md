@@ -97,7 +97,7 @@ referenzieren zentrale Objekte statt eigener Felder. Vollständige Doku:
 - **`src/utils/governance.ts`** — reine Helper: `ROLE_CATALOG` (20 ISMS-/BCM-/NIS2-
   Rollen), `seedRoleAssignments` (idempotent), Fortschritts-/Referenz-Helfer,
   `findTopic`/`makeTopic`/`upsertTopic`, `GovernanceTopicInfo`.
-- **`src/components/GovernanceTopicDrawer.tsx`** — wiederverwendbarer Wizard-Drawer
+- **`src/components/GovernanceTopicDrawer.tsx`** — wiederverwendbarer Detail-/Maßnahmen-Drawer (einzelnes scrollbares Panel, kein Schritt-für-Schritt-Wizard)
   (Souveränität, BCM, Cloud-Exit): Warum-wichtig, Norm, Daten-Einfluss, Status/
   Reifegrad, Evidence-/Rollen-Verknüpfung, Workshop-Fragen, nächste Schritte.
 - **Konsumenten:** `RollenUebersicht.tsx` (Paket 4), `EvidenceKatalog.tsx` +
