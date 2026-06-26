@@ -7,7 +7,7 @@
 
 ## TL;DR
 
-Wir haben ein vollständiges, produktionsreifes Web-Tool für BSI-IT-Grundschutz-Strukturanalysen und Cloud-Readiness-Bewertungen mit Claude Code entwickelt — als Solo-Berater, ohne dediziertes Entwicklerteam, in einem iterativen KI-gestützten Prozess über mehrere Monate. Das Tool läuft heute im Einsatz bei Kundenprojekten, kein Backend, kein Login, vollständig offline-fähig. Zuletzt haben wir ein Souveränitäts-Assessment nach dem EU Cloud Sovereignty Framework v1.2.1 integriert — inklusive Change-of-Control-Stresstest. Dieser Bericht erklärt das Wie, Warum und Was.
+Ich habe ein vollständiges, produktionsreifes Web-Tool für BSI-IT-Grundschutz-Strukturanalysen und Cloud-Readiness-Bewertungen mit Claude Code entwickelt — als Solo-Berater, ohne dediziertes Entwicklerteam, in einem iterativen KI-gestützten Prozess über mehrere Monate. Das Tool läuft heute im Einsatz bei Kundenprojekten, kein Backend, kein Login, vollständig offline-fähig. Zuletzt haben wir ein Souveränitäts-Assessment nach dem EU Cloud Sovereignty Framework v1.2.1 integriert — inklusive Change-of-Control-Stresstest. Dieser Bericht erklärt das Wie, Warum und Was.
 
 ---
 
