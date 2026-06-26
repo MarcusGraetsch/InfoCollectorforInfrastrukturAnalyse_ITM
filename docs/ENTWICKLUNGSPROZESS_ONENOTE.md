@@ -1,4 +1,4 @@
-# Wie wir ein BSI-Strukturanalyse-Tool mit Claude Code entwickelt haben — und warum
+# Wie ich ein BSI-Strukturanalyse-Tool mit Claude Code entwickelt haben — und warum
 
 *Interne Notiz für Kollegen · Marcus Graetsch · Juni 2026*
 *Zum Pasten in OneNote — alle Abschnitte können einzeln übernommen werden.*
